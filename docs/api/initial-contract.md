@@ -155,3 +155,98 @@ Request:
 Response:
 
 Returns the updated role permission setting.
+
+## Users
+
+All user account APIs return backend-managed errors in the shared `{ "message": "..." }` shape.
+
+### `GET /api/users`
+
+Requires `USER_READ`.
+
+Returns login accounts with connected employee summary and assigned roles.
+
+```json
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "displayName": "시스템 관리자",
+    "employee": {
+      "id": 1,
+      "employeeNo": "AX-001",
+      "displayName": "시스템 관리자",
+      "departmentName": "운영관리",
+      "positionTitle": "시스템 관리자"
+    },
+    "roles": ["SUPER_ADMIN"]
+  }
+]
+```
+
+### `GET /api/users/available-employees`
+
+Requires `USER_READ`.
+
+Returns employees that do not have a connected login account.
+
+### `POST /api/users`
+
+Requires `USER_CREATE`.
+
+Request:
+
+```json
+{
+  "username": "hong.gildong",
+  "password": "1234",
+  "employeeId": 3,
+  "roles": ["EMPLOYEE"]
+}
+```
+
+Response:
+
+Returns the created user account.
+
+### `POST /api/users/employee-account`
+
+Requires both `EMPLOYEE_CREATE` and `USER_CREATE`.
+
+Creates an employee master record and a connected login account in one transaction.
+
+Request:
+
+```json
+{
+  "employeeNo": "E-0002",
+  "displayName": "홍길동",
+  "email": "member@axis.local",
+  "positionTitle": "운영 담당자",
+  "status": "ACTIVE",
+  "departmentId": 2,
+  "username": "hong.gildong",
+  "password": "1234",
+  "roles": ["EMPLOYEE"]
+}
+```
+
+Response:
+
+Returns the created user account with connected employee summary.
+
+### `PATCH /api/users/{id}/roles`
+
+Requires `USER_UPDATE`.
+
+Request:
+
+```json
+{
+  "roles": ["EMPLOYEE", "VIEWER"]
+}
+```
+
+Response:
+
+Returns the updated user account.

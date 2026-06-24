@@ -39,3 +39,20 @@
 - Added `PATCH /api/roles/{role}/permissions` for role permission updates.
 - Updated the access-control frontend screen to load, edit, and save backend role permissions.
 - Kept `SUPER_ADMIN` fixed to all permissions to avoid accidental lockout.
+
+### User Account Management
+
+- Added backend user account DTOs per API request/response contract.
+- Added `GET /api/users`, `GET /api/users/available-employees`, `POST /api/users`, and `PATCH /api/users/{id}/roles`.
+- Added a database constraint so one employee can be connected to only one login account.
+- Added frontend API DTOs and React Query hooks for user account management.
+- Added initial account creation and role assignment UI, later moved into the dedicated user management flow.
+- Kept user-facing API errors backend-owned and surfaced them through the shared frontend error helper.
+
+### User Management Flow Revision
+
+- Moved login account creation out of the permission screen.
+- Added a dedicated user management page for employee creation, login account setup, and role assignment in one flow.
+- Added `POST /api/users/employee-account` so employee and account creation succeed or fail together.
+- Kept the permission screen focused on role-permission configuration only.
+- Added shared frontend display label helpers to reduce raw code, role, status, and account identifier exposure in UI.

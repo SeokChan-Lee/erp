@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Save, ShieldCheck } from "lucide-react";
 
-import { useRolePermissionsQuery, useUpdateRolePermissionsMutation } from "./api/accessControlApi";
+import {
+  useRolePermissionsQuery,
+  useUpdateRolePermissionsMutation
+} from "./api/accessControlApi";
 import type { PermissionCode, RoleCode } from "./api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import { getPermissionMeta, getRoleMeta, permissionGroupMeta, permissionMeta } from "../../shared/config/accessControlMeta";
@@ -32,6 +35,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
       })),
     []
   );
+  const pageError = error || updateRolePermissions.error;
 
   useEffect(() => {
     if (!role) return;
@@ -60,9 +64,9 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
 
   return (
     <div className="space-y-6">
-      {error || updateRolePermissions.error ? (
+      {pageError ? (
         <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          {getErrorMessage(error || updateRolePermissions.error)}
+          {getErrorMessage(pageError)}
         </p>
       ) : null}
 
@@ -109,7 +113,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
                 <ShieldCheck size={18} strokeWidth={2.2} />
               </span>
               <div>
-                <p className="text-sm font-bold text-axis-ink">{role.role}</p>
+                <p className="text-sm font-bold text-axis-ink">{getRoleMeta(role.role).label}</p>
                 <p className="mt-1 text-sm font-medium text-axis-muted">선택된 권한 {selectedCount}개</p>
               </div>
             </div>
@@ -173,6 +177,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
           </div>
         </Panel>
       ) : null}
+
     </div>
   );
 }

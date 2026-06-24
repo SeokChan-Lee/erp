@@ -102,10 +102,10 @@ export const permissionGroupMeta: Record<PermissionGroup, { label: string; descr
 
 export const permissionMeta: Record<string, PermissionMeta> = {
   DASHBOARD_VIEW: { label: "대시보드 조회", description: "운영 대시보드를 확인합니다.", group: "dashboard" },
-  USER_READ: { label: "사용자 조회", description: "사용자 계정 목록과 상세 정보를 봅니다.", group: "user" },
-  USER_CREATE: { label: "사용자 생성", description: "새 사용자 계정을 만듭니다.", group: "user" },
-  USER_UPDATE: { label: "사용자 수정", description: "사용자 계정 정보를 수정합니다.", group: "user" },
-  USER_DELETE: { label: "사용자 삭제", description: "사용자 계정을 삭제하거나 비활성화합니다.", group: "user" },
+  USER_READ: { label: "사용자 조회", description: "로그인 사용자 현황과 상세 정보를 봅니다.", group: "user" },
+  USER_CREATE: { label: "사용자 생성", description: "새 로그인 사용자를 만듭니다.", group: "user" },
+  USER_UPDATE: { label: "사용자 수정", description: "로그인 사용자 정보를 수정합니다.", group: "user" },
+  USER_DELETE: { label: "사용자 삭제", description: "로그인 사용자를 삭제하거나 비활성화합니다.", group: "user" },
   ROLE_READ: { label: "역할 조회", description: "역할과 권한 구성을 확인합니다.", group: "role" },
   ROLE_UPDATE: { label: "역할 수정", description: "역할별 권한을 수정합니다.", group: "role" },
   EMPLOYEE_READ: { label: "직원 조회", description: "직원 정보를 조회합니다.", group: "employee" },
@@ -172,4 +172,3 @@ export function groupPermissions(permissions: string[]) {
     return groups;
   }, []);
 }
-

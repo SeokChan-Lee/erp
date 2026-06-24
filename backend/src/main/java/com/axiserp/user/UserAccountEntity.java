@@ -36,7 +36,7 @@ public class UserAccountEntity {
     private String displayName;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id")
+    @JoinColumn(name = "employee_id", unique = true)
     private EmployeeEntity employee;
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -79,5 +79,8 @@ public class UserAccountEntity {
     public Set<Role> getRoles() {
         return roles;
     }
-}
 
+    public void updateRoles(Set<Role> roles) {
+        this.roles = new LinkedHashSet<>(roles);
+    }
+}

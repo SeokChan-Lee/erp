@@ -23,8 +23,8 @@ export function LoginView() {
     formState: { errors }
   } = useForm<LoginFormValues>({
     defaultValues: {
-      username: "admin",
-      password: "admin123"
+      username: "",
+      password: ""
     }
   });
 
@@ -139,9 +139,8 @@ export function LoginView() {
             </Button>
 
             <div className="mt-6 rounded-lg border border-axis-border bg-axis-bg p-4 text-sm leading-6">
-              <p className="font-semibold text-axis-ink">테스트 계정</p>
-              <p className="font-semibold text-[#424245]">관리자: admin / admin123</p>
-              <p className="font-semibold text-[#424245]">직원: employee / employee123</p>
+              <p className="font-semibold text-axis-ink">데모 환경</p>
+              <p className="font-semibold text-[#424245]">관리자 계정 정보가 기본 입력되어 있습니다.</p>
             </div>
           </div>
         </form>

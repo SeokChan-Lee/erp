@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useLogoutMutation } from "../../features/auth/api/authApi";
 import type { AuthUser } from "../../features/auth/api/dto";
 import { getRoleMeta } from "../../shared/config/accessControlMeta";
+import { formatAccountDisplayName } from "../../shared/config/domainLabels";
 
 type AccountMenuProps = {
   user: AuthUser;
@@ -14,6 +15,7 @@ export function AccountMenu({ user }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
   const logoutMutation = useLogoutMutation();
   const ref = useRef<HTMLDivElement | null>(null);
+  const displayName = formatAccountDisplayName(user);
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -35,8 +37,10 @@ export function AccountMenu({ user }: AccountMenuProps) {
           <UserRound size={17} strokeWidth={2.3} />
         </span>
         <span className="hidden min-w-0 flex-1 md:block">
-          <span className="block text-[15px] font-bold leading-5 text-axis-ink">{user.username}</span>
-          <span className="block truncate text-[13px] font-medium leading-4 text-[#424245]">{user.displayName}</span>
+          <span className="block text-[15px] font-bold leading-5 text-axis-ink">{displayName}</span>
+          <span className="block truncate text-[13px] font-medium leading-4 text-[#424245]">
+            {user.roles.map((role) => getRoleMeta(role).label).join(", ")}
+          </span>
         </span>
         <ChevronDown className={open ? "shrink-0 rotate-180 text-axis-ink transition" : "shrink-0 text-axis-ink transition"} size={17} strokeWidth={2.4} />
       </button>
@@ -44,8 +48,8 @@ export function AccountMenu({ user }: AccountMenuProps) {
       {open ? (
         <div className="absolute right-0 top-14 z-30 w-80 overflow-hidden rounded-xl border border-axis-border-strong bg-white shadow-[0_18px_45px_rgba(0,0,0,0.14)]">
           <div className="border-b border-axis-border px-5 py-5">
-            <p className="text-[15px] font-bold leading-5 text-axis-ink">{user.displayName}</p>
-            <p className="mt-1 text-[13px] font-medium leading-5 text-[#424245]">아이디: {user.username}</p>
+            <p className="text-[15px] font-bold leading-5 text-axis-ink">{displayName}</p>
+            <p className="mt-1 text-[13px] font-medium leading-5 text-[#424245]">현재 로그인된 사용자입니다.</p>
             <div className="mt-4 flex flex-wrap gap-1.5">
               {user.roles.map((role) => (
                 <span key={role} className="rounded-full bg-axis-bg px-2.5 py-1 text-xs font-bold text-[#424245]">

@@ -1,6 +1,7 @@
 import { useMeQuery } from "../auth/api/authApi";
 import { Panel } from "../../shared/ui/Panel";
 import { getPermissionMeta, getRoleMeta, groupPermissions, permissionGroupMeta } from "../../shared/config/accessControlMeta";
+import { formatAccountDisplayName, formatRoleList } from "../../shared/config/domainLabels";
 
 export function MyPageView() {
   const { data: user } = useMeQuery();
@@ -10,9 +11,8 @@ export function MyPageView() {
     <div className="space-y-6">
       <Panel title="마이페이지" description="현재 로그인한 계정의 기본 정보입니다.">
         <div className="grid gap-4 md:grid-cols-2">
-          <InfoItem label="아이디" value={user?.username ?? "-"} />
-          <InfoItem label="이름" value={user?.displayName ?? "-"} />
-          <InfoItem label="역할" value={user?.roles.map((role) => getRoleMeta(role).label).join(", ") ?? "-"} />
+          <InfoItem label="사용자" value={user ? formatAccountDisplayName(user) : "-"} />
+          <InfoItem label="역할" value={user ? formatRoleList(user.roles) : "-"} />
           <InfoItem label="권한 수" value={`${user?.permissions.length ?? 0}개`} />
         </div>
       </Panel>

@@ -9,16 +9,11 @@ import {
 } from "./api/organizationApi";
 import type { Employee, EmployeeCreatePayload, EmployeeStatus, EmployeeUpdatePayload } from "./api/dto";
 import { Button } from "../../shared/ui/Button";
+import { employeeStatusMeta } from "../../shared/config/domainLabels";
 import { getErrorMessage } from "../../shared/api/http";
 import { MetricCard } from "../../shared/ui/MetricCard";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
-
-const employeeStatusMeta: Record<EmployeeStatus, { label: string; className: string }> = {
-  ACTIVE: { label: "재직", className: "bg-emerald-50 text-emerald-700" },
-  ON_LEAVE: { label: "휴직", className: "bg-amber-50 text-amber-700" },
-  RESIGNED: { label: "퇴사", className: "bg-axis-bg text-axis-muted" }
-};
 
 const initialForm: EmployeeCreatePayload = {
   employeeNo: "",
@@ -132,7 +127,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
       </div>
 
       {canCreateEmployee ? (
-        <Panel title="직원 등록" description="직원 기본 정보를 등록합니다. 계정 생성과 역할 부여는 다음 단계에서 분리해 연결합니다.">
+        <Panel title="직원 등록" description="직원 마스터 정보를 등록합니다. 로그인 계정까지 함께 만들 때는 사용자 관리에서 처리합니다.">
           <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]" onSubmit={handleSubmit}>
             <label className="block">
               <span className="text-sm font-semibold text-axis-ink">직원 번호</span>
@@ -213,7 +208,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
               <article key={department.id} className="rounded-lg border border-axis-border bg-axis-bg p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-bold text-axis-blue">{department.code}</p>
+                    <p className="text-xs font-bold text-axis-blue">부서</p>
                     <h3 className="mt-2 text-lg font-semibold text-axis-ink">{department.name}</h3>
                     <p className="mt-2 text-sm leading-6 text-axis-muted">{department.description}</p>
                   </div>
@@ -324,7 +319,6 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
                     </td>
                     <td className="px-4 py-4">
                       <p className="text-sm font-semibold text-axis-ink">{employee.department.name}</p>
-                      <p className="mt-1 text-xs font-medium text-axis-muted">{employee.department.code}</p>
                     </td>
                     <td className="px-4 py-4 text-sm font-medium text-axis-ink">{employee.positionTitle}</td>
                     <td className="px-4 py-4">

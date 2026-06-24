@@ -1,4 +1,4 @@
-import { BarChart3, Building2, Clock3, LayoutDashboard, ShieldCheck, UserRound } from "lucide-react";
+import { BarChart3, Building2, Clock3, LayoutDashboard, ShieldCheck, UserCog, UserRound } from "lucide-react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import { AccountMenu } from "./components/AccountMenu";
@@ -9,12 +9,14 @@ import { useMeQuery } from "../features/auth/api/authApi";
 import { DashboardView } from "../features/dashboard/DashboardView";
 import { MyPageView } from "../features/my-page/MyPageView";
 import { OrganizationView } from "../features/organization/OrganizationView";
+import { UserManagementView } from "../features/user-management/UserManagementView";
 import { useAppStore } from "../shared/store/appStore";
 import { Button } from "../shared/ui/Button";
 
 const navItems = [
   { to: "/dashboard", label: "대시보드", description: "오늘의 운영 현황", icon: LayoutDashboard, permission: "DASHBOARD_VIEW" },
   { to: "/organization", label: "조직/직원", description: "부서와 직원 현황", icon: Building2, permission: "EMPLOYEE_READ" },
+  { to: "/users", label: "사용자 관리", description: "직원 등록과 계정 설정", icon: UserCog, permission: "USER_READ" },
   { to: "/attendance", label: "출퇴근", description: "근태 체크 및 기록", icon: Clock3, permission: "ATTENDANCE_READ_SELF" },
   { to: "/access", label: "권한", description: "역할과 권한 관리", icon: ShieldCheck, permission: "ROLE_READ" },
   { to: "/my-page", label: "마이페이지", description: "내 계정 정보", icon: UserRound }
@@ -41,6 +43,7 @@ export function App() {
   const title = pageTitle(location.pathname);
   const visibleNavItems = navItems.filter((item) => !item.permission || user.permissions.includes(item.permission));
   const canReadEmployees = user.permissions.includes("EMPLOYEE_READ");
+  const canReadUsers = user.permissions.includes("USER_READ");
   const canReadRoles = user.permissions.includes("ROLE_READ");
   const canReadAttendance = user.permissions.includes("ATTENDANCE_READ_SELF");
 
@@ -113,6 +116,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardView />} />
             <Route path="/organization" element={canReadEmployees ? <OrganizationView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+            <Route path="/users" element={canReadUsers ? <UserManagementView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/attendance" element={canReadAttendance ? <AttendanceView /> : <Navigate to="/dashboard" replace />} />
             <Route path="/access" element={canReadRoles ? <AccessControlView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/my-page" element={<MyPageView />} />
@@ -126,6 +130,7 @@ export function App() {
 
 function pageTitle(pathname: string) {
   if (pathname === "/organization") return "조직/직원 관리";
+  if (pathname === "/users") return "사용자 관리";
   if (pathname === "/attendance") return "출퇴근 관리";
   if (pathname === "/access") return "권한 관리";
   if (pathname === "/my-page") return "마이페이지";

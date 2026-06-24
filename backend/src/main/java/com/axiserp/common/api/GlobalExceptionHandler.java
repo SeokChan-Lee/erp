@@ -28,6 +28,8 @@ public class GlobalExceptionHandler {
             Map.entry("positionTitle", "직책"),
             Map.entry("status", "상태"),
             Map.entry("departmentId", "부서"),
+            Map.entry("employeeId", "직원"),
+            Map.entry("roles", "역할"),
             Map.entry("permissions", "권한")
     );
 
