@@ -1,12 +1,16 @@
 package com.axiserp.attendance;
 
 import com.axiserp.attendance.api.AttendanceRecordResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.List;
 
 @Service
@@ -72,6 +76,26 @@ public class AttendanceService {
     public List<AttendanceRecordResponse> todayAll() {
         LocalDate today = LocalDate.now();
         return attendanceRecordRepository.findByWorkDate(today).stream()
+                .map(this::toRecord)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordResponse> monthlyFor(String username, int year, int month) {
+        YearMonth targetMonth;
+        try {
+            targetMonth = YearMonth.of(year, month);
+        } catch (DateTimeException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 월이 올바르지 않습니다.");
+        }
+
+        return attendanceRecordRepository
+                .findByUsernameAndWorkDateBetweenOrderByWorkDateAsc(
+                        username,
+                        targetMonth.atDay(1),
+                        targetMonth.atEndOfMonth()
+                )
+                .stream()
                 .map(this::toRecord)
                 .toList();
     }

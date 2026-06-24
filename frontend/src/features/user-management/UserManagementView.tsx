@@ -16,8 +16,11 @@ import { getRoleMeta, roleMeta } from "../../shared/config/accessControlMeta";
 import { employeeStatusMeta, formatAccountDisplayName, formatRoleList } from "../../shared/config/domainLabels";
 import { Button } from "../../shared/ui/Button";
 import { MetricCard } from "../../shared/ui/MetricCard";
+import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
+
+const PAGE_SIZE = 20;
 
 const initialForm: EmployeeAccountCreatePayload = {
   employeeNo: "",
@@ -51,6 +54,7 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
   const updateUserRoles = useUpdateUserRolesMutation();
   const [form, setForm] = useState<EmployeeAccountCreatePayload>(initialForm);
   const [linkForm, setLinkForm] = useState(initialLinkForm);
+  const [accountPage, setAccountPage] = useState(1);
   const canCreate = permissions.includes("EMPLOYEE_CREATE") && permissions.includes("USER_CREATE");
   const canCreateUser = permissions.includes("USER_CREATE");
   const canUpdateRoles = permissions.includes("USER_UPDATE");
@@ -86,6 +90,12 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
     [availableEmployees]
   );
   const activeAccountCount = accounts.filter((account) => account.employee !== null).length;
+  const totalAccountPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE));
+  const currentAccountPage = Math.min(accountPage, totalAccountPages);
+  const paginatedAccounts = useMemo(
+    () => accounts.slice((currentAccountPage - 1) * PAGE_SIZE, currentAccountPage * PAGE_SIZE),
+    [accounts, currentAccountPage]
+  );
   const formReady =
     selectedDepartmentId > 0 &&
     form.employeeNo.trim().length > 0 &&
@@ -432,7 +442,7 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
                 </tr>
               </thead>
               <tbody className="divide-y divide-axis-border bg-white">
-                {accounts.map((account) => (
+                {paginatedAccounts.map((account) => (
                   <tr key={account.id}>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
@@ -479,6 +489,12 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
                 ))}
               </tbody>
             </table>
+            <Pagination
+              page={currentAccountPage}
+              pageSize={PAGE_SIZE}
+              totalItems={accounts.length}
+              onPageChange={setAccountPage}
+            />
           </div>
         )}
       </Panel>

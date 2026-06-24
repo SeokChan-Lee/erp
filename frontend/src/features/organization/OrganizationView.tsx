@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Building2, Mail, Plus, UsersRound } from "lucide-react";
 
 import {
@@ -12,8 +12,11 @@ import { Button } from "../../shared/ui/Button";
 import { employeeStatusMeta } from "../../shared/config/domainLabels";
 import { getErrorMessage } from "../../shared/api/http";
 import { MetricCard } from "../../shared/ui/MetricCard";
+import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
+
+const PAGE_SIZE = 20;
 
 const initialForm: EmployeeCreatePayload = {
   employeeNo: "",
@@ -35,6 +38,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
   const updateEmployee = useUpdateEmployeeMutation();
   const [form, setForm] = useState<EmployeeCreatePayload>(initialForm);
   const [editForm, setEditForm] = useState<EmployeeEditForm | null>(null);
+  const [employeePage, setEmployeePage] = useState(1);
   const canCreateEmployee = permissions.includes("EMPLOYEE_CREATE");
   const canUpdateEmployee = permissions.includes("EMPLOYEE_UPDATE");
 
@@ -48,6 +52,12 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
     value: status as EmployeeStatus,
     label: meta.label
   }));
+  const totalEmployeePages = Math.max(1, Math.ceil(employees.length / PAGE_SIZE));
+  const currentEmployeePage = Math.min(employeePage, totalEmployeePages);
+  const paginatedEmployees = useMemo(
+    () => employees.slice((currentEmployeePage - 1) * PAGE_SIZE, currentEmployeePage * PAGE_SIZE),
+    [currentEmployeePage, employees]
+  );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -301,7 +311,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
               </tr>
             </thead>
             <tbody className="divide-y divide-axis-border bg-white">
-              {employees.map((employee) => {
+              {paginatedEmployees.map((employee) => {
                 const status = employeeStatusMeta[employee.status];
 
                 return (
@@ -371,6 +381,12 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
               })}
             </tbody>
           </table>
+          <Pagination
+            page={currentEmployeePage}
+            pageSize={PAGE_SIZE}
+            totalItems={employees.length}
+            onPageChange={setEmployeePage}
+          />
         </div>
       </Panel>
     </div>

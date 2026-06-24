@@ -10,6 +10,7 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
 
     Optional<AttendanceRecordEntity> findByUsernameAndWorkDate(String username, LocalDate workDate);
 
+    List<AttendanceRecordEntity> findByUsernameAndWorkDateBetweenOrderByWorkDateAsc(String username, LocalDate startDate, LocalDate endDate);
+
     List<AttendanceRecordEntity> findByWorkDate(LocalDate workDate);
 }
-

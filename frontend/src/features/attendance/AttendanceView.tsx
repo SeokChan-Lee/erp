@@ -1,25 +1,28 @@
-import { useAttendanceMutation, useTodayAttendanceQuery } from "./api/attendanceApi";
-import type { AttendanceStatus } from "./api/dto";
+import { useState } from "react";
+
+import { useAttendanceMutation, useMonthlyAttendanceQuery, useTodayAttendanceQuery } from "./api/attendanceApi";
+import { AttendanceCalendar } from "./components/AttendanceCalendar";
+import { attendanceStatusMeta } from "./config/attendanceMeta";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
 import { Panel } from "../../shared/ui/Panel";
 
-const statusLabels: Record<AttendanceStatus, string> = {
-  NOT_CHECKED_IN: "출근 전",
-  WORKING: "근무 중",
-  NORMAL: "정상",
-  LATE: "지각",
-  EARLY_LEAVE: "조퇴",
-  ABSENT: "결근"
-};
-
 export function AttendanceView() {
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
   const { data: today, error } = useTodayAttendanceQuery();
+  const {
+    data: monthlyRecords = [],
+    error: monthlyError,
+    isLoading: monthlyLoading
+  } = useMonthlyAttendanceQuery(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
   const checkInMutation = useAttendanceMutation("check-in");
   const checkOutMutation = useAttendanceMutation("check-out");
   const loading = checkInMutation.isPending || checkOutMutation.isPending;
 
-  const status = today ? statusLabels[today.status] : "확인 중";
+  const status = today ? attendanceStatusMeta[today.status].label : "확인 중";
 
   return (
     <div className="space-y-6">
@@ -43,45 +46,24 @@ export function AttendanceView() {
         </div>
       </Panel>
 
-      {error || checkInMutation.error || checkOutMutation.error ? (
+      {error || monthlyError || checkInMutation.error || checkOutMutation.error ? (
         <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          {getErrorMessage(error || checkInMutation.error || checkOutMutation.error)}
+          {getErrorMessage(error || monthlyError || checkInMutation.error || checkOutMutation.error)}
         </p>
       ) : null}
 
-      <Panel title="최근 근태 기록" description="월별 근태 API가 추가되면 최근 기록과 관리자 수정 이력을 함께 표시합니다.">
-        <div className="overflow-hidden rounded-lg border border-axis-border">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead className="bg-axis-bg text-xs text-axis-muted">
-              <tr>
-                <th className="px-4 py-3 font-semibold">일자</th>
-                <th className="px-4 py-3 font-semibold">출근</th>
-                <th className="px-4 py-3 font-semibold">퇴근</th>
-                <th className="px-4 py-3 font-semibold">상태</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-axis-border bg-white">
-              {today ? (
-                <tr>
-                  <td className="px-4 py-4 font-medium text-axis-ink">{today.workDate}</td>
-                  <td className="px-4 py-4 text-axis-muted">{formatTime(today.checkInAt)}</td>
-                  <td className="px-4 py-4 text-axis-muted">{formatTime(today.checkOutAt)}</td>
-                  <td className="px-4 py-4">
-                    <span className="rounded-full bg-axis-bg px-3 py-1 text-xs font-semibold text-axis-ink">
-                      {statusLabels[today.status]}
-                    </span>
-                  </td>
-                </tr>
-              ) : (
-                <tr>
-                  <td className="px-4 py-5 text-axis-muted" colSpan={4}>
-                    근태 기록을 불러오는 중입니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <Panel title="월간 근태 캘린더" description="일자별 출근, 퇴근, 근태 상태를 캘린더로 확인합니다.">
+        {monthlyLoading ? (
+          <p className="rounded-lg border border-axis-border bg-white px-4 py-5 text-sm font-semibold text-axis-muted">
+            월간 근태 기록을 불러오는 중입니다.
+          </p>
+        ) : (
+          <AttendanceCalendar
+            monthDate={visibleMonth}
+            records={monthlyRecords}
+            onMonthChange={setVisibleMonth}
+          />
+        )}
       </Panel>
     </div>
   );

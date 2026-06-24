@@ -68,6 +68,12 @@ Creates or updates today's attendance check-out for the current user.
 
 Returns today's attendance for the current user.
 
+### `GET /api/attendance/me/monthly?year=2026&month=6`
+
+Requires `ATTENDANCE_READ_SELF`.
+
+Returns the current user's attendance records in the requested month.
+
 ### `GET /api/admin/attendance/today`
 
 Requires `ATTENDANCE_READ_ALL`.

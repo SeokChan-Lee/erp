@@ -56,3 +56,11 @@
 - Added `POST /api/users/employee-account` so employee and account creation succeed or fail together.
 - Kept the permission screen focused on role-permission configuration only.
 - Added shared frontend display label helpers to reduce raw code, role, status, and account identifier exposure in UI.
+
+### Pagination and Attendance Calendar
+
+- Added a shared frontend pagination component with a fixed page size of 20.
+- Applied pagination to the organization employee list.
+- Applied pagination to the registered user role management table.
+- Added `GET /api/attendance/me/monthly` for monthly self attendance lookup.
+- Replaced the attendance recent-record table with a monthly calendar component.

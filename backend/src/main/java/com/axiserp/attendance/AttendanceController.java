@@ -7,6 +7,7 @@ import com.axiserp.permission.Permission;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,6 +41,16 @@ public class AttendanceController {
     public AttendanceRecordResponse today(@CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId) {
         AuthUserResponse user = authService.requirePermission(sessionId, Permission.ATTENDANCE_READ_SELF);
         return attendanceService.todayFor(user.username());
+    }
+
+    @GetMapping("/attendance/me/monthly")
+    public List<AttendanceRecordResponse> monthly(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.ATTENDANCE_READ_SELF);
+        return attendanceService.monthlyFor(user.username(), year, month);
     }
 
     @GetMapping("/admin/attendance/today")
