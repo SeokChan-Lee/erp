@@ -7,6 +7,7 @@ import java.util.Set;
 
 public record UserAccountUpdateRequest(
         @Size(min = 4) String password,
-        @Size(min = 1) Set<Role> roles
+        @Size(min = 1) Set<Role> roles,
+        Boolean active
 ) {
 }

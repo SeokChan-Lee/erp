@@ -5,6 +5,7 @@ import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.attendance.api.AttendanceRecordResponse;
 import com.axiserp.attendance.api.AttendanceChangeRequestApproveRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestCreateRequest;
+import com.axiserp.attendance.api.AttendanceChangeRequestRejectRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestResponse;
 import com.axiserp.attendance.api.AttendanceUpdateRequest;
 import com.axiserp.permission.Permission;
@@ -97,7 +98,24 @@ public class AttendanceController {
             @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
             @Valid @RequestBody AttendanceChangeRequestApproveRequest request
     ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.ATTENDANCE_APPROVE);
+        return attendanceService.approveChangeRequests(user.username(), request.requestIds());
+    }
+
+    @PatchMapping("/admin/attendance/change-requests/reject")
+    public List<AttendanceChangeRequestResponse> rejectChangeRequests(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @Valid @RequestBody AttendanceChangeRequestRejectRequest request
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.ATTENDANCE_APPROVE);
+        return attendanceService.rejectChangeRequests(user.username(), request.requestIds(), request.rejectReason());
+    }
+
+    @GetMapping("/admin/attendance/change-requests/history")
+    public List<AttendanceChangeRequestResponse> changeRequestHistory(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId
+    ) {
         authService.requirePermission(sessionId, Permission.ATTENDANCE_APPROVE);
-        return attendanceService.approveChangeRequests(request.requestIds());
+        return attendanceService.changeRequestHistory();
     }
 }

@@ -33,10 +33,16 @@ public class AuthService {
     private final Map<Role, Set<Permission>> rolePermissions = new EnumMap<>(Role.class);
     private final UserAccountRepository userAccountRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final PasswordService passwordService;
 
-    public AuthService(UserAccountRepository userAccountRepository, RolePermissionRepository rolePermissionRepository) {
+    public AuthService(
+            UserAccountRepository userAccountRepository,
+            RolePermissionRepository rolePermissionRepository,
+            PasswordService passwordService
+    ) {
         this.userAccountRepository = userAccountRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.passwordService = passwordService;
     }
 
     @PostConstruct
@@ -52,12 +58,18 @@ public class AuthService {
         refreshRolePermissions(defaults);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResult login(LoginRequest request) {
         UserAccountEntity account = userAccountRepository.findByUsername(request.username())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."));
-        if (!account.getPassword().equals(request.password())) {
+        if (!account.isActive()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "비활성화된 계정입니다. 관리자에게 문의해 주세요.");
+        }
+        if (!passwordService.matches(request.password(), account.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+        if (passwordService.needsUpgrade(account.getPassword())) {
+            account.updatePassword(passwordService.encode(request.password()));
         }
 
         String sessionId = UUID.randomUUID().toString();
@@ -80,6 +92,10 @@ public class AuthService {
         }
         UserAccountEntity account = userAccountRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."));
+        if (!account.isActive()) {
+            sessions.remove(sessionId);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
         return toAuthUser(account);
     }
 
@@ -90,6 +106,7 @@ public class AuthService {
         }
         return Optional.ofNullable(sessions.get(sessionId))
                 .flatMap(userAccountRepository::findByUsername)
+                .filter(UserAccountEntity::isActive)
                 .map(this::toAuthUser);
     }
 

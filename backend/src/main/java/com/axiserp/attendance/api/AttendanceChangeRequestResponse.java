@@ -16,7 +16,10 @@ public record AttendanceChangeRequestResponse(
         LocalTime requestedCheckOutAt,
         String reason,
         AttendanceChangeRequestStatus status,
-        LocalDateTime requestedAt
+        LocalDateTime requestedAt,
+        LocalDateTime processedAt,
+        String processedBy,
+        String rejectReason
 ) {
     public static AttendanceChangeRequestResponse from(AttendanceChangeRequestEntity request, String requesterName) {
         return new AttendanceChangeRequestResponse(
@@ -28,7 +31,10 @@ public record AttendanceChangeRequestResponse(
                 request.getRequestedCheckOutAt(),
                 request.getReason(),
                 request.getStatus(),
-                request.getRequestedAt()
+                request.getRequestedAt(),
+                request.getProcessedAt(),
+                request.getProcessedBy(),
+                request.getRejectReason()
         );
     }
 }

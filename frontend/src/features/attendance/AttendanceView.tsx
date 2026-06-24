@@ -2,22 +2,28 @@ import { FormEvent, useMemo, useState } from "react";
 
 import {
   useApproveAttendanceChangeRequestsMutation,
+  useAttendanceChangeRequestHistoryQuery,
   useAttendanceMutation,
   useCreateAttendanceChangeRequestMutation,
   useMonthlyAttendanceQuery,
   usePendingAttendanceChangeRequestsQuery,
+  useRejectAttendanceChangeRequestsMutation,
   useTodayAttendanceQuery,
   useUpdateAttendanceMutation
 } from "./api/attendanceApi";
-import type { AttendanceChangeRequest } from "./api/dto";
+import type { AttendanceChangeRequest, AttendanceChangeRequestStatus } from "./api/dto";
 import { AttendanceCalendar } from "./components/AttendanceCalendar";
 import { attendanceStatusMeta } from "./config/attendanceMeta";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
 import { DateField } from "../../shared/ui/DateField";
 import { Modal } from "../../shared/ui/Modal";
+import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { SelectField } from "../../shared/ui/SelectField";
 import { TimeField } from "../../shared/ui/TimeField";
+
+const HISTORY_PAGE_SIZE = 20;
 
 const initialRequestForm = {
   workDate: formatDateInputValue(new Date()),
@@ -35,6 +41,11 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
   const [requestForm, setRequestForm] = useState(initialRequestForm);
   const [selectedRequestIds, setSelectedRequestIds] = useState<number[]>([]);
   const [detailRequest, setDetailRequest] = useState<AttendanceChangeRequest | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<"ALL" | AttendanceChangeRequestStatus>("ALL");
+  const [historyPage, setHistoryPage] = useState(1);
   const canApproveAttendance = permissions.includes("ATTENDANCE_APPROVE");
   const canUpdateAttendance = permissions.includes("ATTENDANCE_UPDATE");
   const { data: today, error } = useTodayAttendanceQuery();
@@ -48,9 +59,15 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
     error: pendingRequestsError,
     isLoading: pendingRequestsLoading
   } = usePendingAttendanceChangeRequestsQuery(canApproveAttendance);
+  const {
+    data: requestHistory = [],
+    error: requestHistoryError,
+    isLoading: requestHistoryLoading
+  } = useAttendanceChangeRequestHistoryQuery(canApproveAttendance);
   const createChangeRequest = useCreateAttendanceChangeRequestMutation();
   const updateAttendance = useUpdateAttendanceMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
   const approveChangeRequests = useApproveAttendanceChangeRequestsMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
+  const rejectChangeRequests = useRejectAttendanceChangeRequestsMutation();
   const checkInMutation = useAttendanceMutation("check-in");
   const checkOutMutation = useAttendanceMutation("check-out");
   const loading = checkInMutation.isPending || checkOutMutation.isPending;
@@ -66,6 +83,42 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
   const allSelected = pendingRequests.length > 0 && selectedRequestIds.length === pendingRequests.length;
 
   const selectedRequestSet = useMemo(() => new Set(selectedRequestIds), [selectedRequestIds]);
+  const historyStatusOptions = useMemo(
+    () => [
+      { value: "ALL" as const, label: "전체" },
+      { value: "PENDING" as const, label: "대기" },
+      { value: "APPROVED" as const, label: "승인" },
+      { value: "REJECTED" as const, label: "반려" }
+    ],
+    []
+  );
+  const filteredHistory = useMemo(() => {
+    const keyword = historySearch.trim().toLowerCase();
+
+    return requestHistory.filter((request) => {
+      const keywordText = [
+        request.requesterName,
+        request.username,
+        request.workDate,
+        request.reason,
+        request.rejectReason,
+        request.processedBy
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const keywordMatched = keyword.length === 0 || keywordText.includes(keyword);
+      const statusMatched = historyStatusFilter === "ALL" || request.status === historyStatusFilter;
+
+      return keywordMatched && statusMatched;
+    });
+  }, [historySearch, historyStatusFilter, requestHistory]);
+  const totalHistoryPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE));
+  const currentHistoryPage = Math.min(historyPage, totalHistoryPages);
+  const paginatedHistory = useMemo(
+    () => filteredHistory.slice((currentHistoryPage - 1) * HISTORY_PAGE_SIZE, currentHistoryPage * HISTORY_PAGE_SIZE),
+    [currentHistoryPage, filteredHistory]
+  );
 
   const handleRequestSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -122,6 +175,25 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
     );
   };
 
+  const handleRejectSelected = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (selectedRequestIds.length === 0 || rejectReason.trim().length === 0) return;
+
+    rejectChangeRequests.mutate(
+      {
+        requestIds: selectedRequestIds,
+        rejectReason: rejectReason.trim()
+      },
+      {
+        onSuccess: () => {
+          setRejectOpen(false);
+          setRejectReason("");
+          setSelectedRequestIds([]);
+        }
+      }
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Panel title="오늘 근태" description="로그인 쿠키를 기준으로 현재 사용자의 출퇴근 기록을 처리합니다.">
@@ -150,20 +222,24 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
       {error ||
       monthlyError ||
       pendingRequestsError ||
+      requestHistoryError ||
       checkInMutation.error ||
       checkOutMutation.error ||
       createChangeRequest.error ||
       updateAttendance.error ||
+      rejectChangeRequests.error ||
       approveChangeRequests.error ? (
         <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {getErrorMessage(
             error ||
               monthlyError ||
               pendingRequestsError ||
+              requestHistoryError ||
               checkInMutation.error ||
               checkOutMutation.error ||
               createChangeRequest.error ||
               updateAttendance.error ||
+              rejectChangeRequests.error ||
               approveChangeRequests.error
           )}
         </p>
@@ -240,14 +316,103 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                 </tbody>
               </table>
               <div className="flex justify-end border-t border-axis-border bg-white px-4 py-3">
-                <Button
-                  disabled={selectedRequestIds.length === 0 || approveChangeRequests.isPending}
-                  type="button"
-                  onClick={handleApproveSelected}
-                >
-                  {approveChangeRequests.isPending ? "승인 중" : `선택 ${selectedRequestIds.length}건 승인`}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    disabled={selectedRequestIds.length === 0 || rejectChangeRequests.isPending}
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setRejectOpen(true)}
+                  >
+                    선택 {selectedRequestIds.length}건 반려
+                  </Button>
+                  <Button
+                    disabled={selectedRequestIds.length === 0 || approveChangeRequests.isPending}
+                    type="button"
+                    onClick={handleApproveSelected}
+                  >
+                    {approveChangeRequests.isPending ? "승인 중" : `선택 ${selectedRequestIds.length}건 승인`}
+                  </Button>
+                </div>
               </div>
+            </div>
+          )}
+        </Panel>
+      ) : null}
+
+      {canApproveAttendance ? (
+        <Panel title="근태 수정 처리 이력" description="근태 수정 요청의 승인, 반려 처리 결과를 확인합니다.">
+          {requestHistoryLoading ? (
+            <p className="text-sm font-semibold text-axis-muted">처리 이력을 불러오는 중입니다.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[1.4fr_0.7fr]">
+                <label className="block">
+                  <span className="text-sm font-semibold text-axis-ink">검색</span>
+                  <input
+                    className="axis-field mt-2"
+                    placeholder="직원, 일자, 사유, 처리자"
+                    value={historySearch}
+                    onChange={(event) => {
+                      setHistorySearch(event.target.value);
+                      setHistoryPage(1);
+                    }}
+                  />
+                </label>
+                <SelectField
+                  label="처리 상태"
+                  value={historyStatusFilter}
+                  options={historyStatusOptions}
+                  onChange={(status) => {
+                    setHistoryStatusFilter(status);
+                    setHistoryPage(1);
+                  }}
+                />
+              </div>
+
+              {filteredHistory.length === 0 ? (
+                <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
+                  조건에 맞는 근태 수정 이력이 없습니다.
+                </p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-axis-border">
+                  <table className="w-full min-w-[1080px] border-collapse text-left">
+                    <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                      <tr>
+                        <th className="px-4 py-3">직원</th>
+                        <th className="px-4 py-3">수정 일자</th>
+                        <th className="px-4 py-3">요청 시간</th>
+                        <th className="px-4 py-3">상태</th>
+                        <th className="px-4 py-3">처리자</th>
+                        <th className="px-4 py-3">사유</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-axis-border bg-white">
+                      {paginatedHistory.map((request) => (
+                        <tr key={request.id}>
+                          <td className="px-4 py-4 text-sm font-bold text-axis-ink">{request.requesterName}</td>
+                          <td className="px-4 py-4 text-sm font-medium text-axis-muted">{request.workDate}</td>
+                          <td className="px-4 py-4 text-sm font-medium text-axis-ink">
+                            {request.requestedCheckInAt.slice(0, 5)} - {request.requestedCheckOutAt.slice(0, 5)}
+                          </td>
+                          <td className="px-4 py-4">
+                            <StatusBadge status={request.status} />
+                          </td>
+                          <td className="px-4 py-4 text-sm font-medium text-axis-muted">{request.processedBy ?? "-"}</td>
+                          <td className="max-w-[320px] px-4 py-4 text-sm font-medium text-axis-muted">
+                            <span className="block truncate">{request.status === "REJECTED" ? request.rejectReason : request.reason}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <Pagination
+                    page={currentHistoryPage}
+                    pageSize={HISTORY_PAGE_SIZE}
+                    totalItems={filteredHistory.length}
+                    onPageChange={setHistoryPage}
+                  />
+                </div>
+              )}
             </div>
           )}
         </Panel>
@@ -287,20 +452,20 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
           <DateField
             label="날짜"
             value={requestForm.workDate}
-            onChange={(event) => setRequestForm((current) => ({ ...current, workDate: event.target.value }))}
+            onChange={(workDate) => setRequestForm((current) => ({ ...current, workDate }))}
             required
           />
           <div className="grid gap-4 md:grid-cols-2">
             <TimeField
               label="출근 시간"
               value={requestForm.requestedCheckInAt}
-              onChange={(event) => setRequestForm((current) => ({ ...current, requestedCheckInAt: event.target.value }))}
+              onChange={(requestedCheckInAt) => setRequestForm((current) => ({ ...current, requestedCheckInAt }))}
               required
             />
             <TimeField
               label="퇴근 시간"
               value={requestForm.requestedCheckOutAt}
-              onChange={(event) => setRequestForm((current) => ({ ...current, requestedCheckOutAt: event.target.value }))}
+              onChange={(requestedCheckOutAt) => setRequestForm((current) => ({ ...current, requestedCheckOutAt }))}
               required
             />
           </div>
@@ -345,6 +510,40 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
           </div>
         ) : null}
       </Modal>
+
+      <Modal
+        open={rejectOpen}
+        title="근태 수정 요청 반려"
+        description="선택한 요청을 반려하고 직원이 확인할 사유를 남깁니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setRejectOpen(false)}>
+              취소
+            </Button>
+            <Button
+              disabled={rejectReason.trim().length === 0 || rejectChangeRequests.isPending}
+              type="submit"
+              form="attendance-reject-form"
+            >
+              {rejectChangeRequests.isPending ? "반려 중" : "반려하기"}
+            </Button>
+          </>
+        }
+        onClose={() => setRejectOpen(false)}
+      >
+        <form id="attendance-reject-form" onSubmit={handleRejectSelected}>
+          <label className="block">
+            <span className="text-sm font-semibold text-axis-ink">반려 사유</span>
+            <textarea
+              className="mt-2 min-h-32 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              placeholder="반려 사유를 입력해 주세요."
+              required
+            />
+          </label>
+        </form>
+      </Modal>
     </div>
   );
 }
@@ -371,5 +570,19 @@ function InfoItem({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-bold text-axis-muted">{label}</p>
       <p className="mt-2 text-sm font-semibold text-axis-ink">{value}</p>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: AttendanceChangeRequestStatus }) {
+  const meta = {
+    PENDING: { label: "대기", className: "bg-axis-bg text-axis-muted" },
+    APPROVED: { label: "승인", className: "bg-emerald-50 text-emerald-700" },
+    REJECTED: { label: "반려", className: "bg-rose-50 text-rose-700" }
+  }[status];
+
+  return (
+    <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", meta.className].join(" ")}>
+      {meta.label}
+    </span>
   );
 }

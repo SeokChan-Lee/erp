@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { KeyRound, PencilLine, Plus, UserRoundPlus, UsersRound } from "lucide-react";
+import { KeyRound, PencilLine, Plus, Search, UserRoundPlus, UsersRound } from "lucide-react";
 
 import {
   useAvailableEmployeesQuery,
@@ -44,10 +44,20 @@ const initialLinkForm = {
 
 const initialEditForm = {
   password: "",
-  roles: ["EMPLOYEE"] as RoleCode[]
+  roles: ["EMPLOYEE"] as RoleCode[],
+  active: true
 };
 
-export function UserManagementView({ permissions = [] }: { permissions?: string[] }) {
+type AccountStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+type AccountRoleFilter = "ALL" | RoleCode;
+
+export function UserManagementView({
+  currentUsername,
+  permissions = []
+}: {
+  currentUsername: string;
+  permissions?: string[];
+}) {
   const { data: departments = [], error: departmentsError, isLoading: departmentsLoading } = useUserManagementDepartmentsQuery();
   const { data: accounts = [], error: accountsError, isLoading: accountsLoading } = useUserAccountsQuery();
   const {
@@ -63,6 +73,9 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
   const [editingAccount, setEditingAccount] = useState<UserAccount | null>(null);
   const [editForm, setEditForm] = useState(initialEditForm);
   const [accountPage, setAccountPage] = useState(1);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [accountStatusFilter, setAccountStatusFilter] = useState<AccountStatusFilter>("ALL");
+  const [accountRoleFilter, setAccountRoleFilter] = useState<AccountRoleFilter>("ALL");
   const canCreate = permissions.includes("EMPLOYEE_CREATE") && permissions.includes("USER_CREATE");
   const canCreateUser = permissions.includes("USER_CREATE");
   const canUpdateRoles = permissions.includes("USER_UPDATE");
@@ -97,12 +110,51 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
       })),
     [availableEmployees]
   );
-  const activeAccountCount = accounts.filter((account) => account.employee !== null).length;
-  const totalAccountPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE));
+  const accountStatusOptions = useMemo(
+    () => [
+      { value: "ALL" as AccountStatusFilter, label: "전체" },
+      { value: "ACTIVE" as AccountStatusFilter, label: "사용 가능" },
+      { value: "INACTIVE" as AccountStatusFilter, label: "비활성" }
+    ],
+    []
+  );
+  const accountRoleOptions = useMemo(
+    () => [
+      { value: "ALL" as AccountRoleFilter, label: "전체 역할" },
+      ...roleOptions.map((role) => ({ value: role as AccountRoleFilter, label: getRoleMeta(role).label }))
+    ],
+    [roleOptions]
+  );
+  const filteredAccounts = useMemo(() => {
+    const keyword = accountSearch.trim().toLowerCase();
+
+    return accounts.filter((account) => {
+      const searchText = [
+        account.username,
+        formatAccountDisplayName(account),
+        account.employee?.departmentName,
+        account.employee?.positionTitle,
+        formatRoleList(account.roles)
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const keywordMatched = keyword.length === 0 || searchText.includes(keyword);
+      const statusMatched =
+        accountStatusFilter === "ALL" ||
+        (accountStatusFilter === "ACTIVE" && account.active) ||
+        (accountStatusFilter === "INACTIVE" && !account.active);
+      const roleMatched = accountRoleFilter === "ALL" || account.roles.includes(accountRoleFilter);
+
+      return keywordMatched && statusMatched && roleMatched;
+    });
+  }, [accountRoleFilter, accountSearch, accountStatusFilter, accounts]);
+  const activeAccountCount = accounts.filter((account) => account.employee !== null && account.active).length;
+  const totalAccountPages = Math.max(1, Math.ceil(filteredAccounts.length / PAGE_SIZE));
   const currentAccountPage = Math.min(accountPage, totalAccountPages);
   const paginatedAccounts = useMemo(
-    () => accounts.slice((currentAccountPage - 1) * PAGE_SIZE, currentAccountPage * PAGE_SIZE),
-    [accounts, currentAccountPage]
+    () => filteredAccounts.slice((currentAccountPage - 1) * PAGE_SIZE, currentAccountPage * PAGE_SIZE),
+    [filteredAccounts, currentAccountPage]
   );
   const formReady =
     selectedDepartmentId > 0 &&
@@ -118,6 +170,7 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
     linkForm.username.trim().length > 0 &&
     linkForm.password.length >= 4 &&
     linkForm.roles.length > 0;
+  const editingOwnAccount = editingAccount?.username === currentUsername;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -178,7 +231,7 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
 
   const openEditModal = (account: UserAccount) => {
     setEditingAccount(account);
-    setEditForm({ password: "", roles: account.roles });
+    setEditForm({ password: "", roles: account.roles, active: account.active });
   };
 
   const closeEditModal = () => {
@@ -206,6 +259,7 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
         userId: editingAccount.id,
         payload: {
           roles: editForm.roles,
+          active: editForm.active,
           ...(password.length > 0 ? { password } : {})
         }
       },
@@ -224,8 +278,8 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard label="로그인 사용자" value={`${accounts.length}명`} change="ERP 접속 가능" />
-        <MetricCard label="직원 연결" value={`${activeAccountCount}명`} change="직원 마스터 연동" />
+        <MetricCard label="로그인 사용자" value={`${accounts.length}명`} change="전체 계정" />
+        <MetricCard label="사용 가능 계정" value={`${activeAccountCount}명`} change="접속 허용" />
         <MetricCard label="역할 유형" value={`${roleOptions.length}개`} change="권한 기준" />
       </div>
 
@@ -470,58 +524,114 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
         {accountsLoading ? (
           <p className="text-sm font-semibold text-axis-muted">사용자 현황을 불러오는 중입니다.</p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
-            <table className="w-full min-w-[980px] border-collapse text-left">
-              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                <tr>
-                  <th className="px-4 py-3">사용자</th>
-                  <th className="px-4 py-3">소속</th>
-                  <th className="px-4 py-3">현재 역할</th>
-                  <th className="px-4 py-3">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-axis-border bg-white">
-                {paginatedAccounts.map((account) => (
-                  <tr key={account.id}>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-axis-ink text-white">
-                          <UsersRound size={18} strokeWidth={2.2} />
-                        </span>
-                        <div>
-                          <p className="text-sm font-semibold text-axis-ink">{formatAccountDisplayName(account)}</p>
-                          <p className="mt-1 text-xs font-medium text-axis-muted">
-                            {account.employee?.positionTitle ?? "직원 정보 없음"}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">
-                      {account.employee?.departmentName ?? "미연결"}
-                    </td>
-                    <td className="px-4 py-4 text-sm font-medium text-axis-muted">{formatRoleList(account.roles)}</td>
-                    <td className="px-4 py-4">
-                      <Button
-                        className="h-9 gap-2 px-3 text-xs"
-                        disabled={!canUpdateRoles}
-                        type="button"
-                        variant="secondary"
-                        onClick={() => openEditModal(account)}
-                      >
-                        <PencilLine size={15} strokeWidth={2.2} />
-                        수정
-                      </Button>
-                    </td>
+          <div className="space-y-4">
+            <div className="grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.9fr]">
+              <label className="block">
+                <span className="text-sm font-semibold text-axis-ink">검색</span>
+                <div className="axis-field mt-2 flex items-center gap-2">
+                  <Search size={17} strokeWidth={2.2} className="shrink-0 text-axis-muted" />
+                  <input
+                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-axis-ink outline-none placeholder:text-axis-muted"
+                    placeholder="이름, 아이디, 부서, 역할"
+                    value={accountSearch}
+                    onChange={(event) => {
+                      setAccountSearch(event.target.value);
+                      setAccountPage(1);
+                    }}
+                  />
+                </div>
+              </label>
+              <SelectField
+                label="계정 상태"
+                value={accountStatusFilter}
+                options={accountStatusOptions}
+                onChange={(status) => {
+                  setAccountStatusFilter(status);
+                  setAccountPage(1);
+                }}
+              />
+              <SelectField
+                label="역할"
+                value={accountRoleFilter}
+                options={accountRoleOptions}
+                onChange={(role) => {
+                  setAccountRoleFilter(role);
+                  setAccountPage(1);
+                }}
+              />
+            </div>
+
+            <div className="overflow-hidden rounded-lg border border-axis-border">
+              <table className="w-full min-w-[1080px] border-collapse text-left">
+                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                  <tr>
+                    <th className="px-4 py-3">사용자</th>
+                    <th className="px-4 py-3">소속</th>
+                    <th className="px-4 py-3">현재 역할</th>
+                    <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">관리</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <Pagination
-              page={currentAccountPage}
-              pageSize={PAGE_SIZE}
-              totalItems={accounts.length}
-              onPageChange={setAccountPage}
-            />
+                </thead>
+                <tbody className="divide-y divide-axis-border bg-white">
+                  {paginatedAccounts.map((account) => (
+                    <tr key={account.id} className={account.active ? "" : "bg-axis-bg/60"}>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-axis-ink text-white">
+                            <UsersRound size={18} strokeWidth={2.2} />
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold text-axis-ink">{formatAccountDisplayName(account)}</p>
+                            <p className="mt-1 text-xs font-medium text-axis-muted">
+                              {account.employee?.positionTitle ?? "직원 정보 없음"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-sm font-semibold text-axis-ink">
+                        {account.employee?.departmentName ?? "미연결"}
+                      </td>
+                      <td className="px-4 py-4 text-sm font-medium text-axis-muted">{formatRoleList(account.roles)}</td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={[
+                            "inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold",
+                            account.active ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                          ].join(" ")}
+                        >
+                          {account.active ? "사용 가능" : "비활성"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Button
+                          className="h-9 gap-2 px-3 text-xs"
+                          disabled={!canUpdateRoles}
+                          type="button"
+                          variant="secondary"
+                          onClick={() => openEditModal(account)}
+                        >
+                          <PencilLine size={15} strokeWidth={2.2} />
+                          수정
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginatedAccounts.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={5}>
+                        조건에 맞는 사용자 계정이 없습니다.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+              <Pagination
+                page={currentAccountPage}
+                pageSize={PAGE_SIZE}
+                totalItems={filteredAccounts.length}
+                onPageChange={setAccountPage}
+              />
+            </div>
           </div>
         )}
       </Panel>
@@ -554,6 +664,24 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
               <InfoItem label="소속" value={editingAccount.employee?.departmentName ?? "미연결"} />
               <InfoItem label="직책" value={editingAccount.employee?.positionTitle ?? "직원 정보 없음"} />
             </div>
+
+            <label className="flex items-center justify-between gap-4 rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
+              <span>
+                <span className="block text-sm font-bold text-axis-ink">계정 사용</span>
+                <span className="mt-1 block text-xs font-medium text-axis-muted">
+                  {editingOwnAccount
+                    ? "현재 로그인한 계정은 비활성화할 수 없습니다."
+                    : "비활성화하면 해당 계정은 로그인할 수 없습니다."}
+                </span>
+              </span>
+              <input
+                checked={editForm.active}
+                className="h-5 w-5 accent-axis-ink"
+                disabled={editingOwnAccount}
+                type="checkbox"
+                onChange={(event) => setEditForm((current) => ({ ...current, active: event.target.checked }))}
+              />
+            </label>
 
             <label className="block">
               <span className="text-sm font-semibold text-axis-ink">새 비밀번호</span>

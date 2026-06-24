@@ -35,6 +35,9 @@ public class UserAccountEntity {
     @Column(nullable = false, length = 100)
     private String displayName;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", unique = true)
     private EmployeeEntity employee;
@@ -80,11 +83,19 @@ public class UserAccountEntity {
         return roles;
     }
 
+    public boolean isActive() {
+        return active;
+    }
+
     public void updateRoles(Set<Role> roles) {
         this.roles = new LinkedHashSet<>(roles);
     }
 
     public void updatePassword(String password) {
         this.password = password;
+    }
+
+    public void updateActive(boolean active) {
+        this.active = active;
     }
 }

@@ -10,4 +10,6 @@ public interface AttendanceChangeRequestRepository extends JpaRepository<Attenda
     boolean existsByUsernameAndWorkDateAndStatus(String username, LocalDate workDate, AttendanceChangeRequestStatus status);
 
     List<AttendanceChangeRequestEntity> findByStatusOrderByRequestedAtAsc(AttendanceChangeRequestStatus status);
+
+    List<AttendanceChangeRequestEntity> findAllByOrderByRequestedAtDesc();
 }

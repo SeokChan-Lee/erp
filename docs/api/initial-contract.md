@@ -127,6 +127,27 @@ Request:
 }
 ```
 
+### `PATCH /api/admin/attendance/change-requests/reject`
+
+Requires `ATTENDANCE_APPROVE`.
+
+Rejects selected change requests and records the reject reason.
+
+Request:
+
+```json
+{
+  "requestIds": [1, 2],
+  "rejectReason": "증빙이 부족합니다."
+}
+```
+
+### `GET /api/admin/attendance/change-requests/history`
+
+Requires `ATTENDANCE_APPROVE`.
+
+Returns attendance change request history including `PENDING`, `APPROVED`, and `REJECTED` records.
+
 ### `GET /api/admin/attendance/today`
 
 Requires `ATTENDANCE_READ_ALL`.
@@ -315,13 +336,15 @@ Returns the updated user account.
 Requires `USER_UPDATE`.
 
 Updates a user account's roles and optionally changes the password. Empty passwords should be omitted.
+Passwords are stored as BCrypt hashes. Existing local plaintext passwords are upgraded to BCrypt after successful login.
 
 Request:
 
 ```json
 {
   "password": "1234",
-  "roles": ["EMPLOYEE", "VIEWER"]
+  "roles": ["EMPLOYEE", "VIEWER"],
+  "active": true
 }
 ```
 

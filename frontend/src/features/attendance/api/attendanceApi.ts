@@ -5,6 +5,7 @@ import type {
   AttendanceChangeRequest,
   AttendanceChangeRequestApprovePayload,
   AttendanceChangeRequestPayload,
+  AttendanceChangeRequestRejectPayload,
   AttendanceRecord,
   AttendanceUpdatePayload
 } from "./dto";
@@ -12,7 +13,8 @@ import type {
 export const attendanceKeys = {
   today: ["attendance", "today"] as const,
   monthly: (year: number, month: number) => ["attendance", "monthly", year, month] as const,
-  changeRequests: ["attendance", "change-requests"] as const
+  changeRequests: ["attendance", "change-requests"] as const,
+  changeRequestHistory: ["attendance", "change-requests", "history"] as const
 };
 
 export function useTodayAttendanceQuery() {
@@ -85,6 +87,14 @@ export function usePendingAttendanceChangeRequestsQuery(enabled: boolean) {
   });
 }
 
+export function useAttendanceChangeRequestHistoryQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: attendanceKeys.changeRequestHistory,
+    queryFn: () => http<AttendanceChangeRequest[]>("/admin/attendance/change-requests/history"),
+    enabled
+  });
+}
+
 export function useApproveAttendanceChangeRequestsMutation(year: number, month: number) {
   const queryClient = useQueryClient();
 
@@ -96,9 +106,26 @@ export function useApproveAttendanceChangeRequestsMutation(year: number, month: 
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: attendanceKeys.changeRequests });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.changeRequestHistory });
       void queryClient.invalidateQueries({ queryKey: attendanceKeys.today });
       void queryClient.invalidateQueries({ queryKey: attendanceKeys.monthly(year, month) });
       void queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+    }
+  });
+}
+
+export function useRejectAttendanceChangeRequestsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: AttendanceChangeRequestRejectPayload) =>
+      http<AttendanceChangeRequest[]>("/admin/attendance/change-requests/reject", {
+        method: "PATCH",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.changeRequests });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.changeRequestHistory });
     }
   });
 }

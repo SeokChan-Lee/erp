@@ -1,6 +1,8 @@
 package com.axiserp.user.api;
 
 import com.axiserp.auth.AuthService;
+import com.axiserp.auth.api.AuthUserResponse;
+import com.axiserp.auth.PasswordService;
 import com.axiserp.employee.EmployeeEntity;
 import com.axiserp.employee.EmployeeRepository;
 import com.axiserp.organization.DepartmentEntity;
@@ -37,17 +39,20 @@ public class UserAccountController {
     private final UserAccountRepository userAccountRepository;
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
+    private final PasswordService passwordService;
 
     public UserAccountController(
             AuthService authService,
             UserAccountRepository userAccountRepository,
             EmployeeRepository employeeRepository,
-            DepartmentRepository departmentRepository
+            DepartmentRepository departmentRepository,
+            PasswordService passwordService
     ) {
         this.authService = authService;
         this.userAccountRepository = userAccountRepository;
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
+        this.passwordService = passwordService;
     }
 
     @GetMapping
@@ -88,7 +93,7 @@ public class UserAccountController {
 
         UserAccountEntity account = userAccountRepository.save(new UserAccountEntity(
                 request.username(),
-                request.password(),
+                passwordService.encode(request.password()),
                 employee.getDisplayName(),
                 employee,
                 orderedRoles(request.roles())
@@ -124,7 +129,7 @@ public class UserAccountController {
         ));
         UserAccountEntity account = userAccountRepository.save(new UserAccountEntity(
                 request.username(),
-                request.password(),
+                passwordService.encode(request.password()),
                 employee.getDisplayName(),
                 employee,
                 orderedRoles(request.roles())
@@ -153,14 +158,20 @@ public class UserAccountController {
             @PathVariable Long id,
             @Valid @RequestBody UserAccountUpdateRequest request
     ) {
-        authService.requirePermission(sessionId, Permission.USER_UPDATE);
+        AuthUserResponse currentUser = authService.requirePermission(sessionId, Permission.USER_UPDATE);
         UserAccountEntity account = userAccountRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자 계정을 찾을 수 없습니다."));
 
         if (request.password() != null && !request.password().isBlank()) {
-            account.updatePassword(request.password());
+            account.updatePassword(passwordService.encode(request.password()));
         }
         account.updateRoles(orderedRoles(request.roles()));
+        if (request.active() != null) {
+            if (currentUser.username().equals(account.getUsername()) && !request.active()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "현재 로그인한 계정은 비활성화할 수 없습니다.");
+            }
+            account.updateActive(request.active());
+        }
         return UserAccountResponse.from(account);
     }
 

@@ -11,7 +11,8 @@ public record UserAccountResponse(
         String username,
         String displayName,
         EmployeeSummary employee,
-        Set<Role> roles
+        Set<Role> roles,
+        boolean active
 ) {
     public static UserAccountResponse from(UserAccountEntity account) {
         return new UserAccountResponse(
@@ -19,7 +20,8 @@ public record UserAccountResponse(
                 account.getUsername(),
                 account.getDisplayName(),
                 EmployeeSummary.from(account.getEmployee()),
-                account.getRoles()
+                account.getRoles(),
+                account.isActive()
         );
     }
 

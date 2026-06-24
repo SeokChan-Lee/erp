@@ -1,5 +1,6 @@
 package com.axiserp.common;
 
+import com.axiserp.auth.PasswordService;
 import com.axiserp.employee.EmployeeEntity;
 import com.axiserp.employee.EmployeeRepository;
 import com.axiserp.employee.EmployeeStatus;
@@ -21,15 +22,18 @@ public class DevelopmentDataSeeder implements ApplicationRunner {
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
     private final UserAccountRepository userAccountRepository;
+    private final PasswordService passwordService;
 
     public DevelopmentDataSeeder(
             DepartmentRepository departmentRepository,
             EmployeeRepository employeeRepository,
-            UserAccountRepository userAccountRepository
+            UserAccountRepository userAccountRepository,
+            PasswordService passwordService
     ) {
         this.departmentRepository = departmentRepository;
         this.employeeRepository = employeeRepository;
         this.userAccountRepository = userAccountRepository;
+        this.passwordService = passwordService;
     }
 
     @Override
@@ -62,7 +66,7 @@ public class DevelopmentDataSeeder implements ApplicationRunner {
         if (!userAccountRepository.existsByUsername("admin")) {
             userAccountRepository.save(new UserAccountEntity(
                     "admin",
-                    "admin123",
+                    passwordService.encode("admin123"),
                     adminEmployee.getDisplayName(),
                     adminEmployee,
                     Set.of(Role.SUPER_ADMIN)
@@ -71,7 +75,7 @@ public class DevelopmentDataSeeder implements ApplicationRunner {
         if (!userAccountRepository.existsByUsername("employee")) {
             userAccountRepository.save(new UserAccountEntity(
                     "employee",
-                    "employee123",
+                    passwordService.encode("employee123"),
                     employee.getDisplayName(),
                     employee,
                     Set.of(Role.EMPLOYEE)

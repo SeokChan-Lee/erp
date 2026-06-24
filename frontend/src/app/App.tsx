@@ -116,7 +116,10 @@ export function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardView />} />
             <Route path="/organization" element={canReadEmployees ? <OrganizationView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/users" element={canReadUsers ? <UserManagementView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+            <Route
+              path="/users"
+              element={canReadUsers ? <UserManagementView currentUsername={user.username} permissions={user.permissions} /> : <Navigate to="/dashboard" replace />}
+            />
             <Route path="/attendance" element={canReadAttendance ? <AttendanceView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/access" element={canReadRoles ? <AccessControlView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/my-page" element={<MyPageView />} />

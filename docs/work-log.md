@@ -82,3 +82,22 @@
 - Added shared date and time field components for attendance edit forms.
 - Added `PATCH /api/attendance/me` so users with `ATTENDANCE_UPDATE` can directly update attendance without approval requests.
 - Updated the shared modal overlay to cover the full viewport without a top background gap.
+
+### Custom Date and Time Pickers
+
+- Replaced native date and time inputs in the shared attendance edit fields.
+- Added a custom calendar dropdown opened from the calendar icon field.
+- Added a custom time dropdown opened from the clock icon field.
+- Kept the field output format compatible with backend DTOs: `yyyy-MM-dd` and `HH:mm`.
+
+### Account Security and Attendance History
+
+- Added BCrypt password encoding for new and updated account passwords.
+- Kept legacy local plaintext passwords compatible and upgraded them on successful login.
+- Added account active/inactive state and blocked login for inactive accounts.
+- Added user search, status filter, role filter, and account active toggle in user management.
+- Added attendance change request rejection and processing history APIs.
+- Added rejection modal and processing history table in the attendance approval workflow.
+- Prevented the current user from disabling their own account in both frontend and backend flows.
+- Added attendance history search, status filter, and 20-item pagination.
+- Adjusted custom date and time pickers to fit narrow viewports and align to the field action icon.

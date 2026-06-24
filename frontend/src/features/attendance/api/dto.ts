@@ -8,7 +8,7 @@ export type AttendanceRecord = {
   status: AttendanceStatus;
 };
 
-export type AttendanceChangeRequestStatus = "PENDING" | "APPROVED";
+export type AttendanceChangeRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type AttendanceChangeRequest = {
   id: number;
@@ -20,6 +20,9 @@ export type AttendanceChangeRequest = {
   reason: string;
   status: AttendanceChangeRequestStatus;
   requestedAt: string;
+  processedAt: string | null;
+  processedBy: string | null;
+  rejectReason: string | null;
 };
 
 export type AttendanceChangeRequestPayload = {
@@ -37,4 +40,9 @@ export type AttendanceUpdatePayload = {
 
 export type AttendanceChangeRequestApprovePayload = {
   requestIds: number[];
+};
+
+export type AttendanceChangeRequestRejectPayload = {
+  requestIds: number[];
+  rejectReason: string;
 };

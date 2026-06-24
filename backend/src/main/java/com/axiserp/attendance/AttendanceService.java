@@ -156,7 +156,7 @@ public class AttendanceService {
     }
 
     @Transactional
-    public List<AttendanceChangeRequestResponse> approveChangeRequests(List<Long> requestIds) {
+    public List<AttendanceChangeRequestResponse> approveChangeRequests(String processedBy, List<Long> requestIds) {
         Map<Long, AttendanceChangeRequestEntity> requestsById = new LinkedHashMap<>();
         for (AttendanceChangeRequestEntity request : attendanceChangeRequestRepository.findAllById(requestIds)) {
             requestsById.put(request.getId(), request);
@@ -166,11 +166,36 @@ public class AttendanceService {
         }
 
         return requestIds.stream()
-                .map((requestId) -> approveChangeRequest(requestsById.get(requestId)))
+                .map((requestId) -> approveChangeRequest(processedBy, requestsById.get(requestId)))
                 .toList();
     }
 
-    private AttendanceChangeRequestResponse approveChangeRequest(AttendanceChangeRequestEntity request) {
+    @Transactional
+    public List<AttendanceChangeRequestResponse> rejectChangeRequests(String processedBy, List<Long> requestIds, String rejectReason) {
+        Map<Long, AttendanceChangeRequestEntity> requestsById = new LinkedHashMap<>();
+        for (AttendanceChangeRequestEntity request : attendanceChangeRequestRepository.findAllById(requestIds)) {
+            requestsById.put(request.getId(), request);
+        }
+        if (requestsById.size() != requestIds.size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "근태 수정 요청을 찾을 수 없습니다.");
+        }
+
+        String reason = rejectReason == null || rejectReason.isBlank()
+                ? "관리자 반려"
+                : rejectReason.trim();
+        return requestIds.stream()
+                .map((requestId) -> rejectChangeRequest(processedBy, requestsById.get(requestId), reason))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttendanceChangeRequestResponse> changeRequestHistory() {
+        return attendanceChangeRequestRepository.findAllByOrderByRequestedAtDesc().stream()
+                .map(this::toChangeRequest)
+                .toList();
+    }
+
+    private AttendanceChangeRequestResponse approveChangeRequest(String processedBy, AttendanceChangeRequestEntity request) {
         if (request.getStatus() != AttendanceChangeRequestStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 근태 수정 요청입니다.");
         }
@@ -182,7 +207,16 @@ public class AttendanceService {
                 request.getRequestedCheckOutAt()
         );
 
-        request.approve();
+        request.approve(processedBy);
+        return toChangeRequest(request);
+    }
+
+    private AttendanceChangeRequestResponse rejectChangeRequest(String processedBy, AttendanceChangeRequestEntity request, String rejectReason) {
+        if (request.getStatus() != AttendanceChangeRequestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 근태 수정 요청입니다.");
+        }
+
+        request.reject(processedBy, rejectReason);
         return toChangeRequest(request);
     }
 

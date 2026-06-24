@@ -20,6 +20,7 @@ export type UserAccount = {
     positionTitle: string;
   } | null;
   roles: RoleCode[];
+  active: boolean;
 };
 
 export type AvailableEmployee = {
@@ -61,4 +62,5 @@ export type UserAccountRolesUpdatePayload = {
 export type UserAccountUpdatePayload = {
   password?: string;
   roles: RoleCode[];
+  active?: boolean;
 };

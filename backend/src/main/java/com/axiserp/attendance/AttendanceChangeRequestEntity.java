@@ -46,6 +46,15 @@ public class AttendanceChangeRequestEntity {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
+    @Column(name = "processed_at")
+    private LocalDateTime processedAt;
+
+    @Column(name = "processed_by", length = 80)
+    private String processedBy;
+
+    @Column(name = "reject_reason", length = 1000)
+    private String rejectReason;
+
     protected AttendanceChangeRequestEntity() {
     }
 
@@ -101,8 +110,29 @@ public class AttendanceChangeRequestEntity {
         return approvedAt;
     }
 
-    public void approve() {
+    public LocalDateTime getProcessedAt() {
+        return processedAt;
+    }
+
+    public String getProcessedBy() {
+        return processedBy;
+    }
+
+    public String getRejectReason() {
+        return rejectReason;
+    }
+
+    public void approve(String processedBy) {
         this.status = AttendanceChangeRequestStatus.APPROVED;
         this.approvedAt = LocalDateTime.now();
+        this.processedAt = this.approvedAt;
+        this.processedBy = processedBy;
+    }
+
+    public void reject(String processedBy, String rejectReason) {
+        this.status = AttendanceChangeRequestStatus.REJECTED;
+        this.processedAt = LocalDateTime.now();
+        this.processedBy = processedBy;
+        this.rejectReason = rejectReason;
     }
 }
