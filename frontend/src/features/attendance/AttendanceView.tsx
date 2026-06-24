@@ -11,7 +11,11 @@ import {
   useTodayAttendanceQuery,
   useUpdateAttendanceMutation
 } from "./api/attendanceApi";
-import type { AttendanceChangeRequest, AttendanceChangeRequestStatus } from "./api/dto";
+import type {
+  AttendanceChangeRequest,
+  AttendanceChangeRequestHistoryParams,
+  AttendanceChangeRequestStatus
+} from "./api/dto";
 import { AttendanceCalendar } from "./components/AttendanceCalendar";
 import { attendanceStatusMeta } from "./config/attendanceMeta";
 import { getErrorMessage } from "../../shared/api/http";
@@ -45,6 +49,8 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
   const [rejectReason, setRejectReason] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [historyStatusFilter, setHistoryStatusFilter] = useState<"ALL" | AttendanceChangeRequestStatus>("ALL");
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
   const [historyPage, setHistoryPage] = useState(1);
   const canApproveAttendance = permissions.includes("ATTENDANCE_APPROVE");
   const canUpdateAttendance = permissions.includes("ATTENDANCE_UPDATE");
@@ -59,11 +65,22 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
     error: pendingRequestsError,
     isLoading: pendingRequestsLoading
   } = usePendingAttendanceChangeRequestsQuery(canApproveAttendance);
+  const historyParams = useMemo<AttendanceChangeRequestHistoryParams>(
+    () => ({
+      page: historyPage,
+      pageSize: HISTORY_PAGE_SIZE,
+      search: historySearch,
+      status: historyStatusFilter,
+      startDate: historyStartDate,
+      endDate: historyEndDate
+    }),
+    [historyEndDate, historyPage, historySearch, historyStartDate, historyStatusFilter]
+  );
   const {
-    data: requestHistory = [],
+    data: requestHistoryPage,
     error: requestHistoryError,
     isLoading: requestHistoryLoading
-  } = useAttendanceChangeRequestHistoryQuery(canApproveAttendance);
+  } = useAttendanceChangeRequestHistoryQuery(historyParams, canApproveAttendance);
   const createChangeRequest = useCreateAttendanceChangeRequestMutation();
   const updateAttendance = useUpdateAttendanceMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
   const approveChangeRequests = useApproveAttendanceChangeRequestsMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
@@ -92,33 +109,8 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
     ],
     []
   );
-  const filteredHistory = useMemo(() => {
-    const keyword = historySearch.trim().toLowerCase();
-
-    return requestHistory.filter((request) => {
-      const keywordText = [
-        request.requesterName,
-        request.username,
-        request.workDate,
-        request.reason,
-        request.rejectReason,
-        request.processedBy
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      const keywordMatched = keyword.length === 0 || keywordText.includes(keyword);
-      const statusMatched = historyStatusFilter === "ALL" || request.status === historyStatusFilter;
-
-      return keywordMatched && statusMatched;
-    });
-  }, [historySearch, historyStatusFilter, requestHistory]);
-  const totalHistoryPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE));
-  const currentHistoryPage = Math.min(historyPage, totalHistoryPages);
-  const paginatedHistory = useMemo(
-    () => filteredHistory.slice((currentHistoryPage - 1) * HISTORY_PAGE_SIZE, currentHistoryPage * HISTORY_PAGE_SIZE),
-    [currentHistoryPage, filteredHistory]
-  );
+  const requestHistory = requestHistoryPage?.content ?? [];
+  const totalHistoryItems = requestHistoryPage?.totalItems ?? 0;
 
   const handleRequestSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -345,7 +337,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
             <p className="text-sm font-semibold text-axis-muted">처리 이력을 불러오는 중입니다.</p>
           ) : (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-[1.4fr_0.7fr]">
+              <div className="grid gap-3 xl:grid-cols-[1.25fr_0.75fr_0.75fr_0.75fr_auto]">
                 <label className="block">
                   <span className="text-sm font-semibold text-axis-ink">검색</span>
                   <input
@@ -367,9 +359,39 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                     setHistoryPage(1);
                   }}
                 />
+                <DateField
+                  label="시작일"
+                  value={historyStartDate}
+                  onChange={(startDate) => {
+                    setHistoryStartDate(startDate);
+                    setHistoryPage(1);
+                  }}
+                />
+                <DateField
+                  label="종료일"
+                  value={historyEndDate}
+                  onChange={(endDate) => {
+                    setHistoryEndDate(endDate);
+                    setHistoryPage(1);
+                  }}
+                />
+                <div className="flex items-end">
+                  <Button
+                    className="h-11 w-full px-3"
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setHistoryStartDate("");
+                      setHistoryEndDate("");
+                      setHistoryPage(1);
+                    }}
+                  >
+                    기간 초기화
+                  </Button>
+                </div>
               </div>
 
-              {filteredHistory.length === 0 ? (
+              {requestHistory.length === 0 ? (
                 <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
                   조건에 맞는 근태 수정 이력이 없습니다.
                 </p>
@@ -387,7 +409,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-axis-border bg-white">
-                      {paginatedHistory.map((request) => (
+                      {requestHistory.map((request) => (
                         <tr key={request.id}>
                           <td className="px-4 py-4 text-sm font-bold text-axis-ink">{request.requesterName}</td>
                           <td className="px-4 py-4 text-sm font-medium text-axis-muted">{request.workDate}</td>
@@ -406,9 +428,9 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                     </tbody>
                   </table>
                   <Pagination
-                    page={currentHistoryPage}
+                    page={historyPage}
                     pageSize={HISTORY_PAGE_SIZE}
-                    totalItems={filteredHistory.length}
+                    totalItems={totalHistoryItems}
                     onPageChange={setHistoryPage}
                   />
                 </div>

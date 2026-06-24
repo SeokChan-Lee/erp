@@ -9,7 +9,13 @@ import {
   useUserAccountsQuery,
   useUserManagementDepartmentsQuery
 } from "./api/userManagementApi";
-import type { EmployeeAccountCreatePayload, UserAccount } from "./api/dto";
+import type {
+  EmployeeAccountCreatePayload,
+  UserAccount,
+  UserAccountRoleFilter,
+  UserAccountsQueryParams,
+  UserAccountStatusFilter
+} from "./api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import type { RoleCode } from "../../shared/config/accessControlMeta";
 import { getRoleMeta, roleMeta } from "../../shared/config/accessControlMeta";
@@ -48,9 +54,6 @@ const initialEditForm = {
   active: true
 };
 
-type AccountStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
-type AccountRoleFilter = "ALL" | RoleCode;
-
 export function UserManagementView({
   currentUsername,
   permissions = []
@@ -59,7 +62,21 @@ export function UserManagementView({
   permissions?: string[];
 }) {
   const { data: departments = [], error: departmentsError, isLoading: departmentsLoading } = useUserManagementDepartmentsQuery();
-  const { data: accounts = [], error: accountsError, isLoading: accountsLoading } = useUserAccountsQuery();
+  const [accountPage, setAccountPage] = useState(1);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [accountStatusFilter, setAccountStatusFilter] = useState<UserAccountStatusFilter>("ALL");
+  const [accountRoleFilter, setAccountRoleFilter] = useState<UserAccountRoleFilter>("ALL");
+  const userAccountsParams = useMemo<UserAccountsQueryParams>(
+    () => ({
+      page: accountPage,
+      pageSize: PAGE_SIZE,
+      search: accountSearch,
+      status: accountStatusFilter,
+      role: accountRoleFilter
+    }),
+    [accountPage, accountRoleFilter, accountSearch, accountStatusFilter]
+  );
+  const { data: accountsPage, error: accountsError, isLoading: accountsLoading } = useUserAccountsQuery(userAccountsParams);
   const {
     data: availableEmployees = [],
     error: availableEmployeesError,
@@ -72,10 +89,6 @@ export function UserManagementView({
   const [linkForm, setLinkForm] = useState(initialLinkForm);
   const [editingAccount, setEditingAccount] = useState<UserAccount | null>(null);
   const [editForm, setEditForm] = useState(initialEditForm);
-  const [accountPage, setAccountPage] = useState(1);
-  const [accountSearch, setAccountSearch] = useState("");
-  const [accountStatusFilter, setAccountStatusFilter] = useState<AccountStatusFilter>("ALL");
-  const [accountRoleFilter, setAccountRoleFilter] = useState<AccountRoleFilter>("ALL");
   const canCreate = permissions.includes("EMPLOYEE_CREATE") && permissions.includes("USER_CREATE");
   const canCreateUser = permissions.includes("USER_CREATE");
   const canUpdateRoles = permissions.includes("USER_UPDATE");
@@ -112,50 +125,22 @@ export function UserManagementView({
   );
   const accountStatusOptions = useMemo(
     () => [
-      { value: "ALL" as AccountStatusFilter, label: "전체" },
-      { value: "ACTIVE" as AccountStatusFilter, label: "사용 가능" },
-      { value: "INACTIVE" as AccountStatusFilter, label: "비활성" }
+      { value: "ALL" as UserAccountStatusFilter, label: "전체" },
+      { value: "ACTIVE" as UserAccountStatusFilter, label: "사용 가능" },
+      { value: "INACTIVE" as UserAccountStatusFilter, label: "비활성" }
     ],
     []
   );
   const accountRoleOptions = useMemo(
     () => [
-      { value: "ALL" as AccountRoleFilter, label: "전체 역할" },
-      ...roleOptions.map((role) => ({ value: role as AccountRoleFilter, label: getRoleMeta(role).label }))
+      { value: "ALL" as UserAccountRoleFilter, label: "전체 역할" },
+      ...roleOptions.map((role) => ({ value: role as UserAccountRoleFilter, label: getRoleMeta(role).label }))
     ],
     [roleOptions]
   );
-  const filteredAccounts = useMemo(() => {
-    const keyword = accountSearch.trim().toLowerCase();
-
-    return accounts.filter((account) => {
-      const searchText = [
-        account.username,
-        formatAccountDisplayName(account),
-        account.employee?.departmentName,
-        account.employee?.positionTitle,
-        formatRoleList(account.roles)
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      const keywordMatched = keyword.length === 0 || searchText.includes(keyword);
-      const statusMatched =
-        accountStatusFilter === "ALL" ||
-        (accountStatusFilter === "ACTIVE" && account.active) ||
-        (accountStatusFilter === "INACTIVE" && !account.active);
-      const roleMatched = accountRoleFilter === "ALL" || account.roles.includes(accountRoleFilter);
-
-      return keywordMatched && statusMatched && roleMatched;
-    });
-  }, [accountRoleFilter, accountSearch, accountStatusFilter, accounts]);
+  const accounts = accountsPage?.content ?? [];
+  const totalAccounts = accountsPage?.totalItems ?? 0;
   const activeAccountCount = accounts.filter((account) => account.employee !== null && account.active).length;
-  const totalAccountPages = Math.max(1, Math.ceil(filteredAccounts.length / PAGE_SIZE));
-  const currentAccountPage = Math.min(accountPage, totalAccountPages);
-  const paginatedAccounts = useMemo(
-    () => filteredAccounts.slice((currentAccountPage - 1) * PAGE_SIZE, currentAccountPage * PAGE_SIZE),
-    [filteredAccounts, currentAccountPage]
-  );
   const formReady =
     selectedDepartmentId > 0 &&
     form.employeeNo.trim().length > 0 &&
@@ -278,8 +263,8 @@ export function UserManagementView({
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard label="로그인 사용자" value={`${accounts.length}명`} change="전체 계정" />
-        <MetricCard label="사용 가능 계정" value={`${activeAccountCount}명`} change="접속 허용" />
+        <MetricCard label="조회 결과" value={`${totalAccounts}명`} change="조건 기준" />
+        <MetricCard label="현재 페이지 사용 가능" value={`${activeAccountCount}명`} change="접속 허용" />
         <MetricCard label="역할 유형" value={`${roleOptions.length}개`} change="권한 기준" />
       </div>
 
@@ -573,7 +558,7 @@ export function UserManagementView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-axis-border bg-white">
-                  {paginatedAccounts.map((account) => (
+                  {accounts.map((account) => (
                     <tr key={account.id} className={account.active ? "" : "bg-axis-bg/60"}>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
@@ -616,7 +601,7 @@ export function UserManagementView({
                       </td>
                     </tr>
                   ))}
-                  {paginatedAccounts.length === 0 ? (
+                  {accounts.length === 0 ? (
                     <tr>
                       <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={5}>
                         조건에 맞는 사용자 계정이 없습니다.
@@ -626,9 +611,9 @@ export function UserManagementView({
                 </tbody>
               </table>
               <Pagination
-                page={currentAccountPage}
+                page={accountPage}
                 pageSize={PAGE_SIZE}
-                totalItems={filteredAccounts.length}
+                totalItems={totalAccounts}
                 onPageChange={setAccountPage}
               />
             </div>

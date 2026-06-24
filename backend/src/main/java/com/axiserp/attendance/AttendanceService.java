@@ -4,7 +4,12 @@ import com.axiserp.attendance.api.AttendanceRecordResponse;
 import com.axiserp.attendance.api.AttendanceChangeRequestCreateRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestResponse;
 import com.axiserp.attendance.api.AttendanceUpdateRequest;
+import com.axiserp.common.api.PageResponse;
 import com.axiserp.user.UserAccountRepository;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +20,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -189,10 +195,23 @@ public class AttendanceService {
     }
 
     @Transactional(readOnly = true)
-    public List<AttendanceChangeRequestResponse> changeRequestHistory() {
-        return attendanceChangeRequestRepository.findAllByOrderByRequestedAtDesc().stream()
-                .map(this::toChangeRequest)
-                .toList();
+    public PageResponse<AttendanceChangeRequestResponse> changeRequestHistory(
+            AttendanceChangeRequestStatus status,
+            LocalDate startDate,
+            LocalDate endDate,
+            String search,
+            int page,
+            int pageSize
+    ) {
+        PageRequest pageRequest = PageRequest.of(
+                normalizedPage(page),
+                normalizedPageSize(pageSize),
+                Sort.by("requestedAt").descending()
+        );
+        return PageResponse.from(
+                attendanceChangeRequestRepository.findAll(changeRequestSpecification(status, startDate, endDate, search), pageRequest),
+                this::toChangeRequest
+        );
     }
 
     private AttendanceChangeRequestResponse approveChangeRequest(String processedBy, AttendanceChangeRequestEntity request) {
@@ -260,5 +279,45 @@ public class AttendanceService {
                 .map((account) -> account.getDisplayName())
                 .orElse("사용자");
         return AttendanceChangeRequestResponse.from(request, requesterName);
+    }
+
+    private Specification<AttendanceChangeRequestEntity> changeRequestSpecification(
+            AttendanceChangeRequestStatus status,
+            LocalDate startDate,
+            LocalDate endDate,
+            String search
+    ) {
+        return (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (status != null) {
+                predicates.add(builder.equal(root.get("status"), status));
+            }
+            if (startDate != null) {
+                predicates.add(builder.greaterThanOrEqualTo(root.get("workDate"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(builder.lessThanOrEqualTo(root.get("workDate"), endDate));
+            }
+            if (search != null && !search.isBlank()) {
+                String keyword = "%" + search.trim().toLowerCase() + "%";
+                predicates.add(builder.or(
+                        builder.like(builder.lower(root.get("username")), keyword),
+                        builder.like(builder.lower(root.get("reason")), keyword),
+                        builder.like(builder.lower(root.get("rejectReason")), keyword),
+                        builder.like(builder.lower(root.get("processedBy")), keyword)
+                ));
+            }
+
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private int normalizedPage(int page) {
+        return Math.max(0, page - 1);
+    }
+
+    private int normalizedPageSize(int pageSize) {
+        return Math.min(Math.max(pageSize, 1), 100);
     }
 }

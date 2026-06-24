@@ -46,3 +46,12 @@ export type AttendanceChangeRequestRejectPayload = {
   requestIds: number[];
   rejectReason: string;
 };
+
+export type AttendanceChangeRequestHistoryParams = {
+  page: number;
+  pageSize: number;
+  search: string;
+  status: "ALL" | AttendanceChangeRequestStatus;
+  startDate: string;
+  endDate: string;
+};

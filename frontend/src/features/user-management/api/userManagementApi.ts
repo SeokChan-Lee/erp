@@ -1,19 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { http } from "../../../shared/api/http";
+import type { PageResponse } from "../../../shared/api/page";
 import type {
   AvailableEmployee,
   Department,
   EmployeeAccountCreatePayload,
   UserAccount,
   UserAccountCreatePayload,
+  UserAccountsQueryParams,
   UserAccountRolesUpdatePayload,
   UserAccountUpdatePayload
 } from "./dto";
 
 export const userManagementKeys = {
   departments: ["user-management", "departments"] as const,
-  users: ["user-management", "users"] as const,
+  usersRoot: ["user-management", "users"] as const,
+  users: (params: UserAccountsQueryParams) => ["user-management", "users", params] as const,
   availableEmployees: ["user-management", "available-employees"] as const
 };
 
@@ -24,10 +27,25 @@ export function useUserManagementDepartmentsQuery() {
   });
 }
 
-export function useUserAccountsQuery() {
+export function useUserAccountsQuery(params: UserAccountsQueryParams) {
   return useQuery({
-    queryKey: userManagementKeys.users,
-    queryFn: () => http<UserAccount[]>("/users")
+    queryKey: userManagementKeys.users(params),
+    queryFn: () => {
+      const query = new URLSearchParams({
+        page: String(params.page),
+        pageSize: String(params.pageSize)
+      });
+      if (params.search.trim()) {
+        query.set("search", params.search.trim());
+      }
+      if (params.status !== "ALL") {
+        query.set("status", params.status);
+      }
+      if (params.role !== "ALL") {
+        query.set("role", params.role);
+      }
+      return http<PageResponse<UserAccount>>(`/users?${query.toString()}`);
+    }
   });
 }
 
@@ -48,7 +66,7 @@ export function useCreateEmployeeAccountMutation() {
         json: payload
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: userManagementKeys.users });
+      void queryClient.invalidateQueries({ queryKey: userManagementKeys.usersRoot });
       void queryClient.invalidateQueries({ queryKey: userManagementKeys.availableEmployees });
       void queryClient.invalidateQueries({ queryKey: ["organization", "employees"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
@@ -66,7 +84,7 @@ export function useCreateUserAccountMutation() {
         json: payload
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: userManagementKeys.users });
+      void queryClient.invalidateQueries({ queryKey: userManagementKeys.usersRoot });
       void queryClient.invalidateQueries({ queryKey: userManagementKeys.availableEmployees });
       void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     }
@@ -83,7 +101,7 @@ export function useUpdateUserRolesMutation() {
         json: payload
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: userManagementKeys.users });
+      void queryClient.invalidateQueries({ queryKey: userManagementKeys.usersRoot });
       void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     }
   });
@@ -99,7 +117,7 @@ export function useUpdateUserAccountMutation() {
         json: payload
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: userManagementKeys.users });
+      void queryClient.invalidateQueries({ queryKey: userManagementKeys.usersRoot });
       void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     }
   });

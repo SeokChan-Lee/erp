@@ -1,11 +1,12 @@
 package com.axiserp.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface UserAccountRepository extends JpaRepository<UserAccountEntity, Long> {
+public interface UserAccountRepository extends JpaRepository<UserAccountEntity, Long>, JpaSpecificationExecutor<UserAccountEntity> {
 
     List<UserAccountEntity> findAllByOrderByIdAsc();
 

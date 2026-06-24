@@ -1,6 +1,9 @@
 import type { RoleCode } from "../../../shared/config/accessControlMeta";
 import type { EmployeeStatusCode } from "../../../shared/config/domainLabels";
 
+export type UserAccountStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+export type UserAccountRoleFilter = "ALL" | RoleCode;
+
 export type Department = {
   id: number;
   code: string;
@@ -63,4 +66,12 @@ export type UserAccountUpdatePayload = {
   password?: string;
   roles: RoleCode[];
   active?: boolean;
+};
+
+export type UserAccountsQueryParams = {
+  page: number;
+  pageSize: number;
+  search: string;
+  status: UserAccountStatusFilter;
+  role: UserAccountRoleFilter;
 };

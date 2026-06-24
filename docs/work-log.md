@@ -101,3 +101,12 @@
 - Prevented the current user from disabling their own account in both frontend and backend flows.
 - Added attendance history search, status filter, and 20-item pagination.
 - Adjusted custom date and time pickers to fit narrow viewports and align to the field action icon.
+
+### Server-side Pagination and Permission Guard
+
+- Added a shared backend `PageResponse<T>` contract for paged APIs.
+- Converted `GET /api/users` to server-side pagination with search, active-state filter, and role filter.
+- Converted the user management account table to consume the server-paged account response directly.
+- Converted `GET /api/admin/attendance/change-requests/history` to server-side pagination with status, keyword, and work-date range filters.
+- Added start/end date filters to the attendance change request history UI.
+- Blocked self role changes that would remove any permission currently held by the logged-in account.

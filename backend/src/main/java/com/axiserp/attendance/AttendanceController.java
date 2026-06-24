@@ -9,6 +9,7 @@ import com.axiserp.attendance.api.AttendanceChangeRequestRejectRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestResponse;
 import com.axiserp.attendance.api.AttendanceUpdateRequest;
 import com.axiserp.permission.Permission;
+import com.axiserp.common.api.PageResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -112,10 +113,16 @@ public class AttendanceController {
     }
 
     @GetMapping("/admin/attendance/change-requests/history")
-    public List<AttendanceChangeRequestResponse> changeRequestHistory(
-            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId
+    public PageResponse<AttendanceChangeRequestResponse> changeRequestHistory(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(required = false) AttendanceChangeRequestStatus status,
+            @RequestParam(required = false) java.time.LocalDate startDate,
+            @RequestParam(required = false) java.time.LocalDate endDate,
+            @RequestParam(required = false) String search
     ) {
         authService.requirePermission(sessionId, Permission.ATTENDANCE_APPROVE);
-        return attendanceService.changeRequestHistory();
+        return attendanceService.changeRequestHistory(status, startDate, endDate, search, page, pageSize);
     }
 }

@@ -146,7 +146,42 @@ Request:
 
 Requires `ATTENDANCE_APPROVE`.
 
-Returns attendance change request history including `PENDING`, `APPROVED`, and `REJECTED` records.
+Returns paged attendance change request history including `PENDING`, `APPROVED`, and `REJECTED` records.
+
+Query parameters:
+
+- `page`: 1-based page number. Defaults to `1`.
+- `pageSize`: item count per page. Defaults to `20`; maximum `100`.
+- `status`: optional `PENDING`, `APPROVED`, or `REJECTED`.
+- `startDate`: optional work-date range start in `yyyy-MM-dd`.
+- `endDate`: optional work-date range end in `yyyy-MM-dd`.
+- `search`: optional keyword for username, reason, reject reason, or processor.
+
+Response:
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "username": "hong.gildong",
+      "requesterName": "홍길동",
+      "workDate": "2026-06-24",
+      "requestedCheckInAt": "09:00:00",
+      "requestedCheckOutAt": "18:00:00",
+      "reason": "외근 후 근태 누락",
+      "status": "APPROVED",
+      "requestedAt": "2026-06-24T09:10:00",
+      "processedAt": "2026-06-24T10:00:00",
+      "processedBy": "admin",
+      "rejectReason": null
+    }
+  ],
+  "totalItems": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
 
 ### `GET /api/admin/attendance/today`
 
@@ -244,24 +279,38 @@ All user account APIs return backend-managed errors in the shared `{ "message": 
 
 Requires `USER_READ`.
 
-Returns login accounts with connected employee summary and assigned roles.
+Returns paged login accounts with connected employee summary, account status, and assigned roles.
+
+Query parameters:
+
+- `page`: 1-based page number. Defaults to `1`.
+- `pageSize`: item count per page. Defaults to `20`; maximum `100`.
+- `search`: optional keyword for account, employee, position, or department.
+- `status`: optional `ACTIVE` or `INACTIVE`. Omit or pass `ALL` for all accounts.
+- `role`: optional role code such as `EMPLOYEE` or `SUPER_ADMIN`.
 
 ```json
-[
-  {
-    "id": 1,
-    "username": "admin",
-    "displayName": "시스템 관리자",
-    "employee": {
+{
+  "content": [
+    {
       "id": 1,
-      "employeeNo": "AX-001",
+      "username": "admin",
       "displayName": "시스템 관리자",
-      "departmentName": "운영관리",
-      "positionTitle": "시스템 관리자"
+      "employee": {
+        "id": 1,
+        "employeeNo": "AX-001",
+        "displayName": "시스템 관리자",
+        "departmentName": "운영관리",
+        "positionTitle": "시스템 관리자"
+      },
+      "roles": ["SUPER_ADMIN"],
+      "active": true
     },
-    "roles": ["SUPER_ADMIN"]
-  }
-]
+  ],
+  "totalItems": 1,
+  "page": 1,
+  "pageSize": 20
+}
 ```
 
 ### `GET /api/users/available-employees`
@@ -282,6 +331,27 @@ Request:
   "password": "1234",
   "employeeId": 3,
   "roles": ["EMPLOYEE"]
+}
+```
+
+### `PATCH /api/users/{id}`
+
+Requires `USER_UPDATE`.
+
+Updates account password, roles, and active state in one request.
+
+Backend guard:
+
+- The currently logged-in account cannot deactivate itself.
+- The currently logged-in account cannot change its own roles if the resulting role set loses any currently held permission.
+
+Request:
+
+```json
+{
+  "password": "new-password",
+  "roles": ["HR_MANAGER"],
+  "active": true
 }
 ```
 
