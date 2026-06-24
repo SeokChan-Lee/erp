@@ -1,0 +1,79 @@
+import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+
+import { useLogoutMutation } from "../../features/auth/api/authApi";
+import type { AuthUser } from "../../features/auth/api/dto";
+import { getRoleMeta } from "../../shared/config/accessControlMeta";
+
+type AccountMenuProps = {
+  user: AuthUser;
+};
+
+export function AccountMenu({ user }: AccountMenuProps) {
+  const [open, setOpen] = useState(false);
+  const logoutMutation = useLogoutMutation();
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        className="flex h-12 min-w-[188px] items-center gap-3 rounded-lg border border-axis-border-strong bg-white px-3 text-left shadow-sm transition hover:border-axis-ink focus:outline-none focus-visible:outline-none"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-axis-ink text-white">
+          <UserRound size={17} strokeWidth={2.3} />
+        </span>
+        <span className="hidden min-w-0 flex-1 md:block">
+          <span className="block text-[15px] font-bold leading-5 text-axis-ink">{user.username}</span>
+          <span className="block truncate text-[13px] font-medium leading-4 text-[#424245]">{user.displayName}</span>
+        </span>
+        <ChevronDown className={open ? "shrink-0 rotate-180 text-axis-ink transition" : "shrink-0 text-axis-ink transition"} size={17} strokeWidth={2.4} />
+      </button>
+
+      {open ? (
+        <div className="absolute right-0 top-14 z-30 w-80 overflow-hidden rounded-xl border border-axis-border-strong bg-white shadow-[0_18px_45px_rgba(0,0,0,0.14)]">
+          <div className="border-b border-axis-border px-5 py-5">
+            <p className="text-[15px] font-bold leading-5 text-axis-ink">{user.displayName}</p>
+            <p className="mt-1 text-[13px] font-medium leading-5 text-[#424245]">아이디: {user.username}</p>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {user.roles.map((role) => (
+                <span key={role} className="rounded-full bg-axis-bg px-2.5 py-1 text-xs font-bold text-[#424245]">
+                  {getRoleMeta(role).label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-2.5">
+            <Link
+              className="flex h-11 items-center rounded-lg px-3 text-[14px] font-bold text-axis-ink hover:bg-axis-bg focus:outline-none focus-visible:outline-none"
+              to="/my-page"
+              onClick={() => setOpen(false)}
+            >
+              마이페이지
+            </Link>
+            <button
+              className="flex h-11 w-full items-center gap-2 rounded-lg px-3 text-[14px] font-bold text-rose-600 hover:bg-rose-50 focus:outline-none focus-visible:outline-none"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              <LogOut size={17} strokeWidth={2.3} />
+              로그아웃
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

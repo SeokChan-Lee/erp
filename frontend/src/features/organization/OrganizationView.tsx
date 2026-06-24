@@ -1,0 +1,384 @@
+import { FormEvent, useState } from "react";
+import { Building2, Mail, Plus, UsersRound } from "lucide-react";
+
+import {
+  useCreateEmployeeMutation,
+  useDepartmentsQuery,
+  useEmployeesQuery,
+  useUpdateEmployeeMutation
+} from "./api/organizationApi";
+import type { Employee, EmployeeCreatePayload, EmployeeStatus, EmployeeUpdatePayload } from "./api/dto";
+import { Button } from "../../shared/ui/Button";
+import { getErrorMessage } from "../../shared/api/http";
+import { MetricCard } from "../../shared/ui/MetricCard";
+import { Panel } from "../../shared/ui/Panel";
+import { SelectField } from "../../shared/ui/SelectField";
+
+const employeeStatusMeta: Record<EmployeeStatus, { label: string; className: string }> = {
+  ACTIVE: { label: "재직", className: "bg-emerald-50 text-emerald-700" },
+  ON_LEAVE: { label: "휴직", className: "bg-amber-50 text-amber-700" },
+  RESIGNED: { label: "퇴사", className: "bg-axis-bg text-axis-muted" }
+};
+
+const initialForm: EmployeeCreatePayload = {
+  employeeNo: "",
+  displayName: "",
+  email: "",
+  positionTitle: "",
+  status: "ACTIVE",
+  departmentId: 0
+};
+
+type EmployeeEditForm = EmployeeUpdatePayload & {
+  id: number;
+};
+
+export function OrganizationView({ permissions = [] }: { permissions?: string[] }) {
+  const { data: departments = [], error: departmentError } = useDepartmentsQuery();
+  const { data: employees = [], error: employeeError } = useEmployeesQuery();
+  const createEmployee = useCreateEmployeeMutation();
+  const updateEmployee = useUpdateEmployeeMutation();
+  const [form, setForm] = useState<EmployeeCreatePayload>(initialForm);
+  const [editForm, setEditForm] = useState<EmployeeEditForm | null>(null);
+  const canCreateEmployee = permissions.includes("EMPLOYEE_CREATE");
+  const canUpdateEmployee = permissions.includes("EMPLOYEE_UPDATE");
+
+  const activeEmployees = employees.filter((employee) => employee.status === "ACTIVE").length;
+  const managementCount = employees.filter((employee) => employee.department.code === "MGMT").length;
+  const operationCount = employees.filter((employee) => employee.department.code === "OPS").length;
+  const error = departmentError ?? employeeError;
+  const selectedDepartmentId = form.departmentId || departments[0]?.id || 0;
+  const departmentOptions = departments.map((department) => ({ value: department.id, label: department.name }));
+  const statusOptions = Object.entries(employeeStatusMeta).map(([status, meta]) => ({
+    value: status as EmployeeStatus,
+    label: meta.label
+  }));
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    createEmployee.mutate(
+      {
+        ...form,
+        employeeNo: form.employeeNo.trim(),
+        displayName: form.displayName.trim(),
+        email: form.email.trim(),
+        positionTitle: form.positionTitle.trim(),
+        departmentId: selectedDepartmentId
+      },
+      {
+        onSuccess: () => setForm({ ...initialForm, departmentId: selectedDepartmentId })
+      }
+    );
+  };
+
+  const handleStatusChange = (employee: Employee, status: EmployeeStatus) => {
+    updateEmployee.mutate({
+      id: employee.id,
+      payload: {
+        displayName: employee.displayName,
+        email: employee.email,
+        positionTitle: employee.positionTitle,
+        status,
+        departmentId: employee.department.id
+      }
+    });
+  };
+
+  const handleEditStart = (employee: Employee) => {
+    setEditForm({
+      id: employee.id,
+      displayName: employee.displayName,
+      email: employee.email,
+      positionTitle: employee.positionTitle,
+      status: employee.status,
+      departmentId: employee.department.id
+    });
+  };
+
+  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editForm) return;
+
+    updateEmployee.mutate(
+      {
+        id: editForm.id,
+        payload: {
+          displayName: editForm.displayName.trim(),
+          email: editForm.email.trim(),
+          positionTitle: editForm.positionTitle.trim(),
+          status: editForm.status,
+          departmentId: editForm.departmentId
+        }
+      },
+      {
+        onSuccess: () => setEditForm(null)
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {error ? (
+        <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          {getErrorMessage(error)}
+        </p>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="전체 직원" value={`${employees.length}명`} />
+        <MetricCard label="재직 인원" value={`${activeEmployees}명`} change="근무 가능" />
+        <MetricCard label="부서" value={`${departments.length}개`} />
+        <MetricCard label="운영 배치" value={`${operationCount}명`} change={`관리 ${managementCount}명`} />
+      </div>
+
+      {canCreateEmployee ? (
+        <Panel title="직원 등록" description="직원 기본 정보를 등록합니다. 계정 생성과 역할 부여는 다음 단계에서 분리해 연결합니다.">
+          <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]" onSubmit={handleSubmit}>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">직원 번호</span>
+              <input
+                className="axis-field mt-2"
+                value={form.employeeNo}
+                onChange={(event) => setForm((value) => ({ ...value, employeeNo: event.target.value }))}
+                placeholder="E-0002"
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">이름</span>
+              <input
+                className="axis-field mt-2"
+                value={form.displayName}
+                onChange={(event) => setForm((value) => ({ ...value, displayName: event.target.value }))}
+                placeholder="홍길동"
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">이메일</span>
+              <input
+                className="axis-field mt-2"
+                value={form.email}
+                onChange={(event) => setForm((value) => ({ ...value, email: event.target.value }))}
+                placeholder="member@axis.local"
+                type="email"
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">직책</span>
+              <input
+                className="axis-field mt-2"
+                value={form.positionTitle}
+                onChange={(event) => setForm((value) => ({ ...value, positionTitle: event.target.value }))}
+                placeholder="운영 담당자"
+                required
+              />
+            </label>
+            <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] xl:col-span-5">
+              <SelectField
+                label="부서"
+                value={selectedDepartmentId}
+                options={departmentOptions}
+                placeholder="부서 선택"
+                disabled={departments.length === 0}
+                onChange={(departmentId) => setForm((value) => ({ ...value, departmentId }))}
+              />
+              <SelectField
+                label="상태"
+                value={form.status}
+                options={statusOptions}
+                onChange={(status) => setForm((value) => ({ ...value, status }))}
+              />
+              <Button className="mt-7 h-11 gap-2" disabled={createEmployee.isPending || departments.length === 0}>
+                <Plus size={17} strokeWidth={2.2} />
+                {createEmployee.isPending ? "등록 중" : "등록"}
+              </Button>
+            </div>
+          </form>
+          {createEmployee.error ? (
+            <p className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              {getErrorMessage(createEmployee.error)}
+            </p>
+          ) : null}
+        </Panel>
+      ) : null}
+
+      <Panel title="부서 현황" description="초기 ERP 기준 부서입니다. 이후 조직도, 팀장, 권한 범위와 연결합니다.">
+        <div className="grid gap-4 md:grid-cols-2">
+          {departments.map((department) => {
+            const memberCount = employees.filter((employee) => employee.department.id === department.id).length;
+
+            return (
+              <article key={department.id} className="rounded-lg border border-axis-border bg-axis-bg p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold text-axis-blue">{department.code}</p>
+                    <h3 className="mt-2 text-lg font-semibold text-axis-ink">{department.name}</h3>
+                    <p className="mt-2 text-sm leading-6 text-axis-muted">{department.description}</p>
+                  </div>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-axis-ink">
+                    <Building2 size={19} strokeWidth={2.2} />
+                  </span>
+                </div>
+                <div className="mt-5 flex items-center justify-between rounded-lg bg-white px-3 py-2">
+                  <span className="text-sm font-medium text-axis-muted">소속 직원</span>
+                  <strong className="text-sm font-semibold text-axis-ink">{memberCount}명</strong>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </Panel>
+
+      {canUpdateEmployee && editForm ? (
+        <Panel title="직원 정보 수정" description="직원 이름, 이메일, 직책, 부서, 재직 상태를 수정합니다.">
+          <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]" onSubmit={handleEditSubmit}>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">이름</span>
+              <input
+                className="axis-field mt-2"
+                value={editForm.displayName}
+                onChange={(event) => setEditForm((value) => (value ? { ...value, displayName: event.target.value } : value))}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">이메일</span>
+              <input
+                className="axis-field mt-2"
+                type="email"
+                value={editForm.email}
+                onChange={(event) => setEditForm((value) => (value ? { ...value, email: event.target.value } : value))}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">직책</span>
+              <input
+                className="axis-field mt-2"
+                value={editForm.positionTitle}
+                onChange={(event) => setEditForm((value) => (value ? { ...value, positionTitle: event.target.value } : value))}
+                required
+              />
+            </label>
+            <SelectField
+              label="부서"
+              value={editForm.departmentId}
+              options={departmentOptions}
+              disabled={departments.length === 0}
+              onChange={(departmentId) => setEditForm((value) => (value ? { ...value, departmentId } : value))}
+            />
+            <SelectField
+              label="상태"
+              value={editForm.status}
+              options={statusOptions}
+              onChange={(status) => setEditForm((value) => (value ? { ...value, status } : value))}
+            />
+            <div className="flex items-end gap-2">
+              <Button className="h-11" disabled={updateEmployee.isPending || departments.length === 0}>
+                {updateEmployee.isPending ? "저장 중" : "저장"}
+              </Button>
+              <Button className="h-11" type="button" variant="secondary" onClick={() => setEditForm(null)}>
+                취소
+              </Button>
+            </div>
+          </form>
+        </Panel>
+      ) : null}
+
+      <Panel title="직원 목록" description="직원 번호, 부서, 직책, 상태를 한글 업무 용어로 정리합니다.">
+        {updateEmployee.error ? (
+          <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+            {getErrorMessage(updateEmployee.error)}
+          </p>
+        ) : null}
+        <div className="overflow-hidden rounded-lg border border-axis-border">
+          <table className="w-full min-w-[920px] border-collapse text-left">
+            <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+              <tr>
+                <th className="px-4 py-3">직원</th>
+                <th className="px-4 py-3">부서</th>
+                <th className="px-4 py-3">직책</th>
+                <th className="px-4 py-3">이메일</th>
+                <th className="px-4 py-3">상태</th>
+                {canUpdateEmployee ? <th className="px-4 py-3">관리</th> : null}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-axis-border bg-white">
+              {employees.map((employee) => {
+                const status = employeeStatusMeta[employee.status];
+
+                return (
+                  <tr key={employee.id}>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-axis-ink text-white">
+                          <UsersRound size={18} strokeWidth={2.2} />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-axis-ink">{employee.displayName}</p>
+                          <p className="mt-1 text-xs font-medium text-axis-muted">{employee.employeeNo}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="text-sm font-semibold text-axis-ink">{employee.department.name}</p>
+                      <p className="mt-1 text-xs font-medium text-axis-muted">{employee.department.code}</p>
+                    </td>
+                    <td className="px-4 py-4 text-sm font-medium text-axis-ink">{employee.positionTitle}</td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center gap-2 text-sm font-medium text-axis-muted">
+                        <Mail size={15} strokeWidth={2.2} />
+                        {employee.email}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${status.className}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                    {canUpdateEmployee ? (
+                      <td className="px-4 py-4">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            className="h-8 rounded-md border border-axis-border bg-white px-2.5 text-xs font-bold text-axis-ink transition hover:border-axis-ink"
+                            type="button"
+                            onClick={() => handleEditStart(employee)}
+                          >
+                            수정
+                          </button>
+                          {Object.entries(employeeStatusMeta).map(([nextStatus, meta]) => {
+                            const typedStatus = nextStatus as EmployeeStatus;
+                            const isCurrent = employee.status === typedStatus;
+
+                            return (
+                              <button
+                                key={nextStatus}
+                                className={[
+                                  "h-8 rounded-md border px-2.5 text-xs font-bold transition",
+                                  isCurrent
+                                    ? "border-axis-ink bg-axis-ink text-white"
+                                    : "border-axis-border bg-white text-axis-muted hover:border-axis-ink hover:text-axis-ink"
+                                ].join(" ")}
+                                disabled={isCurrent || updateEmployee.isPending}
+                                type="button"
+                                onClick={() => handleStatusChange(employee, typedStatus)}
+                              >
+                                {meta.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </div>
+  );
+}
