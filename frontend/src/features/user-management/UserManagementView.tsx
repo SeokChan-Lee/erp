@@ -1,11 +1,11 @@
 import { FormEvent, useMemo, useState } from "react";
-import { KeyRound, Plus, UserRoundPlus, UsersRound } from "lucide-react";
+import { KeyRound, PencilLine, Plus, UserRoundPlus, UsersRound } from "lucide-react";
 
 import {
   useAvailableEmployeesQuery,
   useCreateEmployeeAccountMutation,
   useCreateUserAccountMutation,
-  useUpdateUserRolesMutation,
+  useUpdateUserAccountMutation,
   useUserAccountsQuery,
   useUserManagementDepartmentsQuery
 } from "./api/userManagementApi";
@@ -16,6 +16,7 @@ import { getRoleMeta, roleMeta } from "../../shared/config/accessControlMeta";
 import { employeeStatusMeta, formatAccountDisplayName, formatRoleList } from "../../shared/config/domainLabels";
 import { Button } from "../../shared/ui/Button";
 import { MetricCard } from "../../shared/ui/MetricCard";
+import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
@@ -41,6 +42,11 @@ const initialLinkForm = {
   roles: ["EMPLOYEE"] as RoleCode[]
 };
 
+const initialEditForm = {
+  password: "",
+  roles: ["EMPLOYEE"] as RoleCode[]
+};
+
 export function UserManagementView({ permissions = [] }: { permissions?: string[] }) {
   const { data: departments = [], error: departmentsError, isLoading: departmentsLoading } = useUserManagementDepartmentsQuery();
   const { data: accounts = [], error: accountsError, isLoading: accountsLoading } = useUserAccountsQuery();
@@ -51,9 +57,11 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
   } = useAvailableEmployeesQuery();
   const createEmployeeAccount = useCreateEmployeeAccountMutation();
   const createUserAccount = useCreateUserAccountMutation();
-  const updateUserRoles = useUpdateUserRolesMutation();
+  const updateUserAccount = useUpdateUserAccountMutation();
   const [form, setForm] = useState<EmployeeAccountCreatePayload>(initialForm);
   const [linkForm, setLinkForm] = useState(initialLinkForm);
+  const [editingAccount, setEditingAccount] = useState<UserAccount | null>(null);
+  const [editForm, setEditForm] = useState(initialEditForm);
   const [accountPage, setAccountPage] = useState(1);
   const canCreate = permissions.includes("EMPLOYEE_CREATE") && permissions.includes("USER_CREATE");
   const canCreateUser = permissions.includes("USER_CREATE");
@@ -66,7 +74,7 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
     availableEmployeesError ||
     createEmployeeAccount.error ||
     createUserAccount.error ||
-    updateUserRoles.error;
+    updateUserAccount.error;
 
   const departmentOptions = useMemo(
     () => departments.map((department) => ({ value: department.id, label: department.name })),
@@ -168,14 +176,43 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
     );
   };
 
-  const toggleAccountRole = (account: UserAccount, targetRole: RoleCode) => {
-    if (!canUpdateRoles || updateUserRoles.isPending) return;
-    const roles = account.roles.includes(targetRole)
-      ? account.roles.filter((role) => role !== targetRole)
-      : [...account.roles, targetRole];
+  const openEditModal = (account: UserAccount) => {
+    setEditingAccount(account);
+    setEditForm({ password: "", roles: account.roles });
+  };
 
-    if (roles.length === 0) return;
-    updateUserRoles.mutate({ userId: account.id, payload: { roles } });
+  const closeEditModal = () => {
+    setEditingAccount(null);
+    setEditForm(initialEditForm);
+  };
+
+  const toggleEditRole = (targetRole: RoleCode) => {
+    setEditForm((current) => {
+      const roles = current.roles.includes(targetRole)
+        ? current.roles.filter((role) => role !== targetRole)
+        : [...current.roles, targetRole];
+
+      return roles.length === 0 ? current : { ...current, roles };
+    });
+  };
+
+  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0) return;
+
+    const password = editForm.password.trim();
+    updateUserAccount.mutate(
+      {
+        userId: editingAccount.id,
+        payload: {
+          roles: editForm.roles,
+          ...(password.length > 0 ? { password } : {})
+        }
+      },
+      {
+        onSuccess: closeEditModal
+      }
+    );
   };
 
   return (
@@ -192,8 +229,8 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
         <MetricCard label="역할 유형" value={`${roleOptions.length}개`} change="권한 기준" />
       </div>
 
-      {canCreate || canCreateUser ? (
-        <Panel title="직원 및 계정 등록" description="신규 직원은 계정까지 한 번에 만들고, 이미 등록된 직원은 계정만 연결합니다.">
+      {canCreate ? (
+        <Panel title="직원 및 계정 등록" description="신규 직원의 인사 정보와 로그인 계정을 한 번에 등록합니다.">
           {canCreate ? (
           <form className="space-y-6" onSubmit={handleSubmit}>
             <section className="border-b border-axis-border pb-6">
@@ -339,9 +376,12 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
             </div>
           </form>
           ) : null}
+        </Panel>
+      ) : null}
 
-          {canCreateUser ? (
-          <form className={canCreate ? "mt-6 border-t border-axis-border pt-6" : ""} onSubmit={handleLinkSubmit}>
+      {canCreateUser ? (
+        <Panel title="기존 직원 계정 연결" description="직원 마스터에만 등록된 사용자를 ERP 접속 사용자로 전환합니다.">
+          <form onSubmit={handleLinkSubmit}>
             <div className="mb-4 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-axis-bg text-axis-ink">
                 <KeyRound size={18} strokeWidth={2.2} />
@@ -423,7 +463,6 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
               </Button>
             </div>
           </form>
-          ) : null}
         </Panel>
       ) : null}
 
@@ -438,7 +477,7 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
                   <th className="px-4 py-3">사용자</th>
                   <th className="px-4 py-3">소속</th>
                   <th className="px-4 py-3">현재 역할</th>
-                  <th className="px-4 py-3">역할 관리</th>
+                  <th className="px-4 py-3">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-axis-border bg-white">
@@ -462,28 +501,16 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
                     </td>
                     <td className="px-4 py-4 text-sm font-medium text-axis-muted">{formatRoleList(account.roles)}</td>
                     <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        {roleOptions.map((role) => {
-                          const checked = account.roles.includes(role);
-                          return (
-                            <button
-                              key={role}
-                              aria-pressed={checked}
-                              className={[
-                                "h-8 rounded-md border px-2.5 text-xs font-bold transition",
-                                checked
-                                  ? "border-axis-ink bg-axis-ink text-white"
-                                  : "border-axis-border bg-white text-axis-muted hover:border-axis-ink hover:text-axis-ink"
-                              ].join(" ")}
-                              disabled={!canUpdateRoles || updateUserRoles.isPending}
-                              type="button"
-                              onClick={() => toggleAccountRole(account, role)}
-                            >
-                              {getRoleMeta(role).label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <Button
+                        className="h-9 gap-2 px-3 text-xs"
+                        disabled={!canUpdateRoles}
+                        type="button"
+                        variant="secondary"
+                        onClick={() => openEditModal(account)}
+                      >
+                        <PencilLine size={15} strokeWidth={2.2} />
+                        수정
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -498,6 +525,84 @@ export function UserManagementView({ permissions = [] }: { permissions?: string[
           </div>
         )}
       </Panel>
+
+      <Modal
+        open={editingAccount !== null}
+        title="사용자 계정 수정"
+        description="사용자 정보를 확인하고 비밀번호와 역할을 수정합니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={closeEditModal}>
+              취소
+            </Button>
+            <Button
+              disabled={!canUpdateRoles || editForm.roles.length === 0 || updateUserAccount.isPending}
+              type="submit"
+              form="user-account-edit-form"
+            >
+              {updateUserAccount.isPending ? "저장 중" : "저장"}
+            </Button>
+          </>
+        }
+        onClose={closeEditModal}
+      >
+        {editingAccount ? (
+          <form id="user-account-edit-form" className="space-y-5" onSubmit={handleEditSubmit}>
+            <div className="grid gap-3 md:grid-cols-2">
+              <InfoItem label="사용자" value={formatAccountDisplayName(editingAccount)} />
+              <InfoItem label="로그인 ID" value={editingAccount.username} />
+              <InfoItem label="소속" value={editingAccount.employee?.departmentName ?? "미연결"} />
+              <InfoItem label="직책" value={editingAccount.employee?.positionTitle ?? "직원 정보 없음"} />
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">새 비밀번호</span>
+              <input
+                className="axis-field mt-2"
+                placeholder="변경하지 않으려면 비워두세요."
+                type="password"
+                value={editForm.password}
+                onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
+              />
+            </label>
+
+            <div>
+              <p className="text-sm font-semibold text-axis-ink">역할</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {roleOptions.map((role) => {
+                  const checked = editForm.roles.includes(role);
+
+                  return (
+                    <button
+                      key={role}
+                      aria-pressed={checked}
+                      className={[
+                        "min-h-11 rounded-lg border px-3 text-left text-sm font-bold transition",
+                        checked
+                          ? "border-axis-ink bg-axis-ink text-white"
+                          : "border-axis-border bg-white text-axis-ink hover:border-axis-border-strong"
+                      ].join(" ")}
+                      type="button"
+                      onClick={() => toggleEditRole(role)}
+                    >
+                      {getRoleMeta(role).label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </form>
+        ) : null}
+      </Modal>
+    </div>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
+      <p className="text-xs font-bold text-axis-muted">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-axis-ink">{value}</p>
     </div>
   );
 }

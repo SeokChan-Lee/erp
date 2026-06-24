@@ -30,7 +30,12 @@ public class GlobalExceptionHandler {
             Map.entry("departmentId", "부서"),
             Map.entry("employeeId", "직원"),
             Map.entry("roles", "역할"),
-            Map.entry("permissions", "권한")
+            Map.entry("permissions", "권한"),
+            Map.entry("workDate", "날짜"),
+            Map.entry("requestedCheckInAt", "출근 시간"),
+            Map.entry("requestedCheckOutAt", "퇴근 시간"),
+            Map.entry("reason", "요청 사유"),
+            Map.entry("requestIds", "요청")
     );
 
     @ExceptionHandler(ResponseStatusException.class)

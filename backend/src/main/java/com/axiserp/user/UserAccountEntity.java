@@ -83,4 +83,8 @@ public class UserAccountEntity {
     public void updateRoles(Set<Role> roles) {
         this.roles = new LinkedHashSet<>(roles);
     }
+
+    public void updatePassword(String password) {
+        this.password = password;
+    }
 }

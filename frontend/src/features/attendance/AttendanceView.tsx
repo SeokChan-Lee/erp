@@ -1,28 +1,126 @@
-import { useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
-import { useAttendanceMutation, useMonthlyAttendanceQuery, useTodayAttendanceQuery } from "./api/attendanceApi";
+import {
+  useApproveAttendanceChangeRequestsMutation,
+  useAttendanceMutation,
+  useCreateAttendanceChangeRequestMutation,
+  useMonthlyAttendanceQuery,
+  usePendingAttendanceChangeRequestsQuery,
+  useTodayAttendanceQuery,
+  useUpdateAttendanceMutation
+} from "./api/attendanceApi";
+import type { AttendanceChangeRequest } from "./api/dto";
 import { AttendanceCalendar } from "./components/AttendanceCalendar";
 import { attendanceStatusMeta } from "./config/attendanceMeta";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
+import { DateField } from "../../shared/ui/DateField";
+import { Modal } from "../../shared/ui/Modal";
 import { Panel } from "../../shared/ui/Panel";
+import { TimeField } from "../../shared/ui/TimeField";
 
-export function AttendanceView() {
+const initialRequestForm = {
+  workDate: formatDateInputValue(new Date()),
+  requestedCheckInAt: "09:00",
+  requestedCheckOutAt: "18:00",
+  reason: ""
+};
+
+export function AttendanceView({ permissions = [] }: { permissions?: string[] }) {
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestForm, setRequestForm] = useState(initialRequestForm);
+  const [selectedRequestIds, setSelectedRequestIds] = useState<number[]>([]);
+  const [detailRequest, setDetailRequest] = useState<AttendanceChangeRequest | null>(null);
+  const canApproveAttendance = permissions.includes("ATTENDANCE_APPROVE");
+  const canUpdateAttendance = permissions.includes("ATTENDANCE_UPDATE");
   const { data: today, error } = useTodayAttendanceQuery();
   const {
     data: monthlyRecords = [],
     error: monthlyError,
     isLoading: monthlyLoading
   } = useMonthlyAttendanceQuery(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
+  const {
+    data: pendingRequests = [],
+    error: pendingRequestsError,
+    isLoading: pendingRequestsLoading
+  } = usePendingAttendanceChangeRequestsQuery(canApproveAttendance);
+  const createChangeRequest = useCreateAttendanceChangeRequestMutation();
+  const updateAttendance = useUpdateAttendanceMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
+  const approveChangeRequests = useApproveAttendanceChangeRequestsMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
   const checkInMutation = useAttendanceMutation("check-in");
   const checkOutMutation = useAttendanceMutation("check-out");
   const loading = checkInMutation.isPending || checkOutMutation.isPending;
 
   const status = today ? attendanceStatusMeta[today.status].label : "확인 중";
+  const checkInDisabled = loading || Boolean(today?.checkInAt);
+  const checkOutDisabled = loading || Boolean(today?.checkOutAt);
+  const requestFormReady =
+    requestForm.workDate.length > 0 &&
+    requestForm.requestedCheckInAt.length > 0 &&
+    requestForm.requestedCheckOutAt.length > 0 &&
+    (canUpdateAttendance || requestForm.reason.trim().length > 0);
+  const allSelected = pendingRequests.length > 0 && selectedRequestIds.length === pendingRequests.length;
+
+  const selectedRequestSet = useMemo(() => new Set(selectedRequestIds), [selectedRequestIds]);
+
+  const handleRequestSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!requestFormReady) return;
+
+    if (canUpdateAttendance) {
+      updateAttendance.mutate(
+        {
+          workDate: requestForm.workDate,
+          requestedCheckInAt: requestForm.requestedCheckInAt,
+          requestedCheckOutAt: requestForm.requestedCheckOutAt
+        },
+        {
+          onSuccess: () => {
+            setRequestOpen(false);
+            setRequestForm(initialRequestForm);
+          }
+        }
+      );
+      return;
+    }
+
+    createChangeRequest.mutate(
+      {
+        ...requestForm,
+        reason: requestForm.reason.trim()
+      },
+      {
+        onSuccess: () => {
+          setRequestOpen(false);
+          setRequestForm(initialRequestForm);
+        }
+      }
+    );
+  };
+
+  const toggleRequest = (requestId: number) => {
+    setSelectedRequestIds((current) =>
+      current.includes(requestId) ? current.filter((id) => id !== requestId) : [...current, requestId]
+    );
+  };
+
+  const toggleAllRequests = () => {
+    setSelectedRequestIds(allSelected ? [] : pendingRequests.map((request) => request.id));
+  };
+
+  const handleApproveSelected = () => {
+    if (selectedRequestIds.length === 0) return;
+    approveChangeRequests.mutate(
+      { requestIds: selectedRequestIds },
+      {
+        onSuccess: () => setSelectedRequestIds([])
+      }
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -36,19 +134,38 @@ export function AttendanceView() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button disabled={loading} onClick={() => checkInMutation.mutate()}>
+            <Button disabled={checkInDisabled} onClick={() => checkInMutation.mutate()}>
               출근하기
             </Button>
-            <Button disabled={loading} variant="secondary" onClick={() => checkOutMutation.mutate()}>
+            <Button disabled={checkOutDisabled} variant="secondary" onClick={() => checkOutMutation.mutate()}>
               퇴근하기
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setRequestOpen(true)}>
+              {canUpdateAttendance ? "근태 수정" : "근태 수정 요청"}
             </Button>
           </div>
         </div>
       </Panel>
 
-      {error || monthlyError || checkInMutation.error || checkOutMutation.error ? (
+      {error ||
+      monthlyError ||
+      pendingRequestsError ||
+      checkInMutation.error ||
+      checkOutMutation.error ||
+      createChangeRequest.error ||
+      updateAttendance.error ||
+      approveChangeRequests.error ? (
         <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          {getErrorMessage(error || monthlyError || checkInMutation.error || checkOutMutation.error)}
+          {getErrorMessage(
+            error ||
+              monthlyError ||
+              pendingRequestsError ||
+              checkInMutation.error ||
+              checkOutMutation.error ||
+              createChangeRequest.error ||
+              updateAttendance.error ||
+              approveChangeRequests.error
+          )}
         </p>
       ) : null}
 
@@ -65,6 +182,169 @@ export function AttendanceView() {
           />
         )}
       </Panel>
+
+      {canApproveAttendance ? (
+        <Panel title="근태 수정 승인" description="직원이 요청한 근태 수정 건을 확인하고 선택한 요청을 승인합니다.">
+          {pendingRequestsLoading ? (
+            <p className="text-sm font-semibold text-axis-muted">근태 수정 요청을 불러오는 중입니다.</p>
+          ) : pendingRequests.length === 0 ? (
+            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
+              승인 대기 중인 근태 수정 요청이 없습니다.
+            </p>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-axis-border">
+              <table className="w-full min-w-[980px] border-collapse text-left">
+                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                  <tr>
+                    <th className="px-4 py-3">
+                      <input
+                        checked={allSelected}
+                        className="h-4 w-4 accent-axis-ink"
+                        type="checkbox"
+                        onChange={toggleAllRequests}
+                      />
+                    </th>
+                    <th className="px-4 py-3">직원</th>
+                    <th className="px-4 py-3">수정 일자</th>
+                    <th className="px-4 py-3">요청 시간</th>
+                    <th className="px-4 py-3">사유</th>
+                    <th className="px-4 py-3">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-axis-border bg-white">
+                  {pendingRequests.map((request) => (
+                    <tr key={request.id}>
+                      <td className="px-4 py-4">
+                        <input
+                          checked={selectedRequestSet.has(request.id)}
+                          className="h-4 w-4 accent-axis-ink"
+                          type="checkbox"
+                          onChange={() => toggleRequest(request.id)}
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-sm font-bold text-axis-ink">{request.requesterName}</td>
+                      <td className="px-4 py-4 text-sm font-medium text-axis-muted">{request.workDate}</td>
+                      <td className="px-4 py-4 text-sm font-medium text-axis-ink">
+                        {request.requestedCheckInAt.slice(0, 5)} - {request.requestedCheckOutAt.slice(0, 5)}
+                      </td>
+                      <td className="max-w-[280px] px-4 py-4 text-sm font-medium text-axis-muted">
+                        <span className="block truncate">{request.reason}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Button className="h-8 px-3 text-xs" type="button" variant="secondary" onClick={() => setDetailRequest(request)}>
+                          상세보기
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="flex justify-end border-t border-axis-border bg-white px-4 py-3">
+                <Button
+                  disabled={selectedRequestIds.length === 0 || approveChangeRequests.isPending}
+                  type="button"
+                  onClick={handleApproveSelected}
+                >
+                  {approveChangeRequests.isPending ? "승인 중" : `선택 ${selectedRequestIds.length}건 승인`}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Panel>
+      ) : null}
+
+      <Modal
+        open={requestOpen}
+        title={canUpdateAttendance ? "근태 직접 수정" : "근태 수정 요청"}
+        description={
+          canUpdateAttendance
+            ? "권한이 있는 사용자는 승인 요청 없이 근태 기록을 바로 수정합니다."
+            : "수정할 날짜와 출퇴근 시간, 요청 사유를 입력합니다."
+        }
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setRequestOpen(false)}>
+              취소
+            </Button>
+            <Button
+              disabled={!requestFormReady || createChangeRequest.isPending || updateAttendance.isPending}
+              type="submit"
+              form="attendance-change-request-form"
+            >
+              {canUpdateAttendance
+                ? updateAttendance.isPending
+                  ? "수정 중"
+                  : "수정하기"
+                : createChangeRequest.isPending
+                  ? "요청 중"
+                  : "요청하기"}
+            </Button>
+          </>
+        }
+        onClose={() => setRequestOpen(false)}
+      >
+        <form id="attendance-change-request-form" className="space-y-4" onSubmit={handleRequestSubmit}>
+          <DateField
+            label="날짜"
+            value={requestForm.workDate}
+            onChange={(event) => setRequestForm((current) => ({ ...current, workDate: event.target.value }))}
+            required
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <TimeField
+              label="출근 시간"
+              value={requestForm.requestedCheckInAt}
+              onChange={(event) => setRequestForm((current) => ({ ...current, requestedCheckInAt: event.target.value }))}
+              required
+            />
+            <TimeField
+              label="퇴근 시간"
+              value={requestForm.requestedCheckOutAt}
+              onChange={(event) => setRequestForm((current) => ({ ...current, requestedCheckOutAt: event.target.value }))}
+              required
+            />
+          </div>
+          {canUpdateAttendance ? null : (
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">요청 사유</span>
+              <textarea
+                className="mt-2 min-h-32 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+                value={requestForm.reason}
+                onChange={(event) => setRequestForm((current) => ({ ...current, reason: event.target.value }))}
+                placeholder="근태 수정이 필요한 사유를 입력해 주세요."
+                required
+              />
+            </label>
+          )}
+        </form>
+      </Modal>
+
+      <Modal
+        open={detailRequest !== null}
+        title="근태 수정 요청 상세"
+        description="요청 사유와 수정 시간을 확인합니다."
+        footer={
+          <Button type="button" onClick={() => setDetailRequest(null)}>
+            확인
+          </Button>
+        }
+        onClose={() => setDetailRequest(null)}
+      >
+        {detailRequest ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <InfoItem label="직원" value={detailRequest.requesterName} />
+              <InfoItem label="수정 일자" value={detailRequest.workDate} />
+              <InfoItem label="출근 시간" value={detailRequest.requestedCheckInAt.slice(0, 5)} />
+              <InfoItem label="퇴근 시간" value={detailRequest.requestedCheckOutAt.slice(0, 5)} />
+            </div>
+            <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
+              <p className="text-xs font-bold text-axis-muted">요청 사유</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-axis-ink">{detailRequest.reason}</p>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }
@@ -76,4 +356,20 @@ function formatTime(value: string | null | undefined) {
     minute: "2-digit",
     hour12: false
   });
+}
+
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
+      <p className="text-xs font-bold text-axis-muted">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-axis-ink">{value}</p>
+    </div>
+  );
 }

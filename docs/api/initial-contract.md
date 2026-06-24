@@ -74,6 +74,59 @@ Requires `ATTENDANCE_READ_SELF`.
 
 Returns the current user's attendance records in the requested month.
 
+### `POST /api/attendance/change-requests`
+
+Requires `ATTENDANCE_READ_SELF`.
+
+Creates a self attendance change request.
+
+Request:
+
+```json
+{
+  "workDate": "2026-06-24",
+  "requestedCheckInAt": "09:00",
+  "requestedCheckOutAt": "18:00",
+  "reason": "외근 후 근태 누락"
+}
+```
+
+### `PATCH /api/attendance/me`
+
+Requires `ATTENDANCE_UPDATE`.
+
+Directly updates the current user's attendance record without the approval workflow.
+
+Request:
+
+```json
+{
+  "workDate": "2026-06-24",
+  "requestedCheckInAt": "09:00",
+  "requestedCheckOutAt": "18:00"
+}
+```
+
+### `GET /api/admin/attendance/change-requests`
+
+Requires `ATTENDANCE_APPROVE`.
+
+Returns pending attendance change requests.
+
+### `PATCH /api/admin/attendance/change-requests/approve`
+
+Requires `ATTENDANCE_APPROVE`.
+
+Approves selected change requests and updates attendance records.
+
+Request:
+
+```json
+{
+  "requestIds": [1, 2]
+}
+```
+
 ### `GET /api/admin/attendance/today`
 
 Requires `ATTENDANCE_READ_ALL`.
@@ -249,6 +302,25 @@ Request:
 
 ```json
 {
+  "roles": ["EMPLOYEE", "VIEWER"]
+}
+```
+
+Response:
+
+Returns the updated user account.
+
+### `PATCH /api/users/{id}`
+
+Requires `USER_UPDATE`.
+
+Updates a user account's roles and optionally changes the password. Empty passwords should be omitted.
+
+Request:
+
+```json
+{
+  "password": "1234",
   "roles": ["EMPLOYEE", "VIEWER"]
 }
 ```

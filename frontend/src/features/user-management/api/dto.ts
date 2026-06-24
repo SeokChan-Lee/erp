@@ -57,3 +57,8 @@ export type UserAccountCreatePayload = {
 export type UserAccountRolesUpdatePayload = {
   roles: RoleCode[];
 };
+
+export type UserAccountUpdatePayload = {
+  password?: string;
+  roles: RoleCode[];
+};

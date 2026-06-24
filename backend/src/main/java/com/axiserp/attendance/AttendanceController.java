@@ -3,10 +3,17 @@ package com.axiserp.attendance;
 import com.axiserp.auth.AuthService;
 import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.attendance.api.AttendanceRecordResponse;
+import com.axiserp.attendance.api.AttendanceChangeRequestApproveRequest;
+import com.axiserp.attendance.api.AttendanceChangeRequestCreateRequest;
+import com.axiserp.attendance.api.AttendanceChangeRequestResponse;
+import com.axiserp.attendance.api.AttendanceUpdateRequest;
 import com.axiserp.permission.Permission;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,9 +60,44 @@ public class AttendanceController {
         return attendanceService.monthlyFor(user.username(), year, month);
     }
 
+    @PostMapping("/attendance/change-requests")
+    public AttendanceChangeRequestResponse createChangeRequest(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @Valid @RequestBody AttendanceChangeRequestCreateRequest request
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.ATTENDANCE_READ_SELF);
+        return attendanceService.createChangeRequest(user.username(), request);
+    }
+
+    @PatchMapping("/attendance/me")
+    public AttendanceRecordResponse updateSelf(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @Valid @RequestBody AttendanceUpdateRequest request
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.ATTENDANCE_UPDATE);
+        return attendanceService.updateSelf(user.username(), request);
+    }
+
     @GetMapping("/admin/attendance/today")
     public List<AttendanceRecordResponse> todayAll(@CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId) {
         authService.requirePermission(sessionId, Permission.ATTENDANCE_READ_ALL);
         return attendanceService.todayAll();
+    }
+
+    @GetMapping("/admin/attendance/change-requests")
+    public List<AttendanceChangeRequestResponse> changeRequests(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId
+    ) {
+        authService.requirePermission(sessionId, Permission.ATTENDANCE_APPROVE);
+        return attendanceService.pendingChangeRequests();
+    }
+
+    @PatchMapping("/admin/attendance/change-requests/approve")
+    public List<AttendanceChangeRequestResponse> approveChangeRequests(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @Valid @RequestBody AttendanceChangeRequestApproveRequest request
+    ) {
+        authService.requirePermission(sessionId, Permission.ATTENDANCE_APPROVE);
+        return attendanceService.approveChangeRequests(request.requestIds());
     }
 }

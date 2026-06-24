@@ -146,6 +146,24 @@ public class UserAccountController {
         return UserAccountResponse.from(account);
     }
 
+    @PatchMapping("/{id}")
+    @Transactional
+    public UserAccountResponse update(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id,
+            @Valid @RequestBody UserAccountUpdateRequest request
+    ) {
+        authService.requirePermission(sessionId, Permission.USER_UPDATE);
+        UserAccountEntity account = userAccountRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자 계정을 찾을 수 없습니다."));
+
+        if (request.password() != null && !request.password().isBlank()) {
+            account.updatePassword(request.password());
+        }
+        account.updateRoles(orderedRoles(request.roles()));
+        return UserAccountResponse.from(account);
+    }
+
     private Set<Role> orderedRoles(Set<Role> roles) {
         if (roles == null || roles.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "사용자 계정에는 최소 1개 이상의 역할이 필요합니다.");

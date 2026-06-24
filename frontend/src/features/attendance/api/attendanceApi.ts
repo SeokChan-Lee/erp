@@ -1,11 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { http } from "../../../shared/api/http";
-import type { AttendanceRecord } from "./dto";
+import type {
+  AttendanceChangeRequest,
+  AttendanceChangeRequestApprovePayload,
+  AttendanceChangeRequestPayload,
+  AttendanceRecord,
+  AttendanceUpdatePayload
+} from "./dto";
 
 export const attendanceKeys = {
   today: ["attendance", "today"] as const,
-  monthly: (year: number, month: number) => ["attendance", "monthly", year, month] as const
+  monthly: (year: number, month: number) => ["attendance", "monthly", year, month] as const,
+  changeRequests: ["attendance", "change-requests"] as const
 };
 
 export function useTodayAttendanceQuery() {
@@ -33,6 +40,64 @@ export function useAttendanceMutation(type: "check-in" | "check-out") {
     onSuccess: (record) => {
       queryClient.setQueryData(attendanceKeys.today, record);
       void queryClient.invalidateQueries({ queryKey: ["attendance", "monthly"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+    }
+  });
+}
+
+export function useCreateAttendanceChangeRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: AttendanceChangeRequestPayload) =>
+      http<AttendanceChangeRequest>("/attendance/change-requests", {
+        method: "POST",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.changeRequests });
+    }
+  });
+}
+
+export function useUpdateAttendanceMutation(year: number, month: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: AttendanceUpdatePayload) =>
+      http<AttendanceRecord>("/attendance/me", {
+        method: "PATCH",
+        json: payload
+      }),
+    onSuccess: (record) => {
+      queryClient.setQueryData(attendanceKeys.today, record);
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.monthly(year, month) });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
+    }
+  });
+}
+
+export function usePendingAttendanceChangeRequestsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: attendanceKeys.changeRequests,
+    queryFn: () => http<AttendanceChangeRequest[]>("/admin/attendance/change-requests"),
+    enabled
+  });
+}
+
+export function useApproveAttendanceChangeRequestsMutation(year: number, month: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: AttendanceChangeRequestApprovePayload) =>
+      http<AttendanceChangeRequest[]>("/admin/attendance/change-requests/approve", {
+        method: "PATCH",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.changeRequests });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.today });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.monthly(year, month) });
       void queryClient.invalidateQueries({ queryKey: ["dashboard", "summary"] });
     }
   });

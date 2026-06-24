@@ -7,7 +7,8 @@ import type {
   EmployeeAccountCreatePayload,
   UserAccount,
   UserAccountCreatePayload,
-  UserAccountRolesUpdatePayload
+  UserAccountRolesUpdatePayload,
+  UserAccountUpdatePayload
 } from "./dto";
 
 export const userManagementKeys = {
@@ -78,6 +79,22 @@ export function useUpdateUserRolesMutation() {
   return useMutation({
     mutationFn: ({ userId, payload }: { userId: number; payload: UserAccountRolesUpdatePayload }) =>
       http<UserAccount>(`/users/${userId}/roles`, {
+        method: "PATCH",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: userManagementKeys.users });
+      void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    }
+  });
+}
+
+export function useUpdateUserAccountMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, payload }: { userId: number; payload: UserAccountUpdatePayload }) =>
+      http<UserAccount>(`/users/${userId}`, {
         method: "PATCH",
         json: payload
       }),

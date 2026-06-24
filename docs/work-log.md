@@ -64,3 +64,21 @@
 - Applied pagination to the registered user role management table.
 - Added `GET /api/attendance/me/monthly` for monthly self attendance lookup.
 - Replaced the attendance recent-record table with a monthly calendar component.
+
+### Attendance Change Requests
+
+- Added backend attendance change request persistence.
+- Added self attendance change request API.
+- Added admin pending request lookup and multi-approve API.
+- Added a shared frontend modal component.
+- Improved attendance calendar weekend coloring, year/month navigation, and readability.
+- Added attendance change request modal and approver list/detail workflow.
+
+### User Account Edit and Direct Attendance Update
+
+- Added `PATCH /api/users/{id}` for combined user password and role updates.
+- Replaced inline role editing in the user table with an edit modal.
+- Split new employee account registration and existing employee account connection into separate user management sections.
+- Added shared date and time field components for attendance edit forms.
+- Added `PATCH /api/attendance/me` so users with `ATTENDANCE_UPDATE` can directly update attendance without approval requests.
+- Updated the shared modal overlay to cover the full viewport without a top background gap.
