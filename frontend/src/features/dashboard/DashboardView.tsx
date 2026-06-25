@@ -1,9 +1,13 @@
+import { useNavigate } from "react-router-dom";
+
 import { useDashboardSummaryQuery } from "./api/dashboardApi";
 import { getErrorMessage } from "../../shared/api/http";
 import { MetricCard } from "../../shared/ui/MetricCard";
 import { Panel } from "../../shared/ui/Panel";
+import type { DashboardRecentActivity } from "./api/dto";
 
 export function DashboardView() {
+  const navigate = useNavigate();
   const { data: summary, error } = useDashboardSummaryQuery();
 
   const checkedIn = summary?.checkedIn ?? 0;
@@ -89,7 +93,12 @@ export function DashboardView() {
           {recentActivityItems.length > 0 ? (
             <div className="divide-y divide-axis-border">
               {recentActivityItems.map((activity) => (
-                <div key={activity.id} className="py-4">
+                <button
+                  key={activity.id}
+                  className="block w-full py-4 text-left transition hover:bg-axis-bg/70"
+                  type="button"
+                  onClick={() => navigate(activityTargetPath(activity))}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -101,7 +110,7 @@ export function DashboardView() {
                     </div>
                     <span className="shrink-0 text-xs font-semibold text-axis-muted">{formatDateTime(activity.occurredAt)}</span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
@@ -113,6 +122,24 @@ export function DashboardView() {
       </div>
     </div>
   );
+}
+
+function activityTargetPath(activity: DashboardRecentActivity) {
+  const query = new URLSearchParams();
+  if (activity.referenceNo) {
+    if (activity.type === "PURCHASE") {
+      query.set("orderSearch", activity.referenceNo);
+      return `/purchase?${query.toString()}`;
+    }
+    if (activity.type === "SALES") {
+      query.set("search", activity.referenceNo);
+      return `/sales?${query.toString()}`;
+    }
+    query.set("movementSearch", activity.referenceNo);
+    return `/inventory?${query.toString()}`;
+  }
+
+  return activity.type === "PURCHASE" ? "/purchase" : activity.type === "SALES" ? "/sales" : "/inventory";
 }
 
 function ActivityBadge({ type }: { type: "INVENTORY" | "PURCHASE" | "SALES" }) {

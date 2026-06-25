@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Eye, PackageCheck, RotateCcw, Search, Send, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
@@ -39,9 +40,11 @@ const initialSalesForm: SalesOrderCreatePayload = {
 };
 
 export function SalesView({ permissions = [] }: { permissions?: string[] }) {
+  const [searchParams] = useSearchParams();
+  const initialOrderSearch = searchParams.get("search") ?? "";
   const [orderPage, setOrderPage] = useState(1);
-  const [orderSearchInput, setOrderSearchInput] = useState("");
-  const [orderSearch, setOrderSearch] = useState("");
+  const [orderSearchInput, setOrderSearchInput] = useState(initialOrderSearch);
+  const [orderSearch, setOrderSearch] = useState(initialOrderSearch);
   const [orderStatus, setOrderStatus] = useState<SalesOrderStatusFilter>("ALL");
   const [salesForm, setSalesForm] = useState<SalesOrderCreatePayload>(initialSalesForm);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);

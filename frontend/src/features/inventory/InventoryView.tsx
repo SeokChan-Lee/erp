@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { PackagePlus, PencilLine, Plus, Search, Warehouse } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   useAdjustInventoryMutation,
@@ -61,6 +62,8 @@ type ItemEditForm = ItemUpdatePayload & {
 };
 
 export function InventoryView({ permissions = [] }: { permissions?: string[] }) {
+  const [searchParams] = useSearchParams();
+  const initialMovementSearch = searchParams.get("movementSearch") ?? "";
   const [itemPage, setItemPage] = useState(1);
   const [itemSearchInput, setItemSearchInput] = useState("");
   const [itemSearch, setItemSearch] = useState("");
@@ -69,8 +72,8 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const [stockSearch, setStockSearch] = useState("");
   const [stockWarehouseId, setStockWarehouseId] = useState(0);
   const [movementPage, setMovementPage] = useState(1);
-  const [movementSearchInput, setMovementSearchInput] = useState("");
-  const [movementSearch, setMovementSearch] = useState("");
+  const [movementSearchInput, setMovementSearchInput] = useState(initialMovementSearch);
+  const [movementSearch, setMovementSearch] = useState(initialMovementSearch);
   const [movementWarehouseId, setMovementWarehouseId] = useState(0);
   const [movementStartDate, setMovementStartDate] = useState("");
   const [movementEndDate, setMovementEndDate] = useState("");

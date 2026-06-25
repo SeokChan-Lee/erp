@@ -192,3 +192,8 @@
 - Added source type and source reference number columns to inventory movement history.
 - Backfilled existing movement rows from the previous reason text convention.
 - Updated new purchase, sales, and manual inventory movements to save explicit source metadata.
+
+### Dashboard Activity Navigation
+
+- Made dashboard recent activity items clickable.
+- Routed purchase, sales, and inventory activities to their owning pages with the reference number prefilled as the initial search filter.

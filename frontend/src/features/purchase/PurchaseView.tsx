@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Check, Eye, PackageCheck, PencilLine, Plus, RotateCcw, Search, Send, ShoppingCart, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
@@ -86,6 +87,8 @@ type CustomerEditForm = CustomerUpdatePayload & {
 };
 
 export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
+  const [searchParams] = useSearchParams();
+  const initialOrderSearch = searchParams.get("orderSearch") ?? "";
   const [customerPage, setCustomerPage] = useState(1);
   const [customerSearchInput, setCustomerSearchInput] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -99,8 +102,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [requestSearch, setRequestSearch] = useState("");
   const [requestStatus, setRequestStatus] = useState<PurchaseRequestStatusFilter>("ALL");
   const [orderPage, setOrderPage] = useState(1);
-  const [orderSearchInput, setOrderSearchInput] = useState("");
-  const [orderSearch, setOrderSearch] = useState("");
+  const [orderSearchInput, setOrderSearchInput] = useState(initialOrderSearch);
+  const [orderSearch, setOrderSearch] = useState(initialOrderSearch);
   const [orderFromDateInput, setOrderFromDateInput] = useState("");
   const [orderToDateInput, setOrderToDateInput] = useState("");
   const [orderFromDate, setOrderFromDate] = useState("");
