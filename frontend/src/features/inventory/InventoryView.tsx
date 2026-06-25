@@ -21,6 +21,7 @@ import type {
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
 import { MetricCard } from "../../shared/ui/MetricCard";
+import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
@@ -324,56 +325,6 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         )}
       </Panel>
 
-      {editForm ? (
-        <Panel title="품목 정보 수정" description="품목명, 분류, 단위, 안전재고, 사용 상태를 수정합니다.">
-          <form className="grid gap-4 xl:grid-cols-[1.4fr_1fr_0.7fr_0.8fr_0.8fr_auto]" onSubmit={handleEditSubmit}>
-            <TextField
-              label="품목명"
-              value={editForm.name}
-              onChange={(event) => setEditForm((current) => (current ? { ...current, name: event.target.value } : current))}
-              required
-            />
-            <TextField
-              label="분류"
-              value={editForm.category}
-              onChange={(event) => setEditForm((current) => (current ? { ...current, category: event.target.value } : current))}
-              required
-            />
-            <TextField
-              label="단위"
-              value={editForm.unit}
-              onChange={(event) => setEditForm((current) => (current ? { ...current, unit: event.target.value } : current))}
-              required
-            />
-            <TextField
-              label="안전재고"
-              min={0}
-              type="number"
-              value={editForm.safetyStock}
-              onChange={(event) => setEditForm((current) => (current ? { ...current, safetyStock: Number(event.target.value) } : current))}
-              required
-            />
-            <SelectField
-              label="상태"
-              value={editForm.active ? "ACTIVE" : "INACTIVE"}
-              options={[
-                { value: "ACTIVE", label: "사용" },
-                { value: "INACTIVE", label: "비활성" }
-              ]}
-              onChange={(status) => setEditForm((current) => (current ? { ...current, active: status === "ACTIVE" } : current))}
-            />
-            <div className="flex items-end gap-2">
-              <Button className="h-11" disabled={updateItem.isPending}>
-                {updateItem.isPending ? "저장 중" : "저장"}
-              </Button>
-              <Button className="h-11" type="button" variant="secondary" onClick={() => setEditForm(null)}>
-                취소
-              </Button>
-            </div>
-          </form>
-        </Panel>
-      ) : null}
-
       <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
         <Panel title="현재 재고" description="창고별 품목 수량과 안전재고 미달 여부를 확인합니다.">
           <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px]">
@@ -491,6 +442,63 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
           </Panel>
         ) : null}
       </div>
+
+      <Modal
+        open={editForm !== null}
+        title="품목 정보 수정"
+        description="품목명, 분류, 단위, 안전재고, 사용 상태를 수정합니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setEditForm(null)}>
+              취소
+            </Button>
+            <Button disabled={updateItem.isPending} type="submit" form="item-edit-form">
+              {updateItem.isPending ? "저장 중" : "저장"}
+            </Button>
+          </>
+        }
+        onClose={() => setEditForm(null)}
+      >
+        {editForm ? (
+          <form id="item-edit-form" className="grid gap-4 md:grid-cols-2" onSubmit={handleEditSubmit}>
+            <TextField
+              label="품목명"
+              value={editForm.name}
+              onChange={(event) => setEditForm((current) => (current ? { ...current, name: event.target.value } : current))}
+              required
+            />
+            <TextField
+              label="분류"
+              value={editForm.category}
+              onChange={(event) => setEditForm((current) => (current ? { ...current, category: event.target.value } : current))}
+              required
+            />
+            <TextField
+              label="단위"
+              value={editForm.unit}
+              onChange={(event) => setEditForm((current) => (current ? { ...current, unit: event.target.value } : current))}
+              required
+            />
+            <TextField
+              label="안전재고"
+              min={0}
+              type="number"
+              value={editForm.safetyStock}
+              onChange={(event) => setEditForm((current) => (current ? { ...current, safetyStock: Number(event.target.value) } : current))}
+              required
+            />
+            <SelectField
+              label="상태"
+              value={editForm.active ? "ACTIVE" : "INACTIVE"}
+              options={[
+                { value: "ACTIVE", label: "사용" },
+                { value: "INACTIVE", label: "비활성" }
+              ]}
+              onChange={(status) => setEditForm((current) => (current ? { ...current, active: status === "ACTIVE" } : current))}
+            />
+          </form>
+        ) : null}
+      </Modal>
     </div>
   );
 }

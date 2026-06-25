@@ -34,7 +34,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
       <span className="text-sm font-semibold text-axis-ink">{label}</span>
       <span className="relative mt-2 block">
         {leftIcon ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 items-center text-axis-muted">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center text-axis-muted">
             {leftIcon}
           </span>
         ) : null}
@@ -42,9 +42,9 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
           ref={ref}
           className={[
             "axis-field",
-            leftIcon ? "pl-9" : "",
+            className,
+            leftIcon ? "!pl-11" : "",
             hasRightAction ? "pr-10" : "",
-            className
           ].join(" ")}
           type={inputType}
           onKeyDown={(event) => {
