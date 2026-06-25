@@ -31,6 +31,8 @@ Flyway migrations currently create and manage:
 - `purchase_requests`
 - `purchase_orders`
   - Stores receiving fields (`received_warehouse_id`, `received_by`, `received_at`) so duplicate receiving can be blocked while inventory movement history remains in `inventory_movements`.
+- `sales_orders`
+  - Stores customer, item, quantity, unit price, order status, order owner, and cancellation processor fields.
 
 ## Seed Data
 
@@ -54,6 +56,6 @@ The local development seeder creates:
 
 1. Move sessions from in-memory storage to persistent or Redis-backed session storage.
 2. Add purchase approval and purchase order tables after the request workflow is confirmed.
-3. Add customer master and sales order tables.
+3. Extend sales order shipment and inventory deduction.
 4. Add audit logs for security-sensitive and inventory-changing actions.
 5. Add PostgreSQL local profile once the local database server strategy is selected.

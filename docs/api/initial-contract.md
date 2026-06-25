@@ -393,6 +393,44 @@ Returns initial dashboard metrics:
 - low-stock item count
 - recent activity count
 
+## Sales
+
+### `GET /api/sales/orders`
+
+Requires `SALES_READ`.
+
+Query:
+
+- `page`, `pageSize`
+- `search`: server-side filter for sales order number, customer, item, memo, and order owner.
+- `status`: `ALL`, `REGISTERED`, `CANCELED`
+
+Returns paged sales orders with customer, item, quantity, unit price, total amount, status, memo, order owner, and processed information.
+
+### `POST /api/sales/orders`
+
+Requires `SALES_CREATE`.
+
+Request:
+
+```json
+{
+  "customerId": 1,
+  "itemId": 1,
+  "quantity": 3,
+  "unitPrice": 1500000,
+  "memo": "신규 판매 수주"
+}
+```
+
+Creates a sales order for an active customer and active item.
+
+### `PATCH /api/sales/orders/{id}/cancel`
+
+Requires `SALES_UPDATE`.
+
+Cancels a registered sales order.
+
 ## Organization
 
 ### `GET /api/departments`

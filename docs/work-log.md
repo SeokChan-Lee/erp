@@ -27,6 +27,10 @@
 - Kept supplier and purchase list search backend-owned through API query parameters.
 - Verified the new route with the local browser after restarting the backend and applying the V9 migration.
 
+### Sales MVP
+
+- Added sales order schema, entity, repository, and backend APIs for list, create, and cancel.
+
 ## 2026-06-24
 
 ### Dropdown Component Refactor
