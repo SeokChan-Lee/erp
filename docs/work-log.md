@@ -186,3 +186,9 @@
 - Added single purchase order and sales order detail endpoints.
 - Changed purchase and sales detail modals to load detail data by id instead of reusing list row data.
 - Kept detail loading and detail errors scoped to each modal.
+
+### Inventory Movement Source Persistence
+
+- Added source type and source reference number columns to inventory movement history.
+- Backfilled existing movement rows from the previous reason text convention.
+- Updated new purchase, sales, and manual inventory movements to save explicit source metadata.

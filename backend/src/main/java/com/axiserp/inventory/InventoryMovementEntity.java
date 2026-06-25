@@ -2,6 +2,8 @@ package com.axiserp.inventory;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,6 +36,13 @@ public class InventoryMovementEntity {
     @Column(nullable = false, length = 255)
     private String reason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 40)
+    private InventoryMovementSourceType sourceType;
+
+    @Column(nullable = false, length = 80)
+    private String sourceReferenceNo;
+
     @Column(nullable = false, length = 80)
     private String processedBy;
 
@@ -43,11 +52,21 @@ public class InventoryMovementEntity {
     protected InventoryMovementEntity() {
     }
 
-    public InventoryMovementEntity(ItemEntity item, WarehouseEntity warehouse, int quantityDelta, String reason, String processedBy) {
+    public InventoryMovementEntity(
+            ItemEntity item,
+            WarehouseEntity warehouse,
+            int quantityDelta,
+            String reason,
+            InventoryMovementSourceType sourceType,
+            String sourceReferenceNo,
+            String processedBy
+    ) {
         this.item = item;
         this.warehouse = warehouse;
         this.quantityDelta = quantityDelta;
         this.reason = reason;
+        this.sourceType = sourceType;
+        this.sourceReferenceNo = sourceReferenceNo == null ? "" : sourceReferenceNo;
         this.processedBy = processedBy;
         this.processedAt = LocalDateTime.now();
     }
@@ -70,6 +89,14 @@ public class InventoryMovementEntity {
 
     public String getReason() {
         return reason;
+    }
+
+    public InventoryMovementSourceType getSourceType() {
+        return sourceType;
+    }
+
+    public String getSourceReferenceNo() {
+        return sourceReferenceNo;
     }
 
     public String getProcessedBy() {

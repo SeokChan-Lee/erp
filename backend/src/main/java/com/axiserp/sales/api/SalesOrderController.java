@@ -7,6 +7,7 @@ import com.axiserp.customer.CustomerEntity;
 import com.axiserp.customer.CustomerRepository;
 import com.axiserp.inventory.InventoryMovementEntity;
 import com.axiserp.inventory.InventoryMovementRepository;
+import com.axiserp.inventory.InventoryMovementSourceType;
 import com.axiserp.inventory.InventoryStockEntity;
 import com.axiserp.inventory.InventoryStockRepository;
 import com.axiserp.inventory.ItemEntity;
@@ -163,6 +164,8 @@ public class SalesOrderController {
                 warehouse,
                 -order.getQuantity(),
                 "판매 수주 출고: " + order.getOrderNo(),
+                InventoryMovementSourceType.SALES_SHIPMENT,
+                order.getOrderNo(),
                 user.displayName()
         ));
 
@@ -193,6 +196,8 @@ public class SalesOrderController {
                 warehouse,
                 order.getQuantity(),
                 "판매 수주 출고 취소: " + order.getOrderNo(),
+                InventoryMovementSourceType.SALES_SHIPMENT_CANCEL,
+                order.getOrderNo(),
                 user.displayName()
         ));
 

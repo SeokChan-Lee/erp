@@ -5,6 +5,7 @@ import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
 import com.axiserp.inventory.InventoryMovementEntity;
 import com.axiserp.inventory.InventoryMovementRepository;
+import com.axiserp.inventory.InventoryMovementSourceType;
 import com.axiserp.inventory.InventoryStockEntity;
 import com.axiserp.inventory.InventoryStockRepository;
 import com.axiserp.inventory.ItemEntity;
@@ -157,6 +158,8 @@ public class InventoryController {
                 warehouse,
                 request.quantityDelta(),
                 request.reason().trim(),
+                InventoryMovementSourceType.MANUAL_ADJUSTMENT,
+                "",
                 user.displayName()
         ));
         return InventoryStockResponse.from(savedStock);
@@ -208,6 +211,7 @@ public class InventoryController {
                         builder.like(builder.lower(item.get("category")), keyword),
                         builder.like(builder.lower(warehouse.get("name")), keyword),
                         builder.like(builder.lower(root.get("reason")), keyword),
+                        builder.like(builder.lower(root.get("sourceReferenceNo")), keyword),
                         builder.like(builder.lower(root.get("processedBy")), keyword)
                 ));
             }

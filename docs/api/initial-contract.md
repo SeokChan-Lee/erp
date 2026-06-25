@@ -741,7 +741,7 @@ Returns item count, active item count, safety-stock shortage count, and warehous
 
 Requires `INVENTORY_READ`.
 
-Returns paged inventory movement history. Source metadata is returned as first-class fields so the frontend does not parse the free-form reason text.
+Returns paged inventory movement history. Source metadata is stored and returned as first-class fields so the frontend does not parse the free-form reason text.
 
 Query parameters:
 

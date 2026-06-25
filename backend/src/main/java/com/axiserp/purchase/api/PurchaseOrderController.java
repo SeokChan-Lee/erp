@@ -5,6 +5,7 @@ import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
 import com.axiserp.inventory.InventoryMovementEntity;
 import com.axiserp.inventory.InventoryMovementRepository;
+import com.axiserp.inventory.InventoryMovementSourceType;
 import com.axiserp.inventory.InventoryStockEntity;
 import com.axiserp.inventory.InventoryStockRepository;
 import com.axiserp.inventory.WarehouseEntity;
@@ -121,6 +122,8 @@ public class PurchaseOrderController {
                 warehouse,
                 order.getRequest().getQuantity(),
                 "구매 발주 입고: " + order.getOrderNo(),
+                InventoryMovementSourceType.PURCHASE_RECEIPT,
+                order.getOrderNo(),
                 user.displayName()
         ));
 
@@ -155,6 +158,8 @@ public class PurchaseOrderController {
                 warehouse,
                 -order.getRequest().getQuantity(),
                 "구매 발주 입고 취소: " + order.getOrderNo(),
+                InventoryMovementSourceType.PURCHASE_RECEIPT_CANCEL,
+                order.getOrderNo(),
                 user.displayName()
         ));
         order.cancelReceive();

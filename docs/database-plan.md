@@ -26,6 +26,7 @@ Flyway migrations currently create and manage:
 - `warehouses`
 - `inventory_stocks`
 - `inventory_movements`
+  - Stores quantity delta, reason text, source type, source reference number, processor, and processed time for purchase, sales, and manual stock changes.
 - `customers`
 - `suppliers`
 - `purchase_requests`
