@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -12,6 +12,8 @@ type DateFieldProps = {
 };
 
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+const POPOVER_GAP = 4;
+const VIEWPORT_PADDING = 8;
 
 export function DateField({ label, value, onChange, className = "", disabled = false, required = false }: DateFieldProps) {
   const [open, setOpen] = useState(false);
@@ -20,6 +22,23 @@ export function DateField({ label, value, onChange, className = "", disabled = f
   const rootRef = useRef<HTMLDivElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const selectedDate = parseDateValue(value);
+
+  const syncPosition = useCallback(() => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const width = Math.min(320, window.innerWidth - VIEWPORT_PADDING * 2);
+    const measuredHeight = popoverRef.current?.getBoundingClientRect().height || 320;
+    const left = Math.min(Math.max(rect.right - width, VIEWPORT_PADDING), window.innerWidth - width - VIEWPORT_PADDING);
+    const overflow = rect.bottom + POPOVER_GAP + measuredHeight + VIEWPORT_PADDING - window.innerHeight;
+    if (overflow > 0 && window.scrollY + window.innerHeight < document.documentElement.scrollHeight) {
+      window.scrollBy({ top: overflow, behavior: "auto" });
+      return;
+    }
+    const top = rect.bottom + POPOVER_GAP;
+
+    setPopoverStyle({ left, top, width });
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -36,32 +55,31 @@ export function DateField({ label, value, onChange, className = "", disabled = f
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
 
-    const syncPosition = () => {
-      const rect = rootRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const width = Math.min(320, window.innerWidth - 16);
-      const height = 360;
-      const left = Math.min(Math.max(rect.right - width, 8), window.innerWidth - width - 8);
-      const bottomTop = rect.bottom + 4;
-      const top = bottomTop + height > window.innerHeight - 8
-        ? Math.max(8, rect.top - height - 4)
-        : bottomTop;
-
-      setPopoverStyle({ left, top, width });
-    };
-
     syncPosition();
+    let secondFrameId = 0;
+    const frameId = window.requestAnimationFrame(() => {
+      syncPosition();
+      secondFrameId = window.requestAnimationFrame(syncPosition);
+    });
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(syncPosition);
+    if (popoverRef.current) {
+      resizeObserver?.observe(popoverRef.current);
+    }
     window.addEventListener("resize", syncPosition);
     window.addEventListener("scroll", syncPosition, true);
     return () => {
+      window.cancelAnimationFrame(frameId);
+      if (secondFrameId) {
+        window.cancelAnimationFrame(secondFrameId);
+      }
+      resizeObserver?.disconnect();
       window.removeEventListener("resize", syncPosition);
       window.removeEventListener("scroll", syncPosition, true);
     };
-  }, [open]);
+  }, [open, syncPosition]);
 
   useEffect(() => {
     if (selectedDate) {
@@ -99,7 +117,7 @@ export function DateField({ label, value, onChange, className = "", disabled = f
       {open ? createPortal(
         <div
           ref={popoverRef}
-          className="fixed z-[220] rounded-lg border border-axis-border bg-white p-3 shadow-[0_16px_36px_rgba(0,0,0,0.14)]"
+          className="fixed z-[220] rounded-lg border border-axis-border bg-white p-3"
           style={{ left: popoverStyle.left, top: popoverStyle.top, width: popoverStyle.width }}
         >
           <div className="flex items-center justify-between">

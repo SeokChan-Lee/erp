@@ -35,9 +35,7 @@ textarea {
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+  transition: border-color 160ms ease;
 }
 
 .axis-field::placeholder {
@@ -47,7 +45,6 @@ textarea {
 
 .axis-field:focus {
   border-color: #86868b;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
 }
 
 .axis-select {

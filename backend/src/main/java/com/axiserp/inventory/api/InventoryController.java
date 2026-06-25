@@ -2,6 +2,7 @@ package com.axiserp.inventory.api;
 
 import com.axiserp.auth.AuthService;
 import com.axiserp.auth.api.AuthUserResponse;
+import com.axiserp.common.api.PageResponse;
 import com.axiserp.inventory.InventoryMovementEntity;
 import com.axiserp.inventory.InventoryMovementRepository;
 import com.axiserp.inventory.InventoryStockEntity;
@@ -14,8 +15,10 @@ import com.axiserp.permission.Permission;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -27,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,6 +98,32 @@ public class InventoryController {
         );
     }
 
+    @GetMapping("/movements")
+    @Transactional(readOnly = true)
+    public PageResponse<InventoryMovementResponse> movements(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long warehouseId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        authService.requirePermission(sessionId, Permission.INVENTORY_READ);
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시작일은 종료일보다 늦을 수 없습니다.");
+        }
+        PageRequest pageRequest = PageRequest.of(
+                normalizedPage(page),
+                normalizedPageSize(pageSize),
+                Sort.by("processedAt").descending().and(Sort.by("id").descending())
+        );
+        return PageResponse.from(
+                inventoryMovementRepository.findAll(movementSpecification(search, warehouseId, startDate, endDate), pageRequest),
+                InventoryMovementResponse::from
+        );
+    }
+
     @PostMapping("/adjustments")
     @Transactional
     public InventoryStockResponse adjust(
@@ -126,7 +157,7 @@ public class InventoryController {
                 warehouse,
                 request.quantityDelta(),
                 request.reason().trim(),
-                user.username()
+                user.displayName()
         ));
         return InventoryStockResponse.from(savedStock);
     }
@@ -152,5 +183,44 @@ public class InventoryController {
 
             return builder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private Specification<InventoryMovementEntity> movementSpecification(String search, Long warehouseId, LocalDate startDate, LocalDate endDate) {
+        return (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            var item = root.join("item", JoinType.INNER);
+            var warehouse = root.join("warehouse", JoinType.INNER);
+
+            if (warehouseId != null) {
+                predicates.add(builder.equal(warehouse.get("id"), warehouseId));
+            }
+            if (startDate != null) {
+                predicates.add(builder.greaterThanOrEqualTo(root.get("processedAt"), startDate.atStartOfDay()));
+            }
+            if (endDate != null) {
+                predicates.add(builder.lessThanOrEqualTo(root.get("processedAt"), endDate.atTime(LocalTime.MAX)));
+            }
+            if (search != null && !search.isBlank()) {
+                String keyword = "%" + search.trim().toLowerCase() + "%";
+                predicates.add(builder.or(
+                        builder.like(builder.lower(item.get("sku")), keyword),
+                        builder.like(builder.lower(item.get("name")), keyword),
+                        builder.like(builder.lower(item.get("category")), keyword),
+                        builder.like(builder.lower(warehouse.get("name")), keyword),
+                        builder.like(builder.lower(root.get("reason")), keyword),
+                        builder.like(builder.lower(root.get("processedBy")), keyword)
+                ));
+            }
+
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private int normalizedPage(int page) {
+        return Math.max(0, page - 1);
+    }
+
+    private int normalizedPageSize(int pageSize) {
+        return Math.min(Math.max(pageSize, 1), 100);
     }
 }

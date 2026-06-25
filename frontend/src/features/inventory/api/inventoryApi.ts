@@ -4,6 +4,8 @@ import { http } from "../../../shared/api/http";
 import type { PageResponse } from "../../../shared/api/page";
 import type {
   InventoryAdjustmentPayload,
+  InventoryMovement,
+  InventoryMovementQueryParams,
   InventoryOverview,
   InventoryStock,
   Item,
@@ -18,7 +20,9 @@ export const inventoryKeys = {
   warehouses: ["inventory", "warehouses"] as const,
   itemRoot: ["inventory", "items"] as const,
   items: (params: ItemQueryParams) => ["inventory", "items", params] as const,
-  stocks: (params: { search: string; warehouseId: number }) => ["inventory", "stocks", params] as const
+  stocks: (params: { search: string; warehouseId: number }) => ["inventory", "stocks", params] as const,
+  movementRoot: ["inventory", "movements"] as const,
+  movements: (params: InventoryMovementQueryParams) => ["inventory", "movements", params] as const
 };
 
 export function useInventoryOverviewQuery() {
@@ -71,6 +75,31 @@ export function useInventoryStocksQuery(params: { search: string; warehouseId: n
   });
 }
 
+export function useInventoryMovementsQuery(params: InventoryMovementQueryParams) {
+  return useQuery({
+    queryKey: inventoryKeys.movements(params),
+    queryFn: () => {
+      const query = new URLSearchParams({
+        page: String(params.page),
+        pageSize: String(params.pageSize)
+      });
+      if (params.search.trim()) {
+        query.set("search", params.search.trim());
+      }
+      if (params.warehouseId > 0) {
+        query.set("warehouseId", String(params.warehouseId));
+      }
+      if (params.startDate) {
+        query.set("startDate", params.startDate);
+      }
+      if (params.endDate) {
+        query.set("endDate", params.endDate);
+      }
+      return http<PageResponse<InventoryMovement>>(`/inventory/movements?${query.toString()}`);
+    }
+  });
+}
+
 export function useCreateItemMutation() {
   const queryClient = useQueryClient();
 
@@ -116,6 +145,7 @@ export function useAdjustInventoryMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["inventory", "stocks"] });
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.movementRoot });
       void queryClient.invalidateQueries({ queryKey: inventoryKeys.overview });
     }
   });

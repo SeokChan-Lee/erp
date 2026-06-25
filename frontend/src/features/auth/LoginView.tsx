@@ -57,7 +57,7 @@ export function LoginView() {
               </p>
             </div>
 
-            <div className="mt-10 max-w-xl rounded-lg bg-white/[0.06] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
+            <div className="mt-10 max-w-xl rounded-lg bg-white/[0.06] p-5">
               <p className="text-xs font-semibold text-white/65">초기 구축 범위</p>
               <div className="mt-4 grid grid-cols-3 gap-3">
                 {["계정/권한", "조직/직원", "근태 기준"].map((item) => (

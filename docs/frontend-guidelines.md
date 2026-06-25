@@ -88,6 +88,18 @@ Current shared UI components:
 - Avoid marketing-style hero sections inside the app.
 - Use stable dimensions for controls, tables, sidebars, and dashboard tiles.
 
+## Popover Positioning
+
+Portal-based popovers such as date, time, select, and menu overlays must calculate their position from the trigger's `getBoundingClientRect()` and the popover's rendered `getBoundingClientRect().height`.
+
+- Do not position a popover with a hard-coded estimated height.
+- Date calendar popovers must open below the trigger with a small gap.
+- If a calendar does not fit below, scroll the page to make room instead of flipping it above.
+- App pages need enough bottom padding for below-opening calendar popovers near the end of the page. Keep the shell bottom padding at least as large as the calendar popover height.
+- Recalculate after mount with `requestAnimationFrame`, and on window resize or scroll.
+- Observe the rendered popover size and recalculate when it changes after initial paint.
+- Keep the popover visually attached to the trigger; a large detached gap is treated as a layout bug.
+
 ## Frontend Permissions
 
 Frontend permission logic may:

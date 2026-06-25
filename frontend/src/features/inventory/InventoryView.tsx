@@ -4,6 +4,7 @@ import { PackagePlus, PencilLine, Plus, Search, Warehouse } from "lucide-react";
 import {
   useAdjustInventoryMutation,
   useCreateItemMutation,
+  useInventoryMovementsQuery,
   useInventoryOverviewQuery,
   useInventoryStocksQuery,
   useItemsQuery,
@@ -12,6 +13,8 @@ import {
 } from "./api/inventoryApi";
 import type {
   InventoryAdjustmentPayload,
+  InventoryStock,
+  InventoryMovementQueryParams,
   Item,
   ItemCreatePayload,
   ItemQueryParams,
@@ -20,6 +23,7 @@ import type {
 } from "./api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
+import { DateField } from "../../shared/ui/DateField";
 import { MetricCard } from "../../shared/ui/MetricCard";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
@@ -56,8 +60,15 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const [stockSearchInput, setStockSearchInput] = useState("");
   const [stockSearch, setStockSearch] = useState("");
   const [stockWarehouseId, setStockWarehouseId] = useState(0);
+  const [movementPage, setMovementPage] = useState(1);
+  const [movementSearchInput, setMovementSearchInput] = useState("");
+  const [movementSearch, setMovementSearch] = useState("");
+  const [movementWarehouseId, setMovementWarehouseId] = useState(0);
+  const [movementStartDate, setMovementStartDate] = useState("");
+  const [movementEndDate, setMovementEndDate] = useState("");
   const [itemForm, setItemForm] = useState<ItemCreatePayload>(initialItemForm);
   const [editForm, setEditForm] = useState<ItemEditForm | null>(null);
+  const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState<InventoryAdjustmentPayload>(initialAdjustmentForm);
   const canCreateItem = permissions.includes("ITEM_CREATE");
   const canUpdateItem = permissions.includes("ITEM_UPDATE");
@@ -79,21 +90,43 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
     }),
     [stockSearch, stockWarehouseId]
   );
+  const movementParams = useMemo<InventoryMovementQueryParams>(
+    () => ({
+      page: movementPage,
+      pageSize: PAGE_SIZE,
+      search: movementSearch,
+      warehouseId: movementWarehouseId,
+      startDate: movementStartDate,
+      endDate: movementEndDate
+    }),
+    [movementEndDate, movementPage, movementSearch, movementStartDate, movementWarehouseId]
+  );
 
   const { data: overview, error: overviewError } = useInventoryOverviewQuery();
   const { data: warehouses = [], error: warehouseError } = useWarehousesQuery();
   const { data: itemsPage, error: itemsError, isLoading: itemsLoading } = useItemsQuery(itemParams);
   const { data: stocks = [], error: stocksError, isLoading: stocksLoading } = useInventoryStocksQuery(stockParams);
+  const { data: movementsPage, error: movementsError, isLoading: movementsLoading } = useInventoryMovementsQuery(movementParams);
   const createItem = useCreateItemMutation();
   const updateItem = useUpdateItemMutation();
   const adjustInventory = useAdjustInventoryMutation();
 
   const items = itemsPage?.content ?? [];
   const totalItems = itemsPage?.totalItems ?? 0;
+  const movements = movementsPage?.content ?? [];
+  const totalMovements = movementsPage?.totalItems ?? 0;
   const activeItems = items.filter((item) => item.active).length;
   const selectedWarehouseId = adjustmentForm.warehouseId || warehouses[0]?.id || 0;
   const selectedItemId = adjustmentForm.itemId || items[0]?.id || 0;
-  const pageError = overviewError || warehouseError || itemsError || stocksError || createItem.error || updateItem.error || adjustInventory.error;
+  const pageError =
+    overviewError ||
+    warehouseError ||
+    itemsError ||
+    stocksError ||
+    movementsError ||
+    createItem.error ||
+    updateItem.error ||
+    adjustInventory.error;
   const statusOptions = [
     { value: "ALL" as ItemStatusFilter, label: "전체" },
     { value: "ACTIVE" as ItemStatusFilter, label: "사용" },
@@ -178,9 +211,23 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         reason: adjustmentForm.reason.trim()
       },
       {
-        onSuccess: () => setAdjustmentForm({ ...initialAdjustmentForm, itemId: selectedItemId, warehouseId: selectedWarehouseId })
+        onSuccess: () => {
+          setAdjustmentForm({ ...initialAdjustmentForm, itemId: selectedItemId, warehouseId: selectedWarehouseId });
+          setAdjustmentModalOpen(false);
+        }
       }
     );
+  };
+
+  const openAdjustmentModal = (stock?: InventoryStock) => {
+    setAdjustmentForm((current) => ({
+      ...current,
+      itemId: stock?.item.id ?? current.itemId,
+      warehouseId: stock?.warehouse.id ?? current.warehouseId,
+      quantityDelta: 1,
+      reason: ""
+    }));
+    setAdjustmentModalOpen(true);
   };
 
   return (
@@ -325,123 +372,253 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         )}
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
-        <Panel title="현재 재고" description="창고별 품목 수량과 안전재고 미달 여부를 확인합니다.">
-          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px]">
-            <TextField
-              label="검색"
-              placeholder="품목, 분류, 창고"
-              value={stockSearchInput}
-              leftIcon={<Search size={17} strokeWidth={2.2} />}
-              onChange={(event) => setStockSearchInput(event.target.value)}
-              onEnter={() => setStockSearch(stockSearchInput.trim())}
-            />
-            <SelectField label="창고" value={stockWarehouseId} options={stockWarehouseOptions} onChange={setStockWarehouseId} />
-          </div>
+      <Panel title="현재 재고" description="창고별 품목 수량과 안전재고 미달 여부를 확인합니다.">
+        <div className={["mb-4 grid gap-3", canAdjustInventory ? "md:grid-cols-[1fr_220px_auto]" : "md:grid-cols-[1fr_220px]"].join(" ")}>
+          <TextField
+            label="검색"
+            placeholder="품목, 분류, 창고"
+            value={stockSearchInput}
+            leftIcon={<Search size={17} strokeWidth={2.2} />}
+            onChange={(event) => setStockSearchInput(event.target.value)}
+            onEnter={() => setStockSearch(stockSearchInput.trim())}
+          />
+          <SelectField label="창고" value={stockWarehouseId} options={stockWarehouseOptions} onChange={setStockWarehouseId} />
+          {canAdjustInventory ? (
+            <Button className="mt-7 h-11 gap-2" type="button" onClick={() => openAdjustmentModal()}>
+              <PackagePlus size={17} strokeWidth={2.2} />
+              재고 조정
+            </Button>
+          ) : null}
+        </div>
 
-          {stocksLoading ? (
-            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-              현재 재고를 불러오는 중입니다.
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-lg border border-axis-border">
-              <table className="w-full min-w-[820px] border-collapse text-left">
-                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                  <tr>
-                    <th className="px-4 py-3">품목</th>
-                    <th className="px-4 py-3">창고</th>
-                    <th className="px-4 py-3">현재고</th>
-                    <th className="px-4 py-3">안전재고</th>
-                    <th className="px-4 py-3">상태</th>
+        {stocksLoading ? (
+          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
+            현재 재고를 불러오는 중입니다.
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-axis-border">
+            <table className="w-full min-w-[940px] border-collapse text-left">
+              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                <tr>
+                  <th className="px-4 py-3">품목</th>
+                  <th className="px-4 py-3">창고</th>
+                  <th className="px-4 py-3">현재고</th>
+                  <th className="px-4 py-3">안전재고</th>
+                  <th className="px-4 py-3">상태</th>
+                  {canAdjustInventory ? <th className="px-4 py-3">관리</th> : null}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-axis-border bg-white">
+                {stocks.map((stock) => (
+                  <tr key={stock.id}>
+                    <td className="px-4 py-4">
+                      <p className="text-sm font-bold text-axis-ink">{stock.item.name}</p>
+                      <p className="mt-1 text-xs font-semibold text-axis-muted">{stock.item.sku}</p>
+                    </td>
+                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{stock.warehouse.name}</td>
+                    <td className="px-4 py-4 text-sm font-bold text-axis-ink">
+                      {stock.quantity.toLocaleString("ko-KR")} {stock.item.unit}
+                    </td>
+                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">
+                      {stock.safetyStock.toLocaleString("ko-KR")} {stock.item.unit}
+                    </td>
+                    <td className="px-4 py-4">
+                      <StockBadge belowSafetyStock={stock.belowSafetyStock} />
+                    </td>
+                    {canAdjustInventory ? (
+                      <td className="px-4 py-4">
+                        <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => openAdjustmentModal(stock)}>
+                          <PackagePlus size={14} strokeWidth={2.2} />
+                          조정
+                        </Button>
+                      </td>
+                    ) : null}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-axis-border bg-white">
-                  {stocks.map((stock) => (
-                    <tr key={stock.id}>
-                      <td className="px-4 py-4">
-                        <p className="text-sm font-bold text-axis-ink">{stock.item.name}</p>
-                        <p className="mt-1 text-xs font-semibold text-axis-muted">{stock.item.sku}</p>
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{stock.warehouse.name}</td>
-                      <td className="px-4 py-4 text-sm font-bold text-axis-ink">
-                        {stock.quantity.toLocaleString("ko-KR")} {stock.item.unit}
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">
-                        {stock.safetyStock.toLocaleString("ko-KR")} {stock.item.unit}
-                      </td>
-                      <td className="px-4 py-4">
-                        <StockBadge belowSafetyStock={stock.belowSafetyStock} />
-                      </td>
-                    </tr>
-                  ))}
-                  {stocks.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={5}>
-                        조건에 맞는 재고가 없습니다.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Panel>
+                ))}
+                {stocks.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={canAdjustInventory ? 6 : 5}>
+                      조건에 맞는 재고가 없습니다.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
 
-        {canAdjustInventory ? (
-          <Panel title="재고 조정" description="실사 차이, 초기 수량 보정 등 현재고를 직접 조정합니다.">
-            <form className="space-y-4" onSubmit={handleAdjustmentSubmit}>
-              <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-axis-ink">
-                    <Warehouse size={18} strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-axis-ink">조정 기준</p>
-                    <p className="mt-1 text-xs font-semibold text-axis-muted">조정 수량은 양수 또는 음수로 입력합니다.</p>
-                  </div>
-                </div>
+      <Panel title="재고 조정 이력" description="재고 수량 변경 내역을 기간, 창고, 키워드 기준으로 확인합니다.">
+        <div className="mb-4 grid gap-3 xl:grid-cols-[1fr_190px_190px_190px_auto]">
+          <TextField
+            label="검색"
+            placeholder="품목, 창고, 사유, 처리자"
+            value={movementSearchInput}
+            leftIcon={<Search size={17} strokeWidth={2.2} />}
+            onChange={(event) => setMovementSearchInput(event.target.value)}
+            onEnter={() => {
+              setMovementSearch(movementSearchInput.trim());
+              setMovementPage(1);
+            }}
+          />
+          <DateField
+            label="시작일"
+            value={movementStartDate}
+            onChange={(value) => {
+              setMovementStartDate(value);
+              setMovementPage(1);
+            }}
+          />
+          <DateField
+            label="종료일"
+            value={movementEndDate}
+            onChange={(value) => {
+              setMovementEndDate(value);
+              setMovementPage(1);
+            }}
+          />
+          <SelectField
+            label="창고"
+            value={movementWarehouseId}
+            options={stockWarehouseOptions}
+            onChange={(warehouseId) => {
+              setMovementWarehouseId(warehouseId);
+              setMovementPage(1);
+            }}
+          />
+          <Button
+            className="mt-7 h-11"
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setMovementSearchInput("");
+              setMovementSearch("");
+              setMovementWarehouseId(0);
+              setMovementStartDate("");
+              setMovementEndDate("");
+              setMovementPage(1);
+            }}
+          >
+            초기화
+          </Button>
+        </div>
+
+        {movementsLoading ? (
+          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
+            재고 조정 이력을 불러오는 중입니다.
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-axis-border">
+            <table className="w-full min-w-[1080px] border-collapse text-left">
+              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                <tr>
+                  <th className="px-4 py-3">처리 일시</th>
+                  <th className="px-4 py-3">품목</th>
+                  <th className="px-4 py-3">창고</th>
+                  <th className="px-4 py-3">조정 수량</th>
+                  <th className="px-4 py-3">처리자</th>
+                  <th className="px-4 py-3">사유</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-axis-border bg-white">
+                {movements.map((movement) => (
+                  <tr key={movement.id}>
+                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{formatDateTime(movement.processedAt)}</td>
+                    <td className="px-4 py-4">
+                      <p className="text-sm font-bold text-axis-ink">{movement.item.name}</p>
+                      <p className="mt-1 text-xs font-semibold text-axis-muted">{movement.item.sku}</p>
+                    </td>
+                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{movement.warehouse.name}</td>
+                    <td className="px-4 py-4">
+                      <MovementQuantityBadge quantityDelta={movement.quantityDelta} unit={movement.item.unit} />
+                    </td>
+                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatProcessorName(movement.processedBy)}</td>
+                    <td className="max-w-[320px] px-4 py-4 text-sm font-medium text-axis-muted">
+                      <span className="block truncate" title={movement.reason}>
+                        {movement.reason}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {movements.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={6}>
+                      조건에 맞는 조정 이력이 없습니다.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+            <Pagination page={movementPage} pageSize={PAGE_SIZE} totalItems={totalMovements} onPageChange={setMovementPage} />
+          </div>
+        )}
+      </Panel>
+
+      <Modal
+        open={adjustmentModalOpen}
+        title="재고 조정"
+        description="실사 차이, 초기 수량 보정 등 현재고를 직접 조정합니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setAdjustmentModalOpen(false)}>
+              취소
+            </Button>
+            <Button disabled={!adjustmentReady || adjustInventory.isPending} type="submit" form="inventory-adjustment-form">
+              {adjustInventory.isPending ? "조정 중" : "재고 조정"}
+            </Button>
+          </>
+        }
+        onClose={() => setAdjustmentModalOpen(false)}
+      >
+        <form id="inventory-adjustment-form" className="space-y-4" onSubmit={handleAdjustmentSubmit}>
+          <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-axis-ink">
+                <Warehouse size={18} strokeWidth={2.2} />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-axis-ink">조정 기준</p>
+                <p className="mt-1 text-xs font-semibold text-axis-muted">조정 수량은 양수 또는 음수로 입력합니다.</p>
               </div>
-              <SelectField
-                label="품목"
-                value={selectedItemId}
-                options={itemOptions}
-                placeholder="품목 선택"
-                disabled={itemOptions.length === 0}
-                onChange={(itemId) => setAdjustmentForm((current) => ({ ...current, itemId }))}
-              />
-              <SelectField
-                label="창고"
-                value={selectedWarehouseId}
-                options={warehouseOptions}
-                placeholder="창고 선택"
-                disabled={warehouseOptions.length === 0}
-                onChange={(warehouseId) => setAdjustmentForm((current) => ({ ...current, warehouseId }))}
-              />
-              <TextField
-                label="조정 수량"
-                type="number"
-                value={adjustmentForm.quantityDelta}
-                onChange={(event) => setAdjustmentForm((current) => ({ ...current, quantityDelta: Number(event.target.value) }))}
-                required
-              />
-              <label className="block">
-                <span className="text-sm font-semibold text-axis-ink">조정 사유</span>
-                <textarea
-                  className="mt-2 min-h-28 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
-                  value={adjustmentForm.reason}
-                  onChange={(event) => setAdjustmentForm((current) => ({ ...current, reason: event.target.value }))}
-                  placeholder="예: 월말 실사 차이 보정"
-                  required
-                />
-              </label>
-              <Button className="h-11 w-full gap-2" disabled={!adjustmentReady || adjustInventory.isPending}>
-                <PackagePlus size={17} strokeWidth={2.2} />
-                {adjustInventory.isPending ? "조정 중" : "재고 조정"}
-              </Button>
-            </form>
-          </Panel>
-        ) : null}
-      </div>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SelectField
+              label="품목"
+              value={selectedItemId}
+              options={itemOptions}
+              placeholder="품목 선택"
+              disabled={itemOptions.length === 0}
+              onChange={(itemId) => setAdjustmentForm((current) => ({ ...current, itemId }))}
+            />
+            <SelectField
+              label="창고"
+              value={selectedWarehouseId}
+              options={warehouseOptions}
+              placeholder="창고 선택"
+              disabled={warehouseOptions.length === 0}
+              onChange={(warehouseId) => setAdjustmentForm((current) => ({ ...current, warehouseId }))}
+            />
+            <TextField
+              label="조정 수량"
+              type="number"
+              value={adjustmentForm.quantityDelta}
+              onChange={(event) => setAdjustmentForm((current) => ({ ...current, quantityDelta: Number(event.target.value) }))}
+              required
+            />
+          </div>
+          <label className="block">
+            <span className="text-sm font-semibold text-axis-ink">조정 사유</span>
+            <textarea
+              className="mt-2 min-h-28 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted"
+              value={adjustmentForm.reason}
+              onChange={(event) => setAdjustmentForm((current) => ({ ...current, reason: event.target.value }))}
+              placeholder="예: 월말 실사 차이 보정"
+              required
+            />
+          </label>
+        </form>
+      </Modal>
 
       <Modal
         open={editForm !== null}
@@ -527,4 +704,37 @@ function StockBadge({ belowSafetyStock }: { belowSafetyStock: boolean }) {
       {belowSafetyStock ? "안전재고 미달" : "정상"}
     </span>
   );
+}
+
+function MovementQuantityBadge({ quantityDelta, unit }: { quantityDelta: number; unit: string }) {
+  const positive = quantityDelta > 0;
+  const text = `${positive ? "+" : ""}${quantityDelta.toLocaleString("ko-KR")} ${unit}`;
+
+  return (
+    <span
+      className={[
+        "inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold",
+        positive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+      ].join(" ")}
+    >
+      {text}
+    </span>
+  );
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function formatProcessorName(value: string) {
+  if (value === "admin") {
+    return "시스템 관리자";
+  }
+  return value.trim() || "-";
 }

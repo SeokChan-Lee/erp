@@ -25,6 +25,16 @@ export type InventoryStock = {
   belowSafetyStock: boolean;
 };
 
+export type InventoryMovement = {
+  id: number;
+  item: Item;
+  warehouse: Warehouse;
+  quantityDelta: number;
+  reason: string;
+  processedBy: string;
+  processedAt: string;
+};
+
 export type InventoryOverview = {
   totalItems: number;
   activeItems: number;
@@ -37,6 +47,15 @@ export type ItemQueryParams = {
   pageSize: number;
   search: string;
   status: ItemStatusFilter;
+};
+
+export type InventoryMovementQueryParams = {
+  page: number;
+  pageSize: number;
+  search: string;
+  warehouseId: number;
+  startDate: string;
+  endDate: string;
 };
 
 export type ItemCreatePayload = {

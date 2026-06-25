@@ -19,9 +19,6 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Pretendard", "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"]
-      },
-      boxShadow: {
-        panel: "0 8px 30px rgba(0, 0, 0, 0.06)"
       }
     }
   },
@@ -29,4 +26,3 @@ const config: Config = {
 };
 
 export default config;
-

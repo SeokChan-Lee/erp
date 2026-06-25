@@ -64,7 +64,7 @@ export function SelectField<T extends SelectValue>({
         />
       </button>
       {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-60 overflow-y-auto rounded-lg border border-axis-border bg-white p-1.5 shadow-[0_16px_36px_rgba(0,0,0,0.14)]">
+        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-60 overflow-y-auto rounded-lg border border-axis-border bg-white p-1.5">
           {options.map((option) => {
             const selected = option.value === value;
 

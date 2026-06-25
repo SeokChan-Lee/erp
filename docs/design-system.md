@@ -33,8 +33,8 @@ font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-se
 ## UI Principles
 
 - Use neutral surfaces as the foundation.
-- Reserve blue for real action, focus, links, and selected states.
-- Prefer restrained borders over heavy shadows.
+- Reserve blue for real action, links, and selected states.
+- Use restrained borders and clear spacing instead of depth effects.
 - Keep cards and panels simple.
 - Use 8px radius for most application controls and cards.
 - Use larger radius only for high-level dashboard tiles or special controls.
@@ -72,5 +72,4 @@ Charts should:
 - Use muted neutral axes and labels.
 - Use `#0071e3` as the primary series color.
 - Use limited secondary colors only when multiple series are necessary.
-- Avoid decorative gradients and heavy chart shadows.
-
+- Avoid decorative gradients and depth effects.

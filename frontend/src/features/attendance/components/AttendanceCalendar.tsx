@@ -109,7 +109,7 @@ export function AttendanceCalendar({ monthDate, records, onMonthChange }: Attend
               </div>
 
               {record && meta ? (
-                <div className="mt-3 space-y-2 rounded-lg bg-white/80 p-2 shadow-sm">
+                <div className="mt-3 space-y-2 rounded-lg bg-white/80 p-2">
                   <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-bold ${meta.className}`}>
                     {meta.label}
                   </span>

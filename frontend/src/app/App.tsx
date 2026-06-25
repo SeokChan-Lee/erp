@@ -114,7 +114,7 @@ export function App() {
           <AccountMenu user={user} />
         </header>
 
-        <div className="mx-auto max-w-7xl px-8 py-8">
+        <div className="mx-auto max-w-7xl px-8 pb-[420px] pt-8">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardView />} />

@@ -495,7 +495,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
             <label className="block">
               <span className="text-sm font-semibold text-axis-ink">요청 사유</span>
               <textarea
-                className="mt-2 min-h-32 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+                className="mt-2 min-h-32 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted"
                 value={requestForm.reason}
                 onChange={(event) => setRequestForm((current) => ({ ...current, reason: event.target.value }))}
                 placeholder="근태 수정이 필요한 사유를 입력해 주세요."
@@ -557,7 +557,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
           <label className="block">
             <span className="text-sm font-semibold text-axis-ink">반려 사유</span>
             <textarea
-              className="mt-2 min-h-32 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted focus:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]"
+              className="mt-2 min-h-32 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted"
               value={rejectReason}
               onChange={(event) => setRejectReason(event.target.value)}
               placeholder="반려 사유를 입력해 주세요."
