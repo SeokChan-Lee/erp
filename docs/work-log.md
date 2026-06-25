@@ -37,6 +37,7 @@
 - Replaced placeholder dashboard summary numbers with database-backed purchase, sales, inventory, and activity metrics.
 - Added purchase receipt cancellation API and UI with stock rollback and inventory movement logging.
 - Added sales shipment cancellation API and UI with stock rollback and inventory movement logging.
+- Improved inventory movement history readability by separating purchase, sales, and manual adjustment sources from the raw reason text.
 
 ## 2026-06-24
 

@@ -601,6 +601,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                   <th className="px-4 py-3">품목</th>
                   <th className="px-4 py-3">창고</th>
                   <th className="px-4 py-3">조정 수량</th>
+                  <th className="px-4 py-3">출처</th>
                   <th className="px-4 py-3">처리자</th>
                   <th className="px-4 py-3">사유</th>
                   <th className="px-4 py-3">관리</th>
@@ -618,6 +619,9 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                     <td className="px-4 py-4">
                       <MovementQuantityBadge quantityDelta={movement.quantityDelta} unit={movement.item.unit} />
                     </td>
+                    <td className="px-4 py-4">
+                      <MovementSourceInfo reason={movement.reason} />
+                    </td>
                     <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatProcessorName(movement.processedBy)}</td>
                     <td className="max-w-[320px] px-4 py-4 text-sm font-medium text-axis-muted">
                       <span className="block truncate" title={movement.reason}>
@@ -633,7 +637,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                 ))}
                 {movements.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>
+                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={8}>
                       조건에 맞는 조정 이력이 없습니다.
                     </td>
                   </tr>
@@ -735,6 +739,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               <InfoItem label="창고" value={selectedMovement.warehouse.name} />
               <InfoItem label="조정 수량" value={formatSignedQuantity(selectedMovement.quantityDelta, selectedMovement.item.unit)} />
               <InfoItem label="분류" value={selectedMovement.item.category} />
+              <InfoItem label="출처" value={formatMovementSource(parseMovementSource(selectedMovement.reason))} />
             </div>
             <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
               <p className="text-xs font-bold text-axis-muted">조정 사유</p>
@@ -846,8 +851,54 @@ function MovementQuantityBadge({ quantityDelta, unit }: { quantityDelta: number;
   );
 }
 
+function MovementSourceInfo({ reason }: { reason: string }) {
+  const source = parseMovementSource(reason);
+  const tone =
+    source.type === "purchase"
+      ? "bg-blue-50 text-blue-700"
+      : source.type === "sales"
+        ? "bg-violet-50 text-violet-700"
+        : "bg-axis-bg text-axis-muted";
+
+  return (
+    <div className="space-y-1">
+      <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", tone].join(" ")}>
+        {source.label}
+      </span>
+      {source.reference ? <p className="text-xs font-semibold text-axis-muted">{source.reference}</p> : null}
+    </div>
+  );
+}
+
 function findInventoryStock(stocks: InventoryStock[], itemId: number, warehouseId: number) {
   return stocks.find((stock) => stock.item.id === itemId && stock.warehouse.id === warehouseId);
+}
+
+type MovementSource = {
+  type: "purchase" | "sales" | "manual";
+  label: string;
+  reference: string;
+};
+
+function parseMovementSource(reason: string): MovementSource {
+  const reference = reason.includes(":") ? reason.split(":").slice(1).join(":").trim() : "";
+  if (reason.startsWith("구매 발주 입고 취소")) {
+    return { type: "purchase", label: "구매 입고 취소", reference };
+  }
+  if (reason.startsWith("구매 발주 입고")) {
+    return { type: "purchase", label: "구매 입고", reference };
+  }
+  if (reason.startsWith("판매 수주 출고 취소")) {
+    return { type: "sales", label: "판매 출고 취소", reference };
+  }
+  if (reason.startsWith("판매 수주 출고")) {
+    return { type: "sales", label: "판매 출고", reference };
+  }
+  return { type: "manual", label: "수동 조정", reference: "" };
+}
+
+function formatMovementSource(source: MovementSource) {
+  return source.reference ? `${source.label} · ${source.reference}` : source.label;
 }
 
 function formatSignedQuantity(quantity: number, unit: string) {
