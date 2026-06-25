@@ -125,3 +125,11 @@ export type PurchaseOrder = {
   orderedBy: string;
   orderedAt: string;
 };
+
+export type PurchaseOrderQueryParams = {
+  page: number;
+  pageSize: number;
+  search: string;
+  fromDate: string;
+  toDate: string;
+};

@@ -5,6 +5,7 @@ import { useItemsQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
+import { DateField } from "../../shared/ui/DateField";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
@@ -20,6 +21,7 @@ import {
   useCreatePurchaseRequestMutation,
   useCreateSupplierMutation,
   useCustomersQuery,
+  usePurchaseOrdersQuery,
   usePurchaseRequestsQuery,
   useSuppliersQuery,
   useUpdateCustomerMutation,
@@ -31,6 +33,7 @@ import type {
   CustomerQueryParams,
   CustomerStatusFilter,
   CustomerUpdatePayload,
+  PurchaseOrderQueryParams,
   PurchaseRequest,
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
@@ -91,6 +94,13 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [requestSearchInput, setRequestSearchInput] = useState("");
   const [requestSearch, setRequestSearch] = useState("");
   const [requestStatus, setRequestStatus] = useState<PurchaseRequestStatusFilter>("ALL");
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderSearchInput, setOrderSearchInput] = useState("");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderFromDateInput, setOrderFromDateInput] = useState("");
+  const [orderToDateInput, setOrderToDateInput] = useState("");
+  const [orderFromDate, setOrderFromDate] = useState("");
+  const [orderToDate, setOrderToDate] = useState("");
   const [customerCreateOpen, setCustomerCreateOpen] = useState(false);
   const [supplierCreateOpen, setSupplierCreateOpen] = useState(false);
   const [customerForm, setCustomerForm] = useState<CustomerCreatePayload>(initialCustomerForm);
@@ -146,6 +156,16 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     }),
     [requestPage, requestSearch, requestStatus]
   );
+  const orderParams = useMemo<PurchaseOrderQueryParams>(
+    () => ({
+      page: orderPage,
+      pageSize: PAGE_SIZE,
+      search: orderSearch,
+      fromDate: orderFromDate,
+      toDate: orderToDate
+    }),
+    [orderPage, orderSearch, orderFromDate, orderToDate]
+  );
   const itemParams = useMemo<ItemQueryParams>(
     () => ({
       page: 1,
@@ -160,6 +180,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const { data: suppliersPage, error: suppliersError, isLoading: suppliersLoading } = useSuppliersQuery(supplierParams);
   const { data: activeSuppliersPage, error: activeSuppliersError } = useSuppliersQuery(allSupplierParams);
   const { data: requestsPage, error: requestsError, isLoading: requestsLoading } = usePurchaseRequestsQuery(requestParams);
+  const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = usePurchaseOrdersQuery(orderParams);
   const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
   const createCustomer = useCreateCustomerMutation();
   const updateCustomer = useUpdateCustomerMutation();
@@ -178,6 +199,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const items = itemsPage?.content ?? [];
   const requests = requestsPage?.content ?? [];
   const totalRequests = requestsPage?.totalItems ?? 0;
+  const orders = ordersPage?.content ?? [];
+  const totalOrders = ordersPage?.totalItems ?? 0;
   const selectedSupplierId = purchaseForm.supplierId || activeSuppliers[0]?.id || 0;
   const selectedItemId = purchaseForm.itemId || items[0]?.id || 0;
   const pageError =
@@ -185,6 +208,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     suppliersError ||
     activeSuppliersError ||
     requestsError ||
+    ordersError ||
     itemsError ||
     createCustomer.error ||
     updateCustomer.error ||
@@ -381,6 +405,13 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     createOrder.mutate(requestId, {
       onSuccess: () => setToastMessage("구매 요청이 발주로 전환되었습니다.")
     });
+  };
+
+  const handleApplyOrderSearch = () => {
+    setOrderSearch(orderSearchInput.trim());
+    setOrderFromDate(orderFromDateInput);
+    setOrderToDate(orderToDateInput);
+    setOrderPage(1);
   };
 
   const handleCloseCustomerCreate = () => {
@@ -769,6 +800,72 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                 </tbody>
               </table>
               <Pagination page={requestPage} pageSize={PAGE_SIZE} totalItems={totalRequests} onPageChange={setRequestPage} />
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="구매 발주 목록" description="승인된 구매 요청에서 전환된 발주 기록을 확인합니다.">
+          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_180px_auto]">
+            <TextField
+              label="검색"
+              placeholder="발주번호, 요청번호, 공급사, 품목, 담당자"
+              value={orderSearchInput}
+              leftIcon={<Search size={17} strokeWidth={2.2} />}
+              onChange={(event) => setOrderSearchInput(event.target.value)}
+              onEnter={handleApplyOrderSearch}
+            />
+            <DateField label="시작일" value={orderFromDateInput} onChange={setOrderFromDateInput} />
+            <DateField label="종료일" value={orderToDateInput} onChange={setOrderToDateInput} />
+            <Button className="mt-7 h-11" type="button" variant="secondary" onClick={handleApplyOrderSearch}>
+              검색 적용
+            </Button>
+          </div>
+
+          {ordersLoading ? (
+            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">구매 발주를 불러오는 중입니다.</p>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-axis-border">
+              <table className="w-full min-w-[1080px] border-collapse text-left">
+                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                  <tr>
+                    <th className="px-4 py-3">발주</th>
+                    <th className="px-4 py-3">연결 요청</th>
+                    <th className="px-4 py-3">공급사</th>
+                    <th className="px-4 py-3">품목</th>
+                    <th className="px-4 py-3">수량</th>
+                    <th className="px-4 py-3">금액</th>
+                    <th className="px-4 py-3">상태</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-axis-border bg-white">
+                  {orders.map((order) => (
+                    <tr key={order.id}>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-bold text-axis-ink">{order.orderNo}</p>
+                        <p className="mt-1 text-xs font-semibold text-axis-muted">{formatDateTime(order.orderedAt)} · {order.orderedBy}</p>
+                      </td>
+                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{order.request.requestNo}</td>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-bold text-axis-ink">{order.request.supplier.name}</p>
+                        <p className="mt-1 text-xs font-semibold text-axis-muted">{order.request.supplier.code}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-bold text-axis-ink">{order.request.item.name}</p>
+                        <p className="mt-1 text-xs font-semibold text-axis-muted">{order.request.item.sku}</p>
+                      </td>
+                      <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{order.request.quantity.toLocaleString("ko-KR")} {order.request.item.unit}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(order.totalAmount)}</td>
+                      <td className="px-4 py-4"><PurchaseStatusBadge status={order.request.status} /></td>
+                    </tr>
+                  ))}
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>조건에 맞는 구매 발주가 없습니다.</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+              <Pagination page={orderPage} pageSize={PAGE_SIZE} totalItems={totalOrders} onPageChange={setOrderPage} />
             </div>
           )}
         </Panel>

@@ -8,6 +8,7 @@ import type {
   CustomerQueryParams,
   CustomerUpdatePayload,
   PurchaseOrder,
+  PurchaseOrderQueryParams,
   PurchaseRequest,
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
@@ -23,7 +24,9 @@ export const purchaseKeys = {
   supplierRoot: ["purchase", "suppliers"] as const,
   suppliers: (params: SupplierQueryParams) => ["purchase", "suppliers", params] as const,
   requestRoot: ["purchase", "requests"] as const,
-  requests: (params: PurchaseRequestQueryParams) => ["purchase", "requests", params] as const
+  requests: (params: PurchaseRequestQueryParams) => ["purchase", "requests", params] as const,
+  orderRoot: ["purchase", "orders"] as const,
+  orders: (params: PurchaseOrderQueryParams) => ["purchase", "orders", params] as const
 };
 
 export function useCustomersQuery(params: CustomerQueryParams, enabled = true) {
@@ -114,6 +117,28 @@ export function usePurchaseRequestsQuery(params: PurchaseRequestQueryParams) {
   });
 }
 
+export function usePurchaseOrdersQuery(params: PurchaseOrderQueryParams) {
+  return useQuery({
+    queryKey: purchaseKeys.orders(params),
+    queryFn: () => {
+      const query = new URLSearchParams({
+        page: String(params.page),
+        pageSize: String(params.pageSize)
+      });
+      if (params.search.trim()) {
+        query.set("search", params.search.trim());
+      }
+      if (params.fromDate) {
+        query.set("fromDate", params.fromDate);
+      }
+      if (params.toDate) {
+        query.set("toDate", params.toDate);
+      }
+      return http<PageResponse<PurchaseOrder>>(`/purchases/orders?${query.toString()}`);
+    }
+  });
+}
+
 export function useCreateSupplierMutation() {
   const queryClient = useQueryClient();
 
@@ -155,6 +180,7 @@ export function useCreatePurchaseRequestMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.orderRoot });
     }
   });
 }

@@ -354,6 +354,18 @@ Requires `PURCHASE_UPDATE`.
 
 Creates a purchase order from an approved purchase request and changes the request status to `ORDERED`. Duplicate order conversion for the same request is blocked by the backend.
 
+### `GET /api/purchases/orders`
+
+Requires `PURCHASE_READ`.
+
+Query:
+
+- `page`, `pageSize`
+- `search`: server-side filter for order number, purchase request number, supplier, item, and order owner.
+- `fromDate`, `toDate`: ISO date range for order creation date.
+
+Returns paged purchase orders with the connected purchase request, supplier, item, total amount, order owner, and ordered time.
+
 ## Dashboard
 
 ### `GET /api/dashboard/summary`
