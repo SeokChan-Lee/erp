@@ -49,6 +49,9 @@ export function usePurchaseRequestsQuery(params: PurchaseRequestQueryParams) {
       if (params.search.trim()) {
         query.set("search", params.search.trim());
       }
+      if (params.status !== "ALL") {
+        query.set("status", params.status);
+      }
       return http<PageResponse<PurchaseRequest>>(`/purchases/requests?${query.toString()}`);
     }
   });
@@ -92,6 +95,34 @@ export function useCreatePurchaseRequestMutation() {
       http<PurchaseRequest>("/purchases/requests", {
         method: "POST",
         json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+    }
+  });
+}
+
+export function useApprovePurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (requestId: number) =>
+      http<PurchaseRequest>(`/purchases/requests/${requestId}/approve`, {
+        method: "PATCH"
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+    }
+  });
+}
+
+export function useCancelPurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (requestId: number) =>
+      http<PurchaseRequest>(`/purchases/requests/${requestId}/cancel`, {
+        method: "PATCH"
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });

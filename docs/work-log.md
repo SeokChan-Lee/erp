@@ -13,8 +13,10 @@
 - Added supplier master tables and purchase request tables through Flyway migration V9.
 - Added supplier list, create, and update APIs with backend-owned Korean error messages.
 - Added purchase request list and create APIs linked to active suppliers and active item masters.
+- Added purchase request status filtering, approval, and cancellation APIs.
 - Added a `구매/거래처` frontend route and sidebar menu.
 - Added supplier registration, supplier list/edit modal, purchase request registration, and purchase request list UI.
+- Added purchase request status filter and row-level approval/cancellation actions.
 - Kept supplier and purchase list search backend-owned through API query parameters.
 - Verified the new route with the local browser after restarting the backend and applying the V9 migration.
 

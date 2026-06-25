@@ -37,6 +37,7 @@ export type SupplierUpdatePayload = {
 };
 
 export type PurchaseRequestStatus = "REQUESTED" | "APPROVED" | "CANCELED";
+export type PurchaseRequestStatusFilter = "ALL" | PurchaseRequestStatus;
 
 export type PurchaseItem = {
   id: number;
@@ -66,6 +67,7 @@ export type PurchaseRequestQueryParams = {
   page: number;
   pageSize: number;
   search: string;
+  status: PurchaseRequestStatusFilter;
 };
 
 export type PurchaseRequestCreatePayload = {

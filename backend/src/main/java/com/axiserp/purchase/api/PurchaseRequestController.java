@@ -8,6 +8,7 @@ import com.axiserp.inventory.ItemRepository;
 import com.axiserp.permission.Permission;
 import com.axiserp.purchase.PurchaseRequestEntity;
 import com.axiserp.purchase.PurchaseRequestRepository;
+import com.axiserp.purchase.PurchaseRequestStatus;
 import com.axiserp.purchase.SupplierEntity;
 import com.axiserp.purchase.SupplierRepository;
 import jakarta.persistence.criteria.JoinType;
@@ -20,6 +21,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,7 +62,8 @@ public class PurchaseRequestController {
             @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "ALL") String status
     ) {
         authService.requirePermission(sessionId, Permission.PURCHASE_READ);
         PageRequest pageRequest = PageRequest.of(
@@ -67,7 +71,7 @@ public class PurchaseRequestController {
                 normalizedPageSize(pageSize),
                 Sort.by("requestedAt").descending().and(Sort.by("id").descending())
         );
-        return PageResponse.from(purchaseRequestRepository.findAll(requestSpecification(search), pageRequest), PurchaseRequestResponse::from);
+        return PageResponse.from(purchaseRequestRepository.findAll(requestSpecification(search, status), pageRequest), PurchaseRequestResponse::from);
     }
 
     @PostMapping
@@ -101,11 +105,53 @@ public class PurchaseRequestController {
         return PurchaseRequestResponse.from(saved);
     }
 
-    private Specification<PurchaseRequestEntity> requestSpecification(String search) {
+    @PatchMapping("/{id}/approve")
+    @Transactional
+    public PurchaseRequestResponse approve(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id
+    ) {
+        authService.requirePermission(sessionId, Permission.PURCHASE_APPROVE);
+        PurchaseRequestEntity request = purchaseRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 요청을 찾을 수 없습니다."));
+        try {
+            request.approve();
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
+        }
+        return PurchaseRequestResponse.from(request);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @Transactional
+    public PurchaseRequestResponse cancel(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id
+    ) {
+        authService.requirePermission(sessionId, Permission.PURCHASE_UPDATE);
+        PurchaseRequestEntity request = purchaseRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 요청을 찾을 수 없습니다."));
+        try {
+            request.cancel();
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
+        }
+        return PurchaseRequestResponse.from(request);
+    }
+
+    private Specification<PurchaseRequestEntity> requestSpecification(String search, String status) {
         return (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             var supplier = root.join("supplier", JoinType.INNER);
             var item = root.join("item", JoinType.INNER);
+
+            if (!"ALL".equals(status)) {
+                try {
+                    predicates.add(builder.equal(root.get("status"), PurchaseRequestStatus.valueOf(status)));
+                } catch (IllegalArgumentException exception) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "구매 요청 상태 값을 확인해 주세요.");
+                }
+            }
 
             if (search != null && !search.isBlank()) {
                 String keyword = "%" + search.trim().toLowerCase() + "%";

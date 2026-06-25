@@ -97,6 +97,20 @@ public class PurchaseRequestEntity {
         return status;
     }
 
+    public void approve() {
+        if (status != PurchaseRequestStatus.REQUESTED) {
+            throw new IllegalStateException("요청 상태의 구매 요청만 승인할 수 있습니다.");
+        }
+        this.status = PurchaseRequestStatus.APPROVED;
+    }
+
+    public void cancel() {
+        if (status != PurchaseRequestStatus.REQUESTED) {
+            throw new IllegalStateException("요청 상태의 구매 요청만 취소할 수 있습니다.");
+        }
+        this.status = PurchaseRequestStatus.CANCELED;
+    }
+
     public String getMemo() {
         return memo;
     }

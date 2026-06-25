@@ -269,6 +269,7 @@ Query parameters:
 - `page`: 1-based page number. Defaults to `1`.
 - `pageSize`: item count per page. Defaults to `20`; maximum `100`.
 - `search`: optional keyword for request number, supplier, item, memo, or requester.
+- `status`: `ALL`, `REQUESTED`, `APPROVED`, or `CANCELED`. Defaults to `ALL`.
 
 ### `POST /api/purchases/requests`
 
@@ -287,6 +288,18 @@ Request:
 ```
 
 Response includes request number, supplier summary, item summary, quantity, unit price, total amount, request status, memo, requester, and requested time.
+
+### `PATCH /api/purchases/requests/{id}/approve`
+
+Requires `PURCHASE_APPROVE`.
+
+Approves a purchase request that is currently in request state.
+
+### `PATCH /api/purchases/requests/{id}/cancel`
+
+Requires `PURCHASE_UPDATE`.
+
+Cancels a purchase request that is currently in request state.
 
 ## Dashboard
 

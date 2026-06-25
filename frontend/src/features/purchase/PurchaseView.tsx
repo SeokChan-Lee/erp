@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { PencilLine, Plus, Search, Send } from "lucide-react";
+import { Check, PencilLine, Plus, Search, Send, X } from "lucide-react";
 
 import { useItemsQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
@@ -8,10 +8,13 @@ import { Button } from "../../shared/ui/Button";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { SearchableSelectField } from "../../shared/ui/SearchableSelectField";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
 import {
+  useApprovePurchaseRequestMutation,
+  useCancelPurchaseRequestMutation,
   useCreatePurchaseRequestMutation,
   useCreateSupplierMutation,
   usePurchaseRequestsQuery,
@@ -21,6 +24,7 @@ import {
 import type {
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
+  PurchaseRequestStatusFilter,
   Supplier,
   SupplierCreatePayload,
   SupplierQueryParams,
@@ -59,6 +63,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [requestPage, setRequestPage] = useState(1);
   const [requestSearchInput, setRequestSearchInput] = useState("");
   const [requestSearch, setRequestSearch] = useState("");
+  const [requestStatus, setRequestStatus] = useState<PurchaseRequestStatusFilter>("ALL");
+  const [supplierCreateOpen, setSupplierCreateOpen] = useState(false);
   const [supplierForm, setSupplierForm] = useState<SupplierCreatePayload>(initialSupplierForm);
   const [editingSupplier, setEditingSupplier] = useState<SupplierEditForm | null>(null);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
@@ -67,6 +73,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const canCreateSupplier = permissions.includes("SUPPLIER_CREATE");
   const canUpdateSupplier = permissions.includes("SUPPLIER_UPDATE");
   const canCreatePurchase = permissions.includes("PURCHASE_CREATE");
+  const canApprovePurchase = permissions.includes("PURCHASE_APPROVE");
+  const canCancelPurchase = permissions.includes("PURCHASE_UPDATE");
 
   const supplierParams = useMemo<SupplierQueryParams>(
     () => ({
@@ -90,9 +98,10 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     () => ({
       page: requestPage,
       pageSize: PAGE_SIZE,
-      search: requestSearch
+      search: requestSearch,
+      status: requestStatus
     }),
-    [requestPage, requestSearch]
+    [requestPage, requestSearch, requestStatus]
   );
   const itemParams = useMemo<ItemQueryParams>(
     () => ({
@@ -111,6 +120,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const createSupplier = useCreateSupplierMutation();
   const updateSupplier = useUpdateSupplierMutation();
   const createRequest = useCreatePurchaseRequestMutation();
+  const approveRequest = useApprovePurchaseRequestMutation();
+  const cancelRequest = useCancelPurchaseRequestMutation();
 
   const suppliers = suppliersPage?.content ?? [];
   const totalSuppliers = suppliersPage?.totalItems ?? 0;
@@ -120,11 +131,17 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const totalRequests = requestsPage?.totalItems ?? 0;
   const selectedSupplierId = purchaseForm.supplierId || activeSuppliers[0]?.id || 0;
   const selectedItemId = purchaseForm.itemId || items[0]?.id || 0;
-  const pageError = suppliersError || activeSuppliersError || requestsError || itemsError || createSupplier.error || updateSupplier.error || createRequest.error;
+  const pageError = suppliersError || activeSuppliersError || requestsError || itemsError || createSupplier.error || updateSupplier.error || createRequest.error || approveRequest.error || cancelRequest.error;
   const supplierStatusOptions = [
     { value: "ALL" as SupplierStatusFilter, label: "전체" },
     { value: "ACTIVE" as SupplierStatusFilter, label: "사용" },
     { value: "INACTIVE" as SupplierStatusFilter, label: "비활성" }
+  ];
+  const requestStatusOptions = [
+    { value: "ALL" as PurchaseRequestStatusFilter, label: "전체" },
+    { value: "REQUESTED" as PurchaseRequestStatusFilter, label: "요청" },
+    { value: "APPROVED" as PurchaseRequestStatusFilter, label: "승인" },
+    { value: "CANCELED" as PurchaseRequestStatusFilter, label: "취소" }
   ];
   const supplierOptions = activeSuppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} · ${supplier.name}` }));
   const itemOptions = items.map((item) => ({ value: item.id, label: `${item.sku} · ${item.name}` }));
@@ -154,6 +171,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
       {
         onSuccess: () => {
           setSupplierForm(initialSupplierForm);
+          setSupplierCreateOpen(false);
           setToastMessage("공급사가 등록되었습니다.");
         }
       }
@@ -218,6 +236,23 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     );
   };
 
+  const handleApprovePurchase = (requestId: number) => {
+    approveRequest.mutate(requestId, {
+      onSuccess: () => setToastMessage("구매 요청이 승인되었습니다.")
+    });
+  };
+
+  const handleCancelPurchase = (requestId: number) => {
+    cancelRequest.mutate(requestId, {
+      onSuccess: () => setToastMessage("구매 요청이 취소되었습니다.")
+    });
+  };
+
+  const handleCloseSupplierCreate = () => {
+    setSupplierCreateOpen(false);
+    setSupplierForm(initialSupplierForm);
+  };
+
   return (
     <div className="space-y-6">
       {pageError ? (
@@ -228,30 +263,18 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
 
       <Toast open={toastMessage.length > 0} message={toastMessage} variant="success" onClose={() => setToastMessage("")} />
 
-      {canCreateSupplier ? (
-        <Panel title="공급사 등록" description="구매 요청에서 사용할 공급 거래처 기준 정보를 등록합니다.">
-          <form className="grid gap-4 xl:grid-cols-[0.9fr_1.2fr_1fr_0.9fr_0.9fr_1.2fr_auto]" onSubmit={handleCreateSupplier}>
-            <TextField label="공급사 코드" value={supplierForm.code} onChange={(event) => setSupplierForm((current) => ({ ...current, code: event.target.value }))} placeholder="AX-SUP-003" required />
-            <TextField label="공급사명" value={supplierForm.name} onChange={(event) => setSupplierForm((current) => ({ ...current, name: event.target.value }))} placeholder="구매 파트너" required />
-            <TextField
-              label="사업자등록번호"
-              value={supplierForm.businessNumber}
-              onChange={(event) => setSupplierForm((current) => ({ ...current, businessNumber: event.target.value }))}
-              placeholder="101-88-00003"
-              required
-            />
-            <TextField label="담당자" value={supplierForm.contactName} onChange={(event) => setSupplierForm((current) => ({ ...current, contactName: event.target.value }))} placeholder="홍담당" required />
-            <TextField label="연락처" value={supplierForm.phone} onChange={(event) => setSupplierForm((current) => ({ ...current, phone: event.target.value }))} placeholder="02-3000-3000" required />
-            <TextField label="이메일" type="email" value={supplierForm.email} onChange={(event) => setSupplierForm((current) => ({ ...current, email: event.target.value }))} placeholder="partner@axis.local" required />
-            <Button className="mt-7 h-11 gap-2" disabled={!supplierFormReady || createSupplier.isPending}>
+      <Panel
+        title="공급사 목록"
+        description="구매 업무에서 사용할 공급 거래처를 관리합니다."
+        action={
+          canCreateSupplier ? (
+            <Button className="gap-2" type="button" onClick={() => setSupplierCreateOpen(true)}>
               <Plus size={17} strokeWidth={2.2} />
-              {createSupplier.isPending ? "등록 중" : "등록"}
+              공급사 등록
             </Button>
-          </form>
-        </Panel>
-      ) : null}
-
-      <Panel title="공급사 목록" description="구매 업무에서 사용할 공급 거래처를 관리합니다.">
+          ) : null
+        }
+      >
         <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_auto]">
           <TextField
             label="검색"
@@ -336,13 +359,29 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         )}
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="grid gap-6">
         {canCreatePurchase ? (
           <Panel title="구매 요청 등록" description="공급사와 품목을 선택해 구매 요청 기준 데이터를 만듭니다.">
             <form className="space-y-4" onSubmit={handleCreatePurchase}>
-              <SelectField label="공급사" value={selectedSupplierId} options={supplierOptions} placeholder="공급사 선택" disabled={supplierOptions.length === 0} onChange={(supplierId) => setPurchaseForm((current) => ({ ...current, supplierId }))} />
-              <SelectField label="품목" value={selectedItemId} options={itemOptions} placeholder="품목 선택" disabled={itemOptions.length === 0} onChange={(itemId) => setPurchaseForm((current) => ({ ...current, itemId }))} />
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+              <SearchableSelectField
+                label="공급사"
+                value={selectedSupplierId}
+                options={supplierOptions}
+                placeholder="공급사 선택"
+                searchPlaceholder="공급사 코드 또는 이름 검색"
+                disabled={supplierOptions.length === 0}
+                onChange={(supplierId) => setPurchaseForm((current) => ({ ...current, supplierId }))}
+              />
+              <SearchableSelectField
+                label="품목"
+                value={selectedItemId}
+                options={itemOptions}
+                placeholder="품목 선택"
+                searchPlaceholder="품목 코드 또는 이름 검색"
+                disabled={itemOptions.length === 0}
+                onChange={(itemId) => setPurchaseForm((current) => ({ ...current, itemId }))}
+              />
+              <div className="grid gap-4 md:grid-cols-2">
                 <TextField label="수량" min={1} type="number" value={purchaseForm.quantity} onChange={(event) => setPurchaseForm((current) => ({ ...current, quantity: Number(event.target.value) }))} required />
                 <TextField label="단가" min={1} type="number" value={purchaseForm.unitPrice} onChange={(event) => setPurchaseForm((current) => ({ ...current, unitPrice: Number(event.target.value) }))} required />
               </div>
@@ -364,7 +403,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         ) : null}
 
         <Panel title="구매 요청 목록" description="등록된 구매 요청과 공급사, 품목, 금액을 확인합니다.">
-          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto]">
+          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_auto]">
             <TextField
               label="검색"
               placeholder="요청번호, 공급사, 품목, 메모"
@@ -373,6 +412,15 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               onChange={(event) => setRequestSearchInput(event.target.value)}
               onEnter={() => {
                 setRequestSearch(requestSearchInput.trim());
+                setRequestPage(1);
+              }}
+            />
+            <SelectField
+              label="상태"
+              value={requestStatus}
+              options={requestStatusOptions}
+              onChange={(status) => {
+                setRequestStatus(status);
                 setRequestPage(1);
               }}
             />
@@ -402,6 +450,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                     <th className="px-4 py-3">수량</th>
                     <th className="px-4 py-3">금액</th>
                     <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-axis-border bg-white">
@@ -419,11 +468,43 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                       <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{request.quantity.toLocaleString("ko-KR")} {request.item.unit}</td>
                       <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(request.totalAmount)}</td>
                       <td className="px-4 py-4"><PurchaseStatusBadge status={request.status} /></td>
+                      <td className="px-4 py-4">
+                        {request.status === "REQUESTED" && (canApprovePurchase || canCancelPurchase) ? (
+                          <div className="flex flex-wrap gap-2">
+                            {canApprovePurchase ? (
+                              <Button
+                                className="h-8 gap-1.5 px-3 text-xs"
+                                disabled={approveRequest.isPending || cancelRequest.isPending}
+                                type="button"
+                                variant="secondary"
+                                onClick={() => handleApprovePurchase(request.id)}
+                              >
+                                <Check size={14} strokeWidth={2.2} />
+                                승인
+                              </Button>
+                            ) : null}
+                            {canCancelPurchase ? (
+                              <Button
+                                className="h-8 gap-1.5 px-3 text-xs text-rose-700"
+                                disabled={approveRequest.isPending || cancelRequest.isPending}
+                                type="button"
+                                variant="secondary"
+                                onClick={() => handleCancelPurchase(request.id)}
+                              >
+                                <X size={14} strokeWidth={2.2} />
+                                취소
+                              </Button>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold text-axis-muted">처리 완료</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {requests.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={6}>등록된 구매 요청이 없습니다.</td>
+                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>등록된 구매 요청이 없습니다.</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -433,6 +514,67 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           )}
         </Panel>
       </div>
+
+      <Modal
+        open={supplierCreateOpen}
+        title="공급사 등록"
+        description="구매 요청에서 사용할 공급 거래처 기준 정보를 등록합니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={handleCloseSupplierCreate}>취소</Button>
+            <Button disabled={!supplierFormReady || createSupplier.isPending} type="submit" form="supplier-create-form">
+              {createSupplier.isPending ? "등록 중" : "등록"}
+            </Button>
+          </>
+        }
+        onClose={handleCloseSupplierCreate}
+      >
+        <form id="supplier-create-form" className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateSupplier}>
+          <TextField
+            label="공급사 코드"
+            value={supplierForm.code}
+            onChange={(event) => setSupplierForm((current) => ({ ...current, code: event.target.value }))}
+            placeholder="AX-SUP-003"
+            required
+          />
+          <TextField
+            label="공급사명"
+            value={supplierForm.name}
+            onChange={(event) => setSupplierForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="구매 파트너"
+            required
+          />
+          <TextField
+            label="사업자등록번호"
+            value={supplierForm.businessNumber}
+            onChange={(event) => setSupplierForm((current) => ({ ...current, businessNumber: event.target.value }))}
+            placeholder="101-88-00003"
+            required
+          />
+          <TextField
+            label="담당자"
+            value={supplierForm.contactName}
+            onChange={(event) => setSupplierForm((current) => ({ ...current, contactName: event.target.value }))}
+            placeholder="홍담당"
+            required
+          />
+          <TextField
+            label="연락처"
+            value={supplierForm.phone}
+            onChange={(event) => setSupplierForm((current) => ({ ...current, phone: event.target.value }))}
+            placeholder="02-3000-3000"
+            required
+          />
+          <TextField
+            label="이메일"
+            type="email"
+            value={supplierForm.email}
+            onChange={(event) => setSupplierForm((current) => ({ ...current, email: event.target.value }))}
+            placeholder="partner@axis.local"
+            required
+          />
+        </form>
+      </Modal>
 
       <Modal
         open={editingSupplier !== null}
