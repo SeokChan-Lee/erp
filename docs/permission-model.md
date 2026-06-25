@@ -96,6 +96,7 @@ Examples:
 ### SALES_MANAGER
 
 - Customer read/write
+- Item and warehouse read for sales order registration and shipment
 - Sales read/write
 - Dashboard view
 - Statistics view for sales scope
@@ -103,6 +104,7 @@ Examples:
 ### PURCHASE_MANAGER
 
 - Supplier read/write
+- Item and warehouse read for purchase request registration and receiving
 - Purchase read/write
 - Purchase approve when also assigned `APPROVER`
 - Dashboard view
@@ -148,4 +150,3 @@ Example:
 - `ATTENDANCE_READ_SELF` allows only the current user's records.
 - `ATTENDANCE_READ_DEPARTMENT` allows records for employees in departments the user manages.
 - `ATTENDANCE_READ_ALL` allows company-wide attendance records.
-

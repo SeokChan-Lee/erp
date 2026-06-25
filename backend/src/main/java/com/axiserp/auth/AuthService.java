@@ -196,6 +196,8 @@ public class AuthService {
                 Permission.CUSTOMER_READ,
                 Permission.CUSTOMER_CREATE,
                 Permission.CUSTOMER_UPDATE,
+                Permission.ITEM_READ,
+                Permission.INVENTORY_READ,
                 Permission.SALES_READ,
                 Permission.SALES_CREATE,
                 Permission.SALES_UPDATE
@@ -205,6 +207,8 @@ public class AuthService {
                 Permission.SUPPLIER_READ,
                 Permission.SUPPLIER_CREATE,
                 Permission.SUPPLIER_UPDATE,
+                Permission.ITEM_READ,
+                Permission.INVENTORY_READ,
                 Permission.PURCHASE_READ,
                 Permission.PURCHASE_CREATE,
                 Permission.PURCHASE_UPDATE,

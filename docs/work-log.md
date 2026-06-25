@@ -33,6 +33,7 @@
 - Added sales order frontend route with create form, server-side list search, status filter, detail modal, and cancel action.
 - Added sales order shipping backend API that decreases stock and records inventory movement with insufficient-stock protection.
 - Added sales order shipping UI with warehouse selection modal, shipment status badge, and shipped detail fields.
+- Granted purchase and sales manager roles item/warehouse read permissions needed by request, receiving, and shipping screens.
 
 ## 2026-06-24
 
