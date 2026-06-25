@@ -508,7 +508,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         )}
       </Panel>
 
-      <Panel title="재고 조정 이력" description="재고 수량 변경 내역을 기간, 창고, 키워드 기준으로 확인합니다.">
+      <Panel title="재고 이동 이력" description="구매 입고, 판매 출고, 수동 조정으로 발생한 재고 수량 변경 내역을 확인합니다.">
         <div className="mb-4 grid gap-3 xl:grid-cols-[1fr_190px_190px_190px_auto_auto]">
           <TextField
             label="검색"
@@ -590,7 +590,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
 
         {movementsLoading ? (
           <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-            재고 조정 이력을 불러오는 중입니다.
+            재고 이동 이력을 불러오는 중입니다.
           </p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-axis-border">
@@ -600,7 +600,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                   <th className="px-4 py-3">처리 일시</th>
                   <th className="px-4 py-3">품목</th>
                   <th className="px-4 py-3">창고</th>
-                  <th className="px-4 py-3">조정 수량</th>
+                  <th className="px-4 py-3">이동 수량</th>
                   <th className="px-4 py-3">출처</th>
                   <th className="px-4 py-3">처리자</th>
                   <th className="px-4 py-3">사유</th>
@@ -638,7 +638,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                 {movements.length === 0 ? (
                   <tr>
                     <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={8}>
-                      조건에 맞는 조정 이력이 없습니다.
+                      조건에 맞는 이동 이력이 없습니다.
                     </td>
                   </tr>
                 ) : null}
@@ -721,8 +721,8 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
 
       <Modal
         open={selectedMovement !== null}
-        title="재고 조정 이력 상세"
-        description="재고 조정 처리 기준과 사유를 확인합니다."
+        title="재고 이동 이력 상세"
+        description="재고 수량 변경의 출처, 처리 기준, 사유를 확인합니다."
         footer={
           <Button type="button" variant="secondary" onClick={() => setSelectedMovement(null)}>
             닫기
@@ -737,12 +737,12 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               <InfoItem label="처리자" value={formatProcessorName(selectedMovement.processedBy)} />
               <InfoItem label="품목" value={`${selectedMovement.item.sku} · ${selectedMovement.item.name}`} />
               <InfoItem label="창고" value={selectedMovement.warehouse.name} />
-              <InfoItem label="조정 수량" value={formatSignedQuantity(selectedMovement.quantityDelta, selectedMovement.item.unit)} />
+              <InfoItem label="이동 수량" value={formatSignedQuantity(selectedMovement.quantityDelta, selectedMovement.item.unit)} />
               <InfoItem label="분류" value={selectedMovement.item.category} />
               <InfoItem label="출처" value={formatMovementSource(parseMovementSource(selectedMovement.reason))} />
             </div>
             <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
-              <p className="text-xs font-bold text-axis-muted">조정 사유</p>
+              <p className="text-xs font-bold text-axis-muted">처리 사유</p>
               <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-axis-ink">{selectedMovement.reason}</p>
             </div>
           </div>
