@@ -30,6 +30,7 @@
 ### Sales MVP
 
 - Added sales order schema, entity, repository, and backend APIs for list, create, and cancel.
+- Added sales order frontend route with create form, server-side list search, status filter, detail modal, and cancel action.
 
 ## 2026-06-24
 
