@@ -34,6 +34,7 @@
 - Added sales order shipping backend API that decreases stock and records inventory movement with insufficient-stock protection.
 - Added sales order shipping UI with warehouse selection modal, shipment status badge, and shipped detail fields.
 - Granted purchase and sales manager roles item/warehouse read permissions needed by request, receiving, and shipping screens.
+- Replaced placeholder dashboard summary numbers with database-backed purchase, sales, inventory, and activity metrics.
 
 ## 2026-06-24
 

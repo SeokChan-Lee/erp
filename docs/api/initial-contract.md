@@ -391,7 +391,11 @@ Returns initial dashboard metrics:
 - attendance status counts
 - pending approvals
 - low-stock item count
-- recent activity count
+- today activity count
+- pending purchase requests
+- pending purchase receipts
+- registered sales orders
+- pending sales shipments
 
 ## Sales
 

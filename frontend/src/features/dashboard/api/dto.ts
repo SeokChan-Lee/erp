@@ -3,4 +3,8 @@ export type DashboardSummary = {
   pendingApprovals: number;
   lowStockItems: number;
   recentActivities: number;
+  pendingPurchaseRequests: number;
+  pendingPurchaseReceipts: number;
+  registeredSalesOrders: number;
+  pendingSalesShipments: number;
 };

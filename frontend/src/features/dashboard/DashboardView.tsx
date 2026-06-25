@@ -10,6 +10,10 @@ export function DashboardView() {
   const pendingApprovals = summary?.pendingApprovals ?? 0;
   const lowStockItems = summary?.lowStockItems ?? 0;
   const recentActivities = summary?.recentActivities ?? 0;
+  const pendingPurchaseRequests = summary?.pendingPurchaseRequests ?? 0;
+  const pendingPurchaseReceipts = summary?.pendingPurchaseReceipts ?? 0;
+  const registeredSalesOrders = summary?.registeredSalesOrders ?? 0;
+  const pendingSalesShipments = summary?.pendingSalesShipments ?? 0;
 
   const workSignals = [
     { label: "승인 대기", value: String(pendingApprovals), tone: "text-axis-blue" },
@@ -49,21 +53,30 @@ export function DashboardView() {
         <MetricCard label="오늘 출근" value={`${checkedIn}명`} change="실시간" />
         <MetricCard label="승인 대기" value={`${pendingApprovals}건`} />
         <MetricCard label="재고 경고" value={`${lowStockItems}건`} />
-        <MetricCard label="최근 활동" value={`${recentActivities}건`} />
+        <MetricCard label="오늘 처리" value={`${recentActivities}건`} />
+        <MetricCard label="구매 승인 대기" value={`${pendingPurchaseRequests}건`} />
+        <MetricCard label="구매 입고 대기" value={`${pendingPurchaseReceipts}건`} />
+        <MetricCard label="판매 수주" value={`${registeredSalesOrders}건`} />
+        <MetricCard label="판매 출고 대기" value={`${pendingSalesShipments}건`} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Panel title="운영 처리 대기" description="초기 대시보드는 오늘 바로 판단해야 하는 업무를 중심으로 구성합니다.">
+        <Panel title="운영 처리 대기" description="오늘 바로 판단해야 하는 업무를 실제 데이터 기준으로 집계합니다.">
           <div className="divide-y divide-axis-border">
-            {["근태 수정 요청 검토", "구매 요청 승인", "재고 부족 품목 확인"].map(
+            {[
+              { label: "근태/구매 승인 검토", value: `${pendingApprovals}건` },
+              { label: "구매 입고 처리", value: `${pendingPurchaseReceipts}건` },
+              { label: "판매 출고 처리", value: `${pendingSalesShipments}건` },
+              { label: "재고 부족 품목 확인", value: `${lowStockItems}건` }
+            ].map(
               (item) => (
-                <div key={item} className="flex items-center justify-between py-4">
+                <div key={item.label} className="flex items-center justify-between py-4">
                   <div>
-                    <p className="text-sm font-semibold text-axis-ink">{item}</p>
+                    <p className="text-sm font-semibold text-axis-ink">{item.label}</p>
                     <p className="mt-1 text-sm text-axis-muted">담당 권한을 가진 관리자에게 배정됩니다.</p>
                   </div>
                   <span className="rounded-full bg-axis-bg px-3 py-1 text-xs font-semibold text-axis-muted">
-                    준비됨
+                    {item.value}
                   </span>
                 </div>
               )

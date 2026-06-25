@@ -4,6 +4,10 @@ public record DashboardSummaryResponse(
         long checkedIn,
         long pendingApprovals,
         long lowStockItems,
-        long recentActivities
+        long recentActivities,
+        long pendingPurchaseRequests,
+        long pendingPurchaseReceipts,
+        long registeredSalesOrders,
+        long pendingSalesShipments
 ) {
 }
