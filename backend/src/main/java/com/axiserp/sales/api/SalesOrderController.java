@@ -88,6 +88,18 @@ public class SalesOrderController {
         return PageResponse.from(salesOrderRepository.findAll(orderSpecification(search, status), pageRequest), SalesOrderResponse::from);
     }
 
+    @GetMapping("/{id}")
+    @Transactional(readOnly = true)
+    public SalesOrderResponse order(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id
+    ) {
+        authService.requirePermission(sessionId, Permission.SALES_READ);
+        SalesOrderEntity order = salesOrderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "판매 수주를 찾을 수 없습니다."));
+        return SalesOrderResponse.from(order);
+    }
+
     @PostMapping
     @Transactional
     public SalesOrderResponse create(

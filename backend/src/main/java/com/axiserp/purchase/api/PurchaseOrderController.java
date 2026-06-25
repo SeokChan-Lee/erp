@@ -80,6 +80,18 @@ public class PurchaseOrderController {
         return PageResponse.from(purchaseOrderRepository.findAll(orderSpecification(search, fromDate, toDate), pageRequest), PurchaseOrderResponse::from);
     }
 
+    @GetMapping("/{id}")
+    @Transactional(readOnly = true)
+    public PurchaseOrderResponse order(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id
+    ) {
+        authService.requirePermission(sessionId, Permission.PURCHASE_READ);
+        PurchaseOrderEntity order = purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 발주를 찾을 수 없습니다."));
+        return PurchaseOrderResponse.from(order);
+    }
+
     @PostMapping("/{id}/receive")
     @Transactional
     public PurchaseOrderResponse receive(

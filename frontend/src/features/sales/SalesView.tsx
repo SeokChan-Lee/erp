@@ -17,6 +17,7 @@ import {
   useCancelSalesOrderMutation,
   useCancelShipSalesOrderMutation,
   useCreateSalesOrderMutation,
+  useSalesOrderQuery,
   useSalesOrdersQuery,
   useShipSalesOrderMutation
 } from "./api/salesApi";
@@ -43,7 +44,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatus, setOrderStatus] = useState<SalesOrderStatusFilter>("ALL");
   const [salesForm, setSalesForm] = useState<SalesOrderCreatePayload>(initialSalesForm);
-  const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [shippingOrder, setShippingOrder] = useState<SalesOrder | null>(null);
   const [shipWarehouseId, setShipWarehouseId] = useState(0);
   const [toastMessage, setToastMessage] = useState("");
@@ -74,6 +75,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
   const { data: warehouses = [], error: warehousesError } = useWarehousesQuery();
   const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = useSalesOrdersQuery(orderParams);
+  const { data: selectedOrder, error: selectedOrderError, isLoading: selectedOrderLoading } = useSalesOrderQuery(selectedOrderId);
   const createOrder = useCreateSalesOrderMutation();
   const cancelOrder = useCancelSalesOrderMutation();
   const shipOrder = useShipSalesOrderMutation();
@@ -280,7 +282,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
                     <td className="px-4 py-4"><ShipStatusBadge shipped={order.shippedAt !== null} /></td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedOrder(order)}>
+                        <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedOrderId(order.id)}>
                           <Eye size={14} strokeWidth={2.2} />
                           상세
                         </Button>
@@ -383,13 +385,17 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
       </Modal>
 
       <Modal
-        open={selectedOrder !== null}
+        open={selectedOrderId !== null}
         title="판매 수주 상세"
         description="판매 수주의 고객사, 품목, 출고와 취소 처리 정보를 함께 확인합니다."
-        footer={<Button type="button" variant="secondary" onClick={() => setSelectedOrder(null)}>닫기</Button>}
-        onClose={() => setSelectedOrder(null)}
+        footer={<Button type="button" variant="secondary" onClick={() => setSelectedOrderId(null)}>닫기</Button>}
+        onClose={() => setSelectedOrderId(null)}
       >
-        {selectedOrder ? (
+        {selectedOrderLoading ? (
+          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">판매 수주 상세 정보를 불러오는 중입니다.</p>
+        ) : selectedOrderError ? (
+          <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{getErrorMessage(selectedOrderError)}</p>
+        ) : selectedOrder ? (
           <div className="space-y-5">
             <div className="flex items-center justify-between gap-3 rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
               <div>

@@ -27,7 +27,8 @@ export const purchaseKeys = {
   requestRoot: ["purchase", "requests"] as const,
   requests: (params: PurchaseRequestQueryParams) => ["purchase", "requests", params] as const,
   orderRoot: ["purchase", "orders"] as const,
-  orders: (params: PurchaseOrderQueryParams) => ["purchase", "orders", params] as const
+  orders: (params: PurchaseOrderQueryParams) => ["purchase", "orders", params] as const,
+  orderDetail: (orderId: number) => ["purchase", "orders", orderId] as const
 };
 
 export function useCustomersQuery(params: CustomerQueryParams, enabled = true) {
@@ -137,6 +138,14 @@ export function usePurchaseOrdersQuery(params: PurchaseOrderQueryParams) {
       }
       return http<PageResponse<PurchaseOrder>>(`/purchases/orders?${query.toString()}`);
     }
+  });
+}
+
+export function usePurchaseOrderQuery(orderId: number | null) {
+  return useQuery({
+    queryKey: purchaseKeys.orderDetail(orderId ?? 0),
+    enabled: orderId !== null,
+    queryFn: () => http<PurchaseOrder>(`/purchases/orders/${orderId}`)
   });
 }
 

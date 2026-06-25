@@ -22,6 +22,7 @@ import {
   useCreatePurchaseRequestMutation,
   useCreateSupplierMutation,
   useCustomersQuery,
+  usePurchaseOrderQuery,
   usePurchaseOrdersQuery,
   usePurchaseRequestsQuery,
   useReceivePurchaseOrderMutation,
@@ -111,7 +112,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [editingCustomer, setEditingCustomer] = useState<CustomerEditForm | null>(null);
   const [editingSupplier, setEditingSupplier] = useState<SupplierEditForm | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PurchaseRequest | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [receivingOrder, setReceivingOrder] = useState<PurchaseOrder | null>(null);
   const [receiveWarehouseId, setReceiveWarehouseId] = useState(0);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
@@ -187,6 +188,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const { data: activeSuppliersPage, error: activeSuppliersError } = useSuppliersQuery(allSupplierParams);
   const { data: requestsPage, error: requestsError, isLoading: requestsLoading } = usePurchaseRequestsQuery(requestParams);
   const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = usePurchaseOrdersQuery(orderParams);
+  const { data: selectedOrder, error: selectedOrderError, isLoading: selectedOrderLoading } = usePurchaseOrderQuery(selectedOrderId);
   const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
   const { data: warehouses = [], error: warehousesError } = useWarehousesQuery();
   const createCustomer = useCreateCustomerMutation();
@@ -903,7 +905,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                       <td className="px-4 py-4"><ReceiveStatusBadge received={order.receivedAt !== null} /></td>
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-2">
-                          <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedOrder(order)}>
+                          <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedOrderId(order.id)}>
                             <Eye size={14} strokeWidth={2.2} />
                             상세
                           </Button>
@@ -992,13 +994,17 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
       </Modal>
 
       <Modal
-        open={selectedOrder !== null}
+        open={selectedOrderId !== null}
         title="구매 발주 상세"
         description="발주, 연결된 구매 요청, 입고 처리 정보를 함께 확인합니다."
-        footer={<Button type="button" variant="secondary" onClick={() => setSelectedOrder(null)}>닫기</Button>}
-        onClose={() => setSelectedOrder(null)}
+        footer={<Button type="button" variant="secondary" onClick={() => setSelectedOrderId(null)}>닫기</Button>}
+        onClose={() => setSelectedOrderId(null)}
       >
-        {selectedOrder ? (
+        {selectedOrderLoading ? (
+          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">구매 발주 상세 정보를 불러오는 중입니다.</p>
+        ) : selectedOrderError ? (
+          <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{getErrorMessage(selectedOrderError)}</p>
+        ) : selectedOrder ? (
           <div className="space-y-5">
             <div className="flex items-center justify-between gap-3 rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
               <div>

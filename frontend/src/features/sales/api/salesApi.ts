@@ -14,7 +14,8 @@ export const salesKeys = {
   customerRoot: ["sales", "customers"] as const,
   activeCustomers: ["sales", "customers", "active"] as const,
   orderRoot: ["sales", "orders"] as const,
-  orders: (params: SalesOrderQueryParams) => ["sales", "orders", params] as const
+  orders: (params: SalesOrderQueryParams) => ["sales", "orders", params] as const,
+  orderDetail: (orderId: number) => ["sales", "orders", orderId] as const
 };
 
 export function useActiveSalesCustomersQuery() {
@@ -41,6 +42,14 @@ export function useSalesOrdersQuery(params: SalesOrderQueryParams) {
       }
       return http<PageResponse<SalesOrder>>(`/sales/orders?${query.toString()}`);
     }
+  });
+}
+
+export function useSalesOrderQuery(orderId: number | null) {
+  return useQuery({
+    queryKey: salesKeys.orderDetail(orderId ?? 0),
+    enabled: orderId !== null,
+    queryFn: () => http<SalesOrder>(`/sales/orders/${orderId}`)
   });
 }
 

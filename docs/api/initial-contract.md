@@ -366,6 +366,12 @@ Query:
 
 Returns paged purchase orders with the connected purchase request, supplier, item, total amount, order owner, and ordered time.
 
+### `GET /api/purchases/orders/{id}`
+
+Requires `PURCHASE_READ`.
+
+Returns one purchase order detail with the connected purchase request, supplier contact, item, amount, receipt warehouse, receipt processor, and receipt time.
+
 ### `POST /api/purchases/orders/{id}/receive`
 
 Requires `PURCHASE_UPDATE`.
@@ -417,6 +423,12 @@ Query:
 - `status`: `ALL`, `REGISTERED`, `CANCELED`
 
 Returns paged sales orders with customer, item, quantity, unit price, total amount, status, memo, order owner, and processed information.
+
+### `GET /api/sales/orders/{id}`
+
+Requires `SALES_READ`.
+
+Returns one sales order detail with customer contact, item, amount, order status, cancellation processor, shipment warehouse, shipment processor, and shipment time.
 
 ### `POST /api/sales/orders`
 

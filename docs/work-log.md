@@ -180,3 +180,9 @@
 - Added `sourceType`, `sourceLabel`, and `sourceReferenceNo` to inventory movement API responses.
 - Moved purchase, sales, and manual movement source classification out of the frontend reason-text parser.
 - Updated the inventory movement table and detail modal to render backend-owned source fields.
+
+### Purchase and Sales Detail APIs
+
+- Added single purchase order and sales order detail endpoints.
+- Changed purchase and sales detail modals to load detail data by id instead of reusing list row data.
+- Kept detail loading and detail errors scoped to each modal.
