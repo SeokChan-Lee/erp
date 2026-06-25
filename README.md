@@ -1,31 +1,40 @@
 # Axis ERP
 
-Axis ERP is an operations-first ERP system for managing people, attendance, customers, inventory, purchasing, sales, approvals, and business dashboards.
+개인 프로젝트로 만들어보고 있는 ERP 시스템입니다.
 
-The project is planned as a full-stack monorepo:
+회사에서 자주 쓰는 운영 업무들을 직접 설계하고 구현해보는 걸 목표로 하고 있습니다. 인사, 근태, 권한, 품목/재고, 구매, 판매, 대시보드 같은 기능을 한 곳에서 다루는 웹 서비스로 만들고 있고, 단순한 화면 샘플보다는 실제 업무 흐름처럼 이어지는 구조를 계속 붙여가는 중입니다.
 
-- Frontend: React, TypeScript, Tailwind CSS, Zustand
-- Backend: Java, Spring Boot
-- Auth: cookie-based login
-- UI: custom components, no MUI
-- Font: Pretendard
+## 기술 스택
 
-## Product Direction
+- 프론트엔드: React, TypeScript, Tailwind CSS, Zustand
+- 백엔드: Java, Spring Boot
+- 로그인: 쿠키 기반 인증
+- UI: MUI 없이 직접 만든 공통 컴포넌트 사용
+- 폰트: Pretendard
+- 차트: 통계 기능이 들어갈 경우 Chart.js 사용 예정
 
-Axis ERP starts with the representative workflows most companies need before expanding into deeper ERP modules:
+## 지금까지 만든 기능
 
-- Authentication and account management
-- Organization, departments, positions, and employees
-- Attendance and work-hour management
-- Customers and suppliers
-- Item and inventory management
-- Purchasing and sales workflows
-- Approval flows
-- Dashboards and statistics
+- 로그인, 로그아웃, 내 정보 확인
+- 역할과 권한 관리
+- 조직, 부서, 직급, 직원 관리
+- 직원 계정 등록과 사용자 관리
+- 출퇴근 기록, 근태 캘린더, 근태 수정 요청/승인
+- 품목 기준정보, 창고, 현재고, 재고 조정
+- 재고 이동 이력과 출처 관리
+- 고객사, 공급사 기준정보
+- 구매 요청, 구매 승인, 발주, 입고 처리
+- 판매 수주, 출고 처리
+- 운영 현황 대시보드와 최근 활동
 
-## Development Rules
+## 프로젝트 방향
 
-Additional libraries must be approved before use. Chart features should use Chart.js when statistics or dashboard charts are needed.
+처음부터 거대한 ERP를 한 번에 만드는 것보다는, 작은 업무 흐름을 하나씩 실제로 동작하게 붙여가는 방식으로 만들고 있습니다.
 
-See the planning documents in `docs/` for product scope, permission design, frontend rules, backend rules, and visual direction.
+현재는 기본적인 운영 업무를 중심으로 구현하고 있고, 앞으로는 구매/판매 흐름 고도화, 재고 이력 추적, 승인 프로세스, 통계 대시보드 같은 기능을 더 현실적인 ERP 흐름에 맞게 확장해볼 예정입니다.
 
+## 개발 메모
+
+프론트와 백엔드를 한 레포에서 같이 관리하는 풀스택 개인 프로젝트입니다. 프론트는 React 기반으로 직접 UI 컴포넌트를 만들고, 백엔드는 Java/Spring Boot로 API와 도메인 로직을 담당합니다.
+
+기획, 권한 설계, API 계약, 디자인 방향 같은 내용은 `docs/` 폴더에 정리해두고 있습니다.
