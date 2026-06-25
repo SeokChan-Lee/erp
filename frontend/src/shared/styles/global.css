@@ -75,6 +75,14 @@ a {
   animation: axis-fade-in 420ms ease-out both;
 }
 
+.axis-toast-enter {
+  animation: axis-toast-enter 220ms ease-out both;
+}
+
+.axis-toast-exit {
+  animation: axis-toast-exit 180ms ease-in both;
+}
+
 @keyframes axis-fade-up {
   from {
     opacity: 0;
@@ -95,9 +103,33 @@ a {
   }
 }
 
+@keyframes axis-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes axis-toast-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .axis-fade-up,
-  .axis-fade-in {
+  .axis-fade-in,
+  .axis-toast-enter,
+  .axis-toast-exit {
     animation: none;
   }
 }

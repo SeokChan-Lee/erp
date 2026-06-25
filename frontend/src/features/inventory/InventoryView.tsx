@@ -172,6 +172,12 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
     adjustmentForm.targetQuantity >= 0 &&
     adjustmentQuantityDelta !== 0 &&
     adjustmentForm.reason.trim().length > 0;
+  const movementFilterLabels = [
+    movementSearch ? `검색어: ${movementSearch}` : "",
+    movementStartDate ? `시작일: ${movementStartDate}` : "",
+    movementEndDate ? `종료일: ${movementEndDate}` : "",
+    movementWarehouseId > 0 ? `창고: ${warehouses.find((warehouse) => warehouse.id === movementWarehouseId)?.name ?? "선택 창고"}` : ""
+  ].filter(Boolean);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -503,7 +509,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       </Panel>
 
       <Panel title="재고 조정 이력" description="재고 수량 변경 내역을 기간, 창고, 키워드 기준으로 확인합니다.">
-        <div className="mb-4 grid gap-3 xl:grid-cols-[1fr_190px_190px_190px_auto]">
+        <div className="mb-4 grid gap-3 xl:grid-cols-[1fr_190px_190px_190px_auto_auto]">
           <TextField
             label="검색"
             placeholder="품목, 창고, 사유, 처리자"
@@ -515,6 +521,17 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               setMovementPage(1);
             }}
           />
+          <Button
+            className="mt-7 h-11"
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setMovementSearch(movementSearchInput.trim());
+              setMovementPage(1);
+            }}
+          >
+            검색 적용
+          </Button>
           <DateField
             label="시작일"
             value={movementStartDate}
@@ -555,6 +572,20 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
           >
             초기화
           </Button>
+        </div>
+
+        <div className="mb-4 min-h-8">
+          {movementFilterLabels.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {movementFilterLabels.map((label) => (
+                <span key={label} className="inline-flex h-8 items-center rounded-full border border-axis-border bg-axis-bg px-3 text-xs font-bold text-axis-ink">
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs font-semibold text-axis-muted">필터가 적용되지 않았습니다.</p>
+          )}
         </div>
 
         {movementsLoading ? (
