@@ -13,13 +13,21 @@ Axis ERP currently uses Spring Data JPA with an H2 file database for local devel
 
 ## Current Tables
 
-The initial JPA model creates:
+Flyway migrations currently create and manage:
 
 - `departments`
 - `employees`
 - `app_users`
 - `app_user_roles`
+- `role_permissions`
 - `attendance_records`
+- `attendance_change_requests`
+- `items`
+- `warehouses`
+- `inventory_stocks`
+- `inventory_movements`
+- `suppliers`
+- `purchase_requests`
 
 ## Seed Data
 
@@ -31,12 +39,16 @@ The local development seeder creates:
 - Employee `E-0001`
 - User `admin / admin123`
 - User `employee / employee123`
+- Warehouse `MAIN`
+- Warehouse `SUB`
+- Initial item and stock records
+- Supplier `AX-SUP-001`
+- Supplier `AX-SUP-002`
 
 ## Next Steps
 
-1. Add Flyway migrations before the schema grows further.
-2. Replace plaintext passwords with hashed passwords.
-3. Move sessions from in-memory storage to persistent or Redis-backed session storage.
-4. Add department and employee APIs.
-5. Add monthly attendance query APIs.
-6. Add PostgreSQL local profile once the local database server strategy is selected.
+1. Move sessions from in-memory storage to persistent or Redis-backed session storage.
+2. Add purchase approval and purchase order tables after the request workflow is confirmed.
+3. Add customer master and sales order tables.
+4. Add audit logs for security-sensitive and inventory-changing actions.
+5. Add PostgreSQL local profile once the local database server strategy is selected.

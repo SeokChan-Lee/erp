@@ -189,6 +189,105 @@ Requires `ATTENDANCE_READ_ALL`.
 
 Returns today's attendance records.
 
+## Supplier
+
+### `GET /api/suppliers`
+
+Requires `SUPPLIER_READ`.
+
+Query parameters:
+
+- `page`: 1-based page number. Defaults to `1`.
+- `pageSize`: item count per page. Defaults to `20`; maximum `100`.
+- `search`: optional keyword for supplier code, name, business number, or contact name.
+- `status`: `ALL`, `ACTIVE`, or `INACTIVE`. Defaults to `ALL`.
+
+Response:
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "code": "AX-SUP-001",
+      "name": "Axis IT 공급사",
+      "businessNumber": "101-88-00001",
+      "contactName": "김공급",
+      "phone": "02-1000-1000",
+      "email": "it-supply@axis.local",
+      "active": true
+    }
+  ],
+  "totalItems": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+### `POST /api/suppliers`
+
+Requires `SUPPLIER_CREATE`.
+
+Request:
+
+```json
+{
+  "code": "AX-SUP-003",
+  "name": "구매 파트너",
+  "businessNumber": "101-88-00003",
+  "contactName": "홍담당",
+  "phone": "02-3000-3000",
+  "email": "partner@axis.local"
+}
+```
+
+### `PATCH /api/suppliers/{id}`
+
+Requires `SUPPLIER_UPDATE`.
+
+Request:
+
+```json
+{
+  "name": "구매 파트너",
+  "businessNumber": "101-88-00003",
+  "contactName": "홍담당",
+  "phone": "02-3000-3000",
+  "email": "partner@axis.local",
+  "active": true
+}
+```
+
+## Purchase
+
+### `GET /api/purchases/requests`
+
+Requires `PURCHASE_READ`.
+
+Query parameters:
+
+- `page`: 1-based page number. Defaults to `1`.
+- `pageSize`: item count per page. Defaults to `20`; maximum `100`.
+- `search`: optional keyword for request number, supplier, item, memo, or requester.
+
+### `POST /api/purchases/requests`
+
+Requires `PURCHASE_CREATE`.
+
+Request:
+
+```json
+{
+  "supplierId": 1,
+  "itemId": 1,
+  "quantity": 5,
+  "unitPrice": 1200000,
+  "memo": "신규 입사자 장비 확보"
+}
+```
+
+Response includes request number, supplier summary, item summary, quantity, unit price, total amount, request status, memo, requester, and requested time.
+
 ## Dashboard
 
 ### `GET /api/dashboard/summary`

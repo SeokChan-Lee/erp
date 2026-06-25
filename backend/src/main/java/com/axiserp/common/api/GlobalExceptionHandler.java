@@ -35,7 +35,17 @@ public class GlobalExceptionHandler {
             Map.entry("requestedCheckInAt", "출근 시간"),
             Map.entry("requestedCheckOutAt", "퇴근 시간"),
             Map.entry("reason", "요청 사유"),
-            Map.entry("requestIds", "요청")
+            Map.entry("requestIds", "요청"),
+            Map.entry("code", "코드"),
+            Map.entry("name", "이름"),
+            Map.entry("businessNumber", "사업자등록번호"),
+            Map.entry("contactName", "담당자"),
+            Map.entry("phone", "연락처"),
+            Map.entry("supplierId", "공급사"),
+            Map.entry("itemId", "품목"),
+            Map.entry("quantity", "수량"),
+            Map.entry("unitPrice", "단가"),
+            Map.entry("memo", "메모")
     );
 
     @ExceptionHandler(ResponseStatusException.class)

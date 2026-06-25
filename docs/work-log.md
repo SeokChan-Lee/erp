@@ -1,5 +1,23 @@
 # Axis ERP Work Log
 
+## 2026-06-25
+
+### Toast and Inventory Filter UX
+
+- Added toast exit animation so success messages animate both when appearing and disappearing.
+- Kept toast placement in the bottom-right corner with centered content and clearer spacing.
+- Changed inventory movement filters to apply keyword/date filters explicitly instead of updating the list while typing.
+
+### Purchase and Supplier Master MVP
+
+- Added supplier master tables and purchase request tables through Flyway migration V9.
+- Added supplier list, create, and update APIs with backend-owned Korean error messages.
+- Added purchase request list and create APIs linked to active suppliers and active item masters.
+- Added a `구매/거래처` frontend route and sidebar menu.
+- Added supplier registration, supplier list/edit modal, purchase request registration, and purchase request list UI.
+- Kept supplier and purchase list search backend-owned through API query parameters.
+- Verified the new route with the local browser after restarting the backend and applying the V9 migration.
+
 ## 2026-06-24
 
 ### Dropdown Component Refactor
