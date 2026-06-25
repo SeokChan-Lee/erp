@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, PencilLine, Plus, Search, Send, X } from "lucide-react";
+import { Check, Eye, PencilLine, Plus, Search, Send, X } from "lucide-react";
 
 import { useItemsQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
@@ -22,6 +22,7 @@ import {
   useUpdateSupplierMutation
 } from "./api/purchaseApi";
 import type {
+  PurchaseRequest,
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
   PurchaseRequestStatusFilter,
@@ -67,6 +68,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [supplierCreateOpen, setSupplierCreateOpen] = useState(false);
   const [supplierForm, setSupplierForm] = useState<SupplierCreatePayload>(initialSupplierForm);
   const [editingSupplier, setEditingSupplier] = useState<SupplierEditForm | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<PurchaseRequest | null>(null);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -469,8 +471,18 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                       <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(request.totalAmount)}</td>
                       <td className="px-4 py-4"><PurchaseStatusBadge status={request.status} /></td>
                       <td className="px-4 py-4">
-                        {request.status === "REQUESTED" && (canApprovePurchase || canCancelPurchase) ? (
-                          <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            className="h-8 gap-1.5 px-3 text-xs"
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setSelectedRequest(request)}
+                          >
+                            <Eye size={14} strokeWidth={2.2} />
+                            상세
+                          </Button>
+                          {request.status === "REQUESTED" && (canApprovePurchase || canCancelPurchase) ? (
+                            <>
                             {canApprovePurchase ? (
                               <Button
                                 className="h-8 gap-1.5 px-3 text-xs"
@@ -495,10 +507,9 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                                 취소
                               </Button>
                             ) : null}
-                          </div>
-                        ) : (
-                          <span className="text-xs font-semibold text-axis-muted">처리 완료</span>
-                        )}
+                            </>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -514,6 +525,40 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           )}
         </Panel>
       </div>
+
+      <Modal
+        open={selectedRequest !== null}
+        title="구매 요청 상세"
+        description="구매 요청의 공급사, 품목, 금액, 요청 메모를 확인합니다."
+        footer={<Button type="button" variant="secondary" onClick={() => setSelectedRequest(null)}>닫기</Button>}
+        onClose={() => setSelectedRequest(null)}
+      >
+        {selectedRequest ? (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
+              <div>
+                <p className="text-sm font-bold text-axis-ink">{selectedRequest.requestNo}</p>
+                <p className="mt-1 text-xs font-semibold text-axis-muted">{formatDateTime(selectedRequest.requestedAt)} · {selectedRequest.requestedBy}</p>
+              </div>
+              <PurchaseStatusBadge status={selectedRequest.status} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <DetailItem label="공급사" value={`${selectedRequest.supplier.code} · ${selectedRequest.supplier.name}`} />
+              <DetailItem label="품목" value={`${selectedRequest.item.sku} · ${selectedRequest.item.name}`} />
+              <DetailItem label="수량" value={`${selectedRequest.quantity.toLocaleString("ko-KR")} ${selectedRequest.item.unit}`} />
+              <DetailItem label="단가" value={formatCurrency(selectedRequest.unitPrice)} />
+              <DetailItem label="합계 금액" value={formatCurrency(selectedRequest.totalAmount)} />
+              <DetailItem label="품목 분류" value={selectedRequest.item.category} />
+            </div>
+
+            <div className="rounded-lg border border-axis-border px-4 py-3">
+              <p className="text-sm font-bold text-axis-ink">요청 메모</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-6 text-axis-muted">{selectedRequest.memo?.trim() || "등록된 메모가 없습니다."}</p>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       <Modal
         open={supplierCreateOpen}
@@ -624,6 +669,15 @@ function PurchaseStatusBadge({ status }: { status: string }) {
   const className = status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : status === "CANCELED" ? "bg-axis-bg text-axis-muted" : "bg-blue-50 text-blue-700";
 
   return <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", className].join(" ")}>{label}</span>;
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-axis-border px-4 py-3">
+      <p className="text-xs font-bold text-axis-muted">{label}</p>
+      <p className="mt-1 text-sm font-bold text-axis-ink">{value}</p>
+    </div>
+  );
 }
 
 function formatCurrency(value: number) {

@@ -17,6 +17,7 @@
 - Added a `구매/거래처` frontend route and sidebar menu.
 - Added supplier registration, supplier list/edit modal, purchase request registration, and purchase request list UI.
 - Added purchase request status filter and row-level approval/cancellation actions.
+- Added a purchase request detail modal for request number, supplier, item, quantity, amount, requester, and memo.
 - Kept supplier and purchase list search backend-owned through API query parameters.
 - Verified the new route with the local browser after restarting the backend and applying the V9 migration.
 
