@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { PackagePlus, PencilLine, Plus, Search, Warehouse } from "lucide-react";
 
 import {
@@ -30,6 +30,7 @@ import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
+import { Toast } from "../../shared/ui/Toast";
 
 const PAGE_SIZE = 20;
 
@@ -78,6 +79,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const [editForm, setEditForm] = useState<ItemEditForm | null>(null);
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState<InventoryAdjustmentForm>(initialAdjustmentForm);
+  const [toastMessage, setToastMessage] = useState("");
   const canCreateItem = permissions.includes("ITEM_CREATE");
   const canUpdateItem = permissions.includes("ITEM_UPDATE");
   const canAdjustInventory = permissions.includes("INVENTORY_ADJUST");
@@ -171,6 +173,13 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
     adjustmentQuantityDelta !== 0 &&
     adjustmentForm.reason.trim().length > 0;
 
+  useEffect(() => {
+    if (!toastMessage) return;
+
+    const timerId = window.setTimeout(() => setToastMessage(""), 2600);
+    return () => window.clearTimeout(timerId);
+  }, [toastMessage]);
+
   const handleCreateItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!itemFormReady) return;
@@ -184,7 +193,10 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         safetyStock: itemForm.safetyStock
       },
       {
-        onSuccess: () => setItemForm(initialItemForm)
+        onSuccess: () => {
+          setItemForm(initialItemForm);
+          setToastMessage("품목이 등록되었습니다.");
+        }
       }
     );
   };
@@ -216,7 +228,10 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         }
       },
       {
-        onSuccess: () => setEditForm(null)
+        onSuccess: () => {
+          setEditForm(null);
+          setToastMessage("품목 정보가 수정되었습니다.");
+        }
       }
     );
   };
@@ -236,6 +251,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         onSuccess: () => {
           setAdjustmentForm({ ...initialAdjustmentForm, itemId: selectedItemId, warehouseId: selectedWarehouseId });
           setAdjustmentModalOpen(false);
+          setToastMessage("재고가 조정되었습니다.");
         }
       }
     );
@@ -273,6 +289,8 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
           {getErrorMessage(pageError)}
         </p>
       ) : null}
+
+      <Toast open={toastMessage.length > 0} message={toastMessage} variant="success" onClose={() => setToastMessage("")} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="전체 품목" value={`${overview?.totalItems ?? 0}개`} />
