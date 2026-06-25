@@ -36,6 +36,7 @@
 - Granted purchase and sales manager roles item/warehouse read permissions needed by request, receiving, and shipping screens.
 - Replaced placeholder dashboard summary numbers with database-backed purchase, sales, inventory, and activity metrics.
 - Added purchase receipt cancellation API and UI with stock rollback and inventory movement logging.
+- Added sales shipment cancellation API and UI with stock rollback and inventory movement logging.
 
 ## 2026-06-24
 

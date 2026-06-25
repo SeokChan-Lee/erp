@@ -157,6 +157,42 @@ public class SalesOrderController {
         return SalesOrderResponse.from(order);
     }
 
+    @PostMapping("/{id}/ship/cancel")
+    @Transactional
+    public SalesOrderResponse cancelShip(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.SALES_UPDATE);
+        SalesOrderEntity order = salesOrderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "판매 수주를 찾을 수 없습니다."));
+        if (!order.isShipped() || order.getShippedWarehouse() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "출고 처리되지 않은 판매 수주입니다.");
+        }
+
+        WarehouseEntity warehouse = order.getShippedWarehouse();
+        InventoryStockEntity stock = inventoryStockRepository
+                .findByItem_IdAndWarehouse_Id(order.getItem().getId(), warehouse.getId())
+                .orElseGet(() -> new InventoryStockEntity(order.getItem(), warehouse, 0));
+        stock.adjust(order.getQuantity());
+        inventoryStockRepository.save(stock);
+        inventoryMovementRepository.save(new InventoryMovementEntity(
+                order.getItem(),
+                warehouse,
+                order.getQuantity(),
+                "판매 수주 출고 취소: " + order.getOrderNo(),
+                user.displayName()
+        ));
+
+        try {
+            order.cancelShip();
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
+        }
+
+        return SalesOrderResponse.from(order);
+    }
+
     @PatchMapping("/{id}/cancel")
     @Transactional
     public SalesOrderResponse cancel(

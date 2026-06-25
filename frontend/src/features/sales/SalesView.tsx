@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Eye, PackageCheck, Search, Send, X } from "lucide-react";
+import { Eye, PackageCheck, RotateCcw, Search, Send, X } from "lucide-react";
 
 import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
@@ -15,6 +15,7 @@ import { Toast } from "../../shared/ui/Toast";
 import {
   useActiveSalesCustomersQuery,
   useCancelSalesOrderMutation,
+  useCancelShipSalesOrderMutation,
   useCreateSalesOrderMutation,
   useSalesOrdersQuery,
   useShipSalesOrderMutation
@@ -76,6 +77,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   const createOrder = useCreateSalesOrderMutation();
   const cancelOrder = useCancelSalesOrderMutation();
   const shipOrder = useShipSalesOrderMutation();
+  const cancelShipOrder = useCancelShipSalesOrderMutation();
 
   const customers = customersPage?.content ?? [];
   const items = itemsPage?.content ?? [];
@@ -93,7 +95,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   ];
   const salesFormReady = selectedCustomerId > 0 && selectedItemId > 0 && salesForm.quantity > 0 && salesForm.unitPrice > 0;
   const selectedShipWarehouseId = shipWarehouseId || warehouses[0]?.id || 0;
-  const pageError = customersError || itemsError || warehousesError || ordersError || createOrder.error || cancelOrder.error || shipOrder.error;
+  const pageError = customersError || itemsError || warehousesError || ordersError || createOrder.error || cancelOrder.error || shipOrder.error || cancelShipOrder.error;
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -156,6 +158,12 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
         }
       }
     );
+  };
+
+  const handleCancelShipOrder = (orderId: number) => {
+    cancelShipOrder.mutate(orderId, {
+      onSuccess: () => setToastMessage("판매 수주 출고가 취소되었습니다.")
+    });
   };
 
   return (
@@ -279,7 +287,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
                         {order.status === "REGISTERED" && !order.shippedAt && canUpdateSales ? (
                           <Button
                             className="h-8 gap-1.5 px-3 text-xs"
-                            disabled={shipOrder.isPending || warehouses.length === 0}
+                            disabled={shipOrder.isPending || cancelShipOrder.isPending || warehouses.length === 0}
                             type="button"
                             variant="secondary"
                             onClick={() => openShipModal(order)}
@@ -288,10 +296,22 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
                             출고 처리
                           </Button>
                         ) : null}
+                        {order.status === "REGISTERED" && order.shippedAt && canUpdateSales ? (
+                          <Button
+                            className="h-8 gap-1.5 px-3 text-xs text-rose-700"
+                            disabled={cancelShipOrder.isPending}
+                            type="button"
+                            variant="secondary"
+                            onClick={() => handleCancelShipOrder(order.id)}
+                          >
+                            <RotateCcw size={14} strokeWidth={2.2} />
+                            출고 취소
+                          </Button>
+                        ) : null}
                         {order.status === "REGISTERED" && !order.shippedAt && canUpdateSales ? (
                           <Button
                             className="h-8 gap-1.5 px-3 text-xs text-rose-700"
-                            disabled={cancelOrder.isPending || shipOrder.isPending}
+                            disabled={cancelOrder.isPending || shipOrder.isPending || cancelShipOrder.isPending}
                             type="button"
                             variant="secondary"
                             onClick={() => handleCancelOrder(order.id)}

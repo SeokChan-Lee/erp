@@ -172,4 +172,16 @@ public class SalesOrderEntity {
         this.shippedBy = shippedBy;
         this.shippedAt = LocalDateTime.now();
     }
+
+    public void cancelShip() {
+        if (status != SalesOrderStatus.REGISTERED) {
+            throw new IllegalStateException("등록 상태의 판매 수주만 출고 취소할 수 있습니다.");
+        }
+        if (!isShipped()) {
+            throw new IllegalStateException("출고 처리되지 않은 판매 수주입니다.");
+        }
+        this.shippedWarehouse = null;
+        this.shippedBy = null;
+        this.shippedAt = null;
+    }
 }

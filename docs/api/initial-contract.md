@@ -455,6 +455,12 @@ Request:
 
 Ships a registered sales order from the selected warehouse. The backend blocks duplicate shipping, blocks shipping when stock is insufficient, decreases current stock, and records an inventory movement with the sales order number.
 
+### `POST /api/sales/orders/{id}/ship/cancel`
+
+Requires `SALES_UPDATE`.
+
+Cancels a shipped sales order. The backend blocks cancellation for orders that were not shipped, increases current stock, clears shipping fields, and records an inventory movement with the sales order number.
+
 ## Organization
 
 ### `GET /api/departments`

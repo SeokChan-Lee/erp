@@ -88,3 +88,19 @@ export function useShipSalesOrderMutation() {
     }
   });
 }
+
+export function useCancelShipSalesOrderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (orderId: number) =>
+      http<SalesOrder>(`/sales/orders/${orderId}/ship/cancel`, {
+        method: "POST"
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: salesKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    }
+  });
+}
