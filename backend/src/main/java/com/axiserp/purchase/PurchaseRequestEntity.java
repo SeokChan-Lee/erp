@@ -120,6 +120,15 @@ public class PurchaseRequestEntity {
         this.processedAt = LocalDateTime.now();
     }
 
+    public void markOrdered(String processedBy) {
+        if (status != PurchaseRequestStatus.APPROVED) {
+            throw new IllegalStateException("승인 상태의 구매 요청만 발주로 전환할 수 있습니다.");
+        }
+        this.status = PurchaseRequestStatus.ORDERED;
+        this.processedBy = processedBy;
+        this.processedAt = LocalDateTime.now();
+    }
+
     public String getMemo() {
         return memo;
     }

@@ -6,6 +6,8 @@ import com.axiserp.common.api.PageResponse;
 import com.axiserp.inventory.ItemEntity;
 import com.axiserp.inventory.ItemRepository;
 import com.axiserp.permission.Permission;
+import com.axiserp.purchase.PurchaseOrderEntity;
+import com.axiserp.purchase.PurchaseOrderRepository;
 import com.axiserp.purchase.PurchaseRequestEntity;
 import com.axiserp.purchase.PurchaseRequestRepository;
 import com.axiserp.purchase.PurchaseRequestStatus;
@@ -43,17 +45,20 @@ public class PurchaseRequestController {
     private final SupplierRepository supplierRepository;
     private final ItemRepository itemRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
 
     public PurchaseRequestController(
             AuthService authService,
             SupplierRepository supplierRepository,
             ItemRepository itemRepository,
-            PurchaseRequestRepository purchaseRequestRepository
+            PurchaseRequestRepository purchaseRequestRepository,
+            PurchaseOrderRepository purchaseOrderRepository
     ) {
         this.authService = authService;
         this.supplierRepository = supplierRepository;
         this.itemRepository = itemRepository;
         this.purchaseRequestRepository = purchaseRequestRepository;
+        this.purchaseOrderRepository = purchaseOrderRepository;
     }
 
     @GetMapping
@@ -137,6 +142,29 @@ public class PurchaseRequestController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }
         return PurchaseRequestResponse.from(request);
+    }
+
+    @PostMapping("/{id}/order")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public PurchaseOrderResponse order(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.PURCHASE_UPDATE);
+        PurchaseRequestEntity request = purchaseRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 요청을 찾을 수 없습니다."));
+        if (purchaseOrderRepository.existsByRequestId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 발주로 전환된 구매 요청입니다.");
+        }
+        try {
+            request.markOrdered(user.displayName());
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
+        }
+        String orderNo = "PO-" + LocalDate.now().toString().replace("-", "") + "-" + System.currentTimeMillis();
+        PurchaseOrderEntity order = purchaseOrderRepository.save(new PurchaseOrderEntity(orderNo, request, user.displayName()));
+        return PurchaseOrderResponse.from(order);
     }
 
     private Specification<PurchaseRequestEntity> requestSpecification(String search, String status) {

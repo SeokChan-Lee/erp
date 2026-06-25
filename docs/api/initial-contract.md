@@ -269,7 +269,7 @@ Query parameters:
 - `page`: 1-based page number. Defaults to `1`.
 - `pageSize`: item count per page. Defaults to `20`; maximum `100`.
 - `search`: optional keyword for request number, supplier, item, memo, or requester.
-- `status`: `ALL`, `REQUESTED`, `APPROVED`, or `CANCELED`. Defaults to `ALL`.
+- `status`: `ALL`, `REQUESTED`, `APPROVED`, `CANCELED`, or `ORDERED`. Defaults to `ALL`.
 
 ### `POST /api/purchases/requests`
 
@@ -300,6 +300,12 @@ Approves a purchase request that is currently in request state.
 Requires `PURCHASE_UPDATE`.
 
 Cancels a purchase request that is currently in request state.
+
+### `POST /api/purchases/requests/{id}/order`
+
+Requires `PURCHASE_UPDATE`.
+
+Creates a purchase order from an approved purchase request and changes the request status to `ORDERED`. Duplicate order conversion for the same request is blocked by the backend.
 
 ## Dashboard
 

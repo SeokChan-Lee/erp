@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, Eye, PencilLine, Plus, Search, Send, X } from "lucide-react";
+import { Check, Eye, PencilLine, Plus, Search, Send, ShoppingCart, X } from "lucide-react";
 
 import { useItemsQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
@@ -15,6 +15,7 @@ import { Toast } from "../../shared/ui/Toast";
 import {
   useApprovePurchaseRequestMutation,
   useCancelPurchaseRequestMutation,
+  useCreatePurchaseOrderMutation,
   useCreatePurchaseRequestMutation,
   useCreateSupplierMutation,
   usePurchaseRequestsQuery,
@@ -124,6 +125,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const createRequest = useCreatePurchaseRequestMutation();
   const approveRequest = useApprovePurchaseRequestMutation();
   const cancelRequest = useCancelPurchaseRequestMutation();
+  const createOrder = useCreatePurchaseOrderMutation();
 
   const suppliers = suppliersPage?.content ?? [];
   const totalSuppliers = suppliersPage?.totalItems ?? 0;
@@ -133,7 +135,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const totalRequests = requestsPage?.totalItems ?? 0;
   const selectedSupplierId = purchaseForm.supplierId || activeSuppliers[0]?.id || 0;
   const selectedItemId = purchaseForm.itemId || items[0]?.id || 0;
-  const pageError = suppliersError || activeSuppliersError || requestsError || itemsError || createSupplier.error || updateSupplier.error || createRequest.error || approveRequest.error || cancelRequest.error;
+  const pageError = suppliersError || activeSuppliersError || requestsError || itemsError || createSupplier.error || updateSupplier.error || createRequest.error || approveRequest.error || cancelRequest.error || createOrder.error;
   const supplierStatusOptions = [
     { value: "ALL" as SupplierStatusFilter, label: "전체" },
     { value: "ACTIVE" as SupplierStatusFilter, label: "사용" },
@@ -143,7 +145,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     { value: "ALL" as PurchaseRequestStatusFilter, label: "전체" },
     { value: "REQUESTED" as PurchaseRequestStatusFilter, label: "요청" },
     { value: "APPROVED" as PurchaseRequestStatusFilter, label: "승인" },
-    { value: "CANCELED" as PurchaseRequestStatusFilter, label: "취소" }
+    { value: "CANCELED" as PurchaseRequestStatusFilter, label: "취소" },
+    { value: "ORDERED" as PurchaseRequestStatusFilter, label: "발주" }
   ];
   const supplierOptions = activeSuppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} · ${supplier.name}` }));
   const itemOptions = items.map((item) => ({ value: item.id, label: `${item.sku} · ${item.name}` }));
@@ -247,6 +250,12 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const handleCancelPurchase = (requestId: number) => {
     cancelRequest.mutate(requestId, {
       onSuccess: () => setToastMessage("구매 요청이 취소되었습니다.")
+    });
+  };
+
+  const handleCreateOrder = (requestId: number) => {
+    createOrder.mutate(requestId, {
+      onSuccess: () => setToastMessage("구매 요청이 발주로 전환되었습니다.")
     });
   };
 
@@ -486,7 +495,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                             {canApprovePurchase ? (
                               <Button
                                 className="h-8 gap-1.5 px-3 text-xs"
-                                disabled={approveRequest.isPending || cancelRequest.isPending}
+                                disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
                                 type="button"
                                 variant="secondary"
                                 onClick={() => handleApprovePurchase(request.id)}
@@ -498,7 +507,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                             {canCancelPurchase ? (
                               <Button
                                 className="h-8 gap-1.5 px-3 text-xs text-rose-700"
-                                disabled={approveRequest.isPending || cancelRequest.isPending}
+                                disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
                                 type="button"
                                 variant="secondary"
                                 onClick={() => handleCancelPurchase(request.id)}
@@ -508,6 +517,18 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                               </Button>
                             ) : null}
                             </>
+                          ) : null}
+                          {request.status === "APPROVED" && canCancelPurchase ? (
+                            <Button
+                              className="h-8 gap-1.5 px-3 text-xs"
+                              disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
+                              type="button"
+                              variant="secondary"
+                              onClick={() => handleCreateOrder(request.id)}
+                            >
+                              <ShoppingCart size={14} strokeWidth={2.2} />
+                              발주 전환
+                            </Button>
                           ) : null}
                         </div>
                       </td>
@@ -667,8 +688,15 @@ function StatusBadge({ active }: { active: boolean }) {
 }
 
 function PurchaseStatusBadge({ status }: { status: string }) {
-  const label = status === "APPROVED" ? "승인" : status === "CANCELED" ? "취소" : "요청";
-  const className = status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : status === "CANCELED" ? "bg-axis-bg text-axis-muted" : "bg-blue-50 text-blue-700";
+  const label = status === "ORDERED" ? "발주" : status === "APPROVED" ? "승인" : status === "CANCELED" ? "취소" : "요청";
+  const className =
+    status === "ORDERED"
+      ? "bg-violet-50 text-violet-700"
+      : status === "APPROVED"
+        ? "bg-emerald-50 text-emerald-700"
+        : status === "CANCELED"
+          ? "bg-axis-bg text-axis-muted"
+          : "bg-blue-50 text-blue-700";
 
   return <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", className].join(" ")}>{label}</span>;
 }

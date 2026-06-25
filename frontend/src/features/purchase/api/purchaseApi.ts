@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http } from "../../../shared/api/http";
 import type { PageResponse } from "../../../shared/api/page";
 import type {
+  PurchaseOrder,
   PurchaseRequest,
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
@@ -123,6 +124,20 @@ export function useCancelPurchaseRequestMutation() {
     mutationFn: (requestId: number) =>
       http<PurchaseRequest>(`/purchases/requests/${requestId}/cancel`, {
         method: "PATCH"
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+    }
+  });
+}
+
+export function useCreatePurchaseOrderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (requestId: number) =>
+      http<PurchaseOrder>(`/purchases/requests/${requestId}/order`, {
+        method: "POST"
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });

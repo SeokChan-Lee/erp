@@ -36,7 +36,7 @@ export type SupplierUpdatePayload = {
   active: boolean;
 };
 
-export type PurchaseRequestStatus = "REQUESTED" | "APPROVED" | "CANCELED";
+export type PurchaseRequestStatus = "REQUESTED" | "APPROVED" | "CANCELED" | "ORDERED";
 export type PurchaseRequestStatusFilter = "ALL" | PurchaseRequestStatus;
 
 export type PurchaseItem = {
@@ -78,4 +78,13 @@ export type PurchaseRequestCreatePayload = {
   quantity: number;
   unitPrice: number;
   memo: string;
+};
+
+export type PurchaseOrder = {
+  id: number;
+  orderNo: string;
+  request: PurchaseRequest;
+  totalAmount: number;
+  orderedBy: string;
+  orderedAt: string;
 };
