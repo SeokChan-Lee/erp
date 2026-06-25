@@ -25,6 +25,7 @@ import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TextField } from "../../shared/ui/TextField";
 import { TimeField } from "../../shared/ui/TimeField";
 
 const HISTORY_PAGE_SIZE = 20;
@@ -47,6 +48,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
   const [detailRequest, setDetailRequest] = useState<AttendanceChangeRequest | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [historySearchInput, setHistorySearchInput] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [historyStatusFilter, setHistoryStatusFilter] = useState<"ALL" | AttendanceChangeRequestStatus>("ALL");
   const [historyStartDate, setHistoryStartDate] = useState("");
@@ -338,18 +340,16 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
           ) : (
             <div className="space-y-4">
               <div className="grid gap-3 xl:grid-cols-[1.25fr_0.75fr_0.75fr_0.75fr_auto]">
-                <label className="block">
-                  <span className="text-sm font-semibold text-axis-ink">검색</span>
-                  <input
-                    className="axis-field mt-2"
-                    placeholder="직원, 일자, 사유, 처리자"
-                    value={historySearch}
-                    onChange={(event) => {
-                      setHistorySearch(event.target.value);
-                      setHistoryPage(1);
-                    }}
-                  />
-                </label>
+                <TextField
+                  label="검색"
+                  placeholder="직원, 일자, 사유, 처리자"
+                  value={historySearchInput}
+                  onChange={(event) => setHistorySearchInput(event.target.value)}
+                  onEnter={() => {
+                    setHistorySearch(historySearchInput.trim());
+                    setHistoryPage(1);
+                  }}
+                />
                 <SelectField
                   label="처리 상태"
                   value={historyStatusFilter}

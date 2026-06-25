@@ -401,6 +401,87 @@ Response:
 
 Returns the updated user account.
 
+## Item and Inventory
+
+All item and inventory APIs return backend-managed errors in the shared `{ "message": "..." }` shape.
+
+### `GET /api/items`
+
+Requires `ITEM_READ`.
+
+Returns paged item master data.
+
+Query parameters:
+
+- `page`: 1-based page number. Defaults to `1`.
+- `pageSize`: item count per page. Defaults to `20`; maximum `100`.
+- `search`: optional keyword for item code, name, or category.
+- `status`: optional `ACTIVE` or `INACTIVE`. Omit or pass `ALL` for all items.
+
+### `POST /api/items`
+
+Requires `ITEM_CREATE`.
+
+Creates an item master record and initializes zero stock rows for existing warehouses.
+
+Request:
+
+```json
+{
+  "sku": "AX-ITM-004",
+  "name": "무선 키보드",
+  "category": "IT 장비",
+  "unit": "개",
+  "safetyStock": 10
+}
+```
+
+### `PATCH /api/items/{id}`
+
+Requires `ITEM_UPDATE`.
+
+Updates item name, category, unit, safety stock, and active state.
+
+### `GET /api/inventory/warehouses`
+
+Requires `INVENTORY_READ`.
+
+Returns warehouse master data.
+
+### `GET /api/inventory/stocks`
+
+Requires `INVENTORY_READ`.
+
+Returns current stock by item and warehouse.
+
+Query parameters:
+
+- `search`: optional keyword for item code, item name, category, or warehouse.
+- `warehouseId`: optional warehouse filter.
+
+### `GET /api/inventory/overview`
+
+Requires `INVENTORY_READ`.
+
+Returns item count, active item count, safety-stock shortage count, and warehouse count.
+
+### `POST /api/inventory/adjustments`
+
+Requires `INVENTORY_ADJUST`.
+
+Adjusts current stock and records an inventory movement. The resulting stock quantity cannot be negative.
+
+Request:
+
+```json
+{
+  "itemId": 1,
+  "warehouseId": 1,
+  "quantityDelta": 5,
+  "reason": "월말 실사 차이 보정"
+}
+```
+
 ### `PATCH /api/users/{id}`
 
 Requires `USER_UPDATE`.

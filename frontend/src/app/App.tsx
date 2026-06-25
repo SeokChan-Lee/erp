@@ -1,4 +1,4 @@
-import { BarChart3, Building2, Clock3, LayoutDashboard, ShieldCheck, UserCog, UserRound } from "lucide-react";
+import { BarChart3, Building2, Clock3, LayoutDashboard, PackageSearch, ShieldCheck, UserCog, UserRound } from "lucide-react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import { AccountMenu } from "./components/AccountMenu";
@@ -7,6 +7,7 @@ import { AttendanceView } from "../features/attendance/AttendanceView";
 import { LoginView } from "../features/auth/LoginView";
 import { useMeQuery } from "../features/auth/api/authApi";
 import { DashboardView } from "../features/dashboard/DashboardView";
+import { InventoryView } from "../features/inventory/InventoryView";
 import { MyPageView } from "../features/my-page/MyPageView";
 import { OrganizationView } from "../features/organization/OrganizationView";
 import { UserManagementView } from "../features/user-management/UserManagementView";
@@ -18,6 +19,7 @@ const navItems = [
   { to: "/organization", label: "조직/직원", description: "부서와 직원 현황", icon: Building2, permission: "EMPLOYEE_READ" },
   { to: "/users", label: "사용자 관리", description: "직원 등록과 계정 설정", icon: UserCog, permission: "USER_READ" },
   { to: "/attendance", label: "출퇴근", description: "근태 체크 및 기록", icon: Clock3, permission: "ATTENDANCE_READ_SELF" },
+  { to: "/inventory", label: "품목/재고", description: "품목 기준과 현재고", icon: PackageSearch, permission: "INVENTORY_READ" },
   { to: "/access", label: "권한", description: "역할과 권한 관리", icon: ShieldCheck, permission: "ROLE_READ" },
   { to: "/my-page", label: "마이페이지", description: "내 계정 정보", icon: UserRound }
 ];
@@ -46,6 +48,7 @@ export function App() {
   const canReadUsers = user.permissions.includes("USER_READ");
   const canReadRoles = user.permissions.includes("ROLE_READ");
   const canReadAttendance = user.permissions.includes("ATTENDANCE_READ_SELF");
+  const canReadInventory = user.permissions.includes("INVENTORY_READ");
 
   return (
     <div className="min-h-screen bg-axis-bg text-axis-ink">
@@ -121,6 +124,7 @@ export function App() {
               element={canReadUsers ? <UserManagementView currentUsername={user.username} permissions={user.permissions} /> : <Navigate to="/dashboard" replace />}
             />
             <Route path="/attendance" element={canReadAttendance ? <AttendanceView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+            <Route path="/inventory" element={canReadInventory ? <InventoryView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/access" element={canReadRoles ? <AccessControlView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/my-page" element={<MyPageView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -135,6 +139,7 @@ function pageTitle(pathname: string) {
   if (pathname === "/organization") return "조직/직원 관리";
   if (pathname === "/users") return "사용자 관리";
   if (pathname === "/attendance") return "출퇴근 관리";
+  if (pathname === "/inventory") return "품목/재고 관리";
   if (pathname === "/access") return "권한 관리";
   if (pathname === "/my-page") return "마이페이지";
   return "대시보드";

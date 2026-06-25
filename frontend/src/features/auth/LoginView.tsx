@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useLoginMutation } from "./api/authApi";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
+import { TextField } from "../../shared/ui/TextField";
 
 const loginSchema = z.object({
   username: z.string().min(1, "아이디를 입력해 주세요."),
@@ -107,25 +108,21 @@ export function LoginView() {
             </div>
 
             <div className="mt-8 space-y-5">
-              <label className="block">
-                <span className="text-sm font-semibold text-axis-ink">아이디</span>
-                <input
-                  className="axis-field mt-2 h-12"
-                  autoComplete="username"
-                  {...register("username")}
-                />
-                {errors.username ? <span className="mt-1 block text-xs font-medium text-rose-600">{errors.username.message}</span> : null}
-              </label>
-              <label className="block">
-                <span className="text-sm font-semibold text-axis-ink">비밀번호</span>
-                <input
-                  className="axis-field mt-2 h-12"
-                  type="password"
-                  autoComplete="current-password"
-                  {...register("password")}
-                />
-                {errors.password ? <span className="mt-1 block text-xs font-medium text-rose-600">{errors.password.message}</span> : null}
-              </label>
+              <TextField
+                label="아이디"
+                className="h-12"
+                autoComplete="username"
+                error={errors.username?.message}
+                {...register("username")}
+              />
+              <TextField
+                label="비밀번호"
+                className="h-12"
+                type="password"
+                autoComplete="current-password"
+                error={errors.password?.message}
+                {...register("password")}
+              />
             </div>
 
             {formError || loginMutation.error ? (

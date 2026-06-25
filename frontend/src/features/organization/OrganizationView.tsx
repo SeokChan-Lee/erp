@@ -15,6 +15,7 @@ import { MetricCard } from "../../shared/ui/MetricCard";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TextField } from "../../shared/ui/TextField";
 
 const PAGE_SIZE = 20;
 
@@ -139,47 +140,35 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
       {canCreateEmployee ? (
         <Panel title="직원 등록" description="직원 마스터 정보를 등록합니다. 로그인 계정까지 함께 만들 때는 사용자 관리에서 처리합니다.">
           <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]" onSubmit={handleSubmit}>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">직원 번호</span>
-              <input
-                className="axis-field mt-2"
-                value={form.employeeNo}
-                onChange={(event) => setForm((value) => ({ ...value, employeeNo: event.target.value }))}
-                placeholder="E-0002"
-                required
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">이름</span>
-              <input
-                className="axis-field mt-2"
-                value={form.displayName}
-                onChange={(event) => setForm((value) => ({ ...value, displayName: event.target.value }))}
-                placeholder="홍길동"
-                required
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">이메일</span>
-              <input
-                className="axis-field mt-2"
-                value={form.email}
-                onChange={(event) => setForm((value) => ({ ...value, email: event.target.value }))}
-                placeholder="member@axis.local"
-                type="email"
-                required
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">직책</span>
-              <input
-                className="axis-field mt-2"
-                value={form.positionTitle}
-                onChange={(event) => setForm((value) => ({ ...value, positionTitle: event.target.value }))}
-                placeholder="운영 담당자"
-                required
-              />
-            </label>
+            <TextField
+              label="직원 번호"
+              value={form.employeeNo}
+              onChange={(event) => setForm((value) => ({ ...value, employeeNo: event.target.value }))}
+              placeholder="E-0002"
+              required
+            />
+            <TextField
+              label="이름"
+              value={form.displayName}
+              onChange={(event) => setForm((value) => ({ ...value, displayName: event.target.value }))}
+              placeholder="홍길동"
+              required
+            />
+            <TextField
+              label="이메일"
+              value={form.email}
+              onChange={(event) => setForm((value) => ({ ...value, email: event.target.value }))}
+              placeholder="member@axis.local"
+              type="email"
+              required
+            />
+            <TextField
+              label="직책"
+              value={form.positionTitle}
+              onChange={(event) => setForm((value) => ({ ...value, positionTitle: event.target.value }))}
+              placeholder="운영 담당자"
+              required
+            />
             <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] xl:col-span-5">
               <SelectField
                 label="부서"
@@ -239,34 +228,25 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
       {canUpdateEmployee && editForm ? (
         <Panel title="직원 정보 수정" description="직원 이름, 이메일, 직책, 부서, 재직 상태를 수정합니다.">
           <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]" onSubmit={handleEditSubmit}>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">이름</span>
-              <input
-                className="axis-field mt-2"
-                value={editForm.displayName}
-                onChange={(event) => setEditForm((value) => (value ? { ...value, displayName: event.target.value } : value))}
-                required
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">이메일</span>
-              <input
-                className="axis-field mt-2"
-                type="email"
-                value={editForm.email}
-                onChange={(event) => setEditForm((value) => (value ? { ...value, email: event.target.value } : value))}
-                required
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">직책</span>
-              <input
-                className="axis-field mt-2"
-                value={editForm.positionTitle}
-                onChange={(event) => setEditForm((value) => (value ? { ...value, positionTitle: event.target.value } : value))}
-                required
-              />
-            </label>
+            <TextField
+              label="이름"
+              value={editForm.displayName}
+              onChange={(event) => setEditForm((value) => (value ? { ...value, displayName: event.target.value } : value))}
+              required
+            />
+            <TextField
+              label="이메일"
+              type="email"
+              value={editForm.email}
+              onChange={(event) => setEditForm((value) => (value ? { ...value, email: event.target.value } : value))}
+              required
+            />
+            <TextField
+              label="직책"
+              value={editForm.positionTitle}
+              onChange={(event) => setEditForm((value) => (value ? { ...value, positionTitle: event.target.value } : value))}
+              required
+            />
             <SelectField
               label="부서"
               value={editForm.departmentId}

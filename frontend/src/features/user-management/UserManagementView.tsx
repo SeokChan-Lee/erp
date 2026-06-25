@@ -26,6 +26,7 @@ import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TextField } from "../../shared/ui/TextField";
 
 const PAGE_SIZE = 20;
 
@@ -63,6 +64,7 @@ export function UserManagementView({
 }) {
   const { data: departments = [], error: departmentsError, isLoading: departmentsLoading } = useUserManagementDepartmentsQuery();
   const [accountPage, setAccountPage] = useState(1);
+  const [accountSearchInput, setAccountSearchInput] = useState("");
   const [accountSearch, setAccountSearch] = useState("");
   const [accountStatusFilter, setAccountStatusFilter] = useState<UserAccountStatusFilter>("ALL");
   const [accountRoleFilter, setAccountRoleFilter] = useState<UserAccountRoleFilter>("ALL");
@@ -284,47 +286,35 @@ export function UserManagementView({
               </div>
 
               <div className="grid gap-4 xl:grid-cols-4">
-                <label className="block">
-                  <span className="text-sm font-semibold text-axis-ink">직원 번호</span>
-                  <input
-                    className="axis-field mt-2"
-                    placeholder="E-0002"
-                    value={form.employeeNo}
-                    onChange={(event) => setForm((current) => ({ ...current, employeeNo: event.target.value }))}
-                    required
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-semibold text-axis-ink">이름</span>
-                  <input
-                    className="axis-field mt-2"
-                    placeholder="홍길동"
-                    value={form.displayName}
-                    onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
-                    required
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-semibold text-axis-ink">이메일</span>
-                  <input
-                    className="axis-field mt-2"
-                    placeholder="member@axis.local"
-                    type="email"
-                    value={form.email}
-                    onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                    required
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-semibold text-axis-ink">직책</span>
-                  <input
-                    className="axis-field mt-2"
-                    placeholder="운영 담당자"
-                    value={form.positionTitle}
-                    onChange={(event) => setForm((current) => ({ ...current, positionTitle: event.target.value }))}
-                    required
-                  />
-                </label>
+                <TextField
+                  label="직원 번호"
+                  placeholder="E-0002"
+                  value={form.employeeNo}
+                  onChange={(event) => setForm((current) => ({ ...current, employeeNo: event.target.value }))}
+                  required
+                />
+                <TextField
+                  label="이름"
+                  placeholder="홍길동"
+                  value={form.displayName}
+                  onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
+                  required
+                />
+                <TextField
+                  label="이메일"
+                  placeholder="member@axis.local"
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                  required
+                />
+                <TextField
+                  label="직책"
+                  placeholder="운영 담당자"
+                  value={form.positionTitle}
+                  onChange={(event) => setForm((current) => ({ ...current, positionTitle: event.target.value }))}
+                  required
+                />
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -357,27 +347,21 @@ export function UserManagementView({
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
-                  <span className="text-sm font-semibold text-axis-ink">로그인 ID</span>
-                  <input
-                    className="axis-field mt-2"
-                    placeholder="예: hong.gildong"
-                    value={form.username}
-                    onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
-                    required
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-semibold text-axis-ink">초기 비밀번호</span>
-                  <input
-                    className="axis-field mt-2"
-                    placeholder="4자 이상"
-                    type="password"
-                    value={form.password}
-                    onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                    required
-                  />
-                </label>
+                <TextField
+                  label="로그인 ID"
+                  placeholder="예: hong.gildong"
+                  value={form.username}
+                  onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
+                  required
+                />
+                <TextField
+                  label="초기 비밀번호"
+                  placeholder="4자 이상"
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                  required
+                />
               </div>
 
               <div className="mt-4">
@@ -440,27 +424,21 @@ export function UserManagementView({
                 disabled={availableEmployeesLoading || availableEmployees.length === 0}
                 onChange={(employeeId) => setLinkForm((current) => ({ ...current, employeeId }))}
               />
-              <label className="block">
-                <span className="text-sm font-semibold text-axis-ink">로그인 ID</span>
-                <input
-                  className="axis-field mt-2"
-                  placeholder="예: hong.gildong"
-                  value={linkForm.username}
-                  onChange={(event) => setLinkForm((current) => ({ ...current, username: event.target.value }))}
-                  required
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-semibold text-axis-ink">초기 비밀번호</span>
-                <input
-                  className="axis-field mt-2"
-                  placeholder="4자 이상"
-                  type="password"
-                  value={linkForm.password}
-                  onChange={(event) => setLinkForm((current) => ({ ...current, password: event.target.value }))}
-                  required
-                />
-              </label>
+              <TextField
+                label="로그인 ID"
+                placeholder="예: hong.gildong"
+                value={linkForm.username}
+                onChange={(event) => setLinkForm((current) => ({ ...current, username: event.target.value }))}
+                required
+              />
+              <TextField
+                label="초기 비밀번호"
+                placeholder="4자 이상"
+                type="password"
+                value={linkForm.password}
+                onChange={(event) => setLinkForm((current) => ({ ...current, password: event.target.value }))}
+                required
+              />
             </div>
 
             <div className="mt-4">
@@ -511,21 +489,17 @@ export function UserManagementView({
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.9fr]">
-              <label className="block">
-                <span className="text-sm font-semibold text-axis-ink">검색</span>
-                <div className="axis-field mt-2 flex items-center gap-2">
-                  <Search size={17} strokeWidth={2.2} className="shrink-0 text-axis-muted" />
-                  <input
-                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-axis-ink outline-none placeholder:text-axis-muted"
-                    placeholder="이름, 아이디, 부서, 역할"
-                    value={accountSearch}
-                    onChange={(event) => {
-                      setAccountSearch(event.target.value);
-                      setAccountPage(1);
-                    }}
-                  />
-                </div>
-              </label>
+              <TextField
+                label="검색"
+                placeholder="이름, 아이디, 부서, 역할"
+                value={accountSearchInput}
+                leftIcon={<Search size={17} strokeWidth={2.2} />}
+                onChange={(event) => setAccountSearchInput(event.target.value)}
+                onEnter={() => {
+                  setAccountSearch(accountSearchInput.trim());
+                  setAccountPage(1);
+                }}
+              />
               <SelectField
                 label="계정 상태"
                 value={accountStatusFilter}
@@ -668,16 +642,13 @@ export function UserManagementView({
               />
             </label>
 
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">새 비밀번호</span>
-              <input
-                className="axis-field mt-2"
-                placeholder="변경하지 않으려면 비워두세요."
-                type="password"
-                value={editForm.password}
-                onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
-              />
-            </label>
+            <TextField
+              label="새 비밀번호"
+              placeholder="변경하지 않으려면 비워두세요."
+              type="password"
+              value={editForm.password}
+              onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
+            />
 
             <div>
               <p className="text-sm font-semibold text-axis-ink">역할</p>

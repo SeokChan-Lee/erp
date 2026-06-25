@@ -110,3 +110,19 @@
 - Converted `GET /api/admin/attendance/change-requests/history` to server-side pagination with status, keyword, and work-date range filters.
 - Added start/end date filters to the attendance change request history UI.
 - Blocked self role changes that would remove any permission currently held by the logged-in account.
+
+### Item and Inventory MVP
+
+- Added item, warehouse, current stock, and inventory movement backend tables.
+- Added paged item master APIs with search and active-state filters.
+- Added warehouse lookup, inventory overview, current stock lookup, and inventory adjustment APIs.
+- Added an inventory page with item registration, item edit, current stock lookup, and stock adjustment.
+- Connected the inventory page to existing `ITEM_*` and `INVENTORY_*` permissions.
+
+### Shared Text Field and Enter Search
+
+- Added a shared frontend `TextField` component for text, email, number, and password inputs.
+- Added password visibility toggle controls to password fields.
+- Replaced major form inputs across login, organization, user management, attendance, and inventory screens with the shared text field.
+- Changed text search fields to update backend API search parameters only when Enter is pressed.
+- Kept search filtering backend-owned through existing API query parameters instead of client-side list filtering.
