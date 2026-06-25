@@ -1,12 +1,20 @@
 package com.axiserp.purchase.api;
 
 import com.axiserp.auth.AuthService;
+import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
+import com.axiserp.inventory.InventoryMovementEntity;
+import com.axiserp.inventory.InventoryMovementRepository;
+import com.axiserp.inventory.InventoryStockEntity;
+import com.axiserp.inventory.InventoryStockRepository;
+import com.axiserp.inventory.WarehouseEntity;
+import com.axiserp.inventory.WarehouseRepository;
 import com.axiserp.permission.Permission;
 import com.axiserp.purchase.PurchaseOrderEntity;
 import com.axiserp.purchase.PurchaseOrderRepository;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -14,8 +22,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,10 +40,22 @@ public class PurchaseOrderController {
 
     private final AuthService authService;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final WarehouseRepository warehouseRepository;
+    private final InventoryStockRepository inventoryStockRepository;
+    private final InventoryMovementRepository inventoryMovementRepository;
 
-    public PurchaseOrderController(AuthService authService, PurchaseOrderRepository purchaseOrderRepository) {
+    public PurchaseOrderController(
+            AuthService authService,
+            PurchaseOrderRepository purchaseOrderRepository,
+            WarehouseRepository warehouseRepository,
+            InventoryStockRepository inventoryStockRepository,
+            InventoryMovementRepository inventoryMovementRepository
+    ) {
         this.authService = authService;
         this.purchaseOrderRepository = purchaseOrderRepository;
+        this.warehouseRepository = warehouseRepository;
+        this.inventoryStockRepository = inventoryStockRepository;
+        this.inventoryMovementRepository = inventoryMovementRepository;
     }
 
     @GetMapping
@@ -55,6 +78,41 @@ public class PurchaseOrderController {
                 Sort.by("orderedAt").descending().and(Sort.by("id").descending())
         );
         return PageResponse.from(purchaseOrderRepository.findAll(orderSpecification(search, fromDate, toDate), pageRequest), PurchaseOrderResponse::from);
+    }
+
+    @PostMapping("/{id}/receive")
+    @Transactional
+    public PurchaseOrderResponse receive(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id,
+            @Valid @RequestBody PurchaseOrderReceiveRequest request
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.PURCHASE_UPDATE);
+        PurchaseOrderEntity order = purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 발주를 찾을 수 없습니다."));
+        WarehouseEntity warehouse = warehouseRepository.findById(request.warehouseId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "입고 창고를 찾을 수 없습니다."));
+
+        try {
+            order.receive(warehouse, user.displayName());
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
+        }
+
+        InventoryStockEntity stock = inventoryStockRepository
+                .findByItem_IdAndWarehouse_Id(order.getRequest().getItem().getId(), warehouse.getId())
+                .orElseGet(() -> new InventoryStockEntity(order.getRequest().getItem(), warehouse, 0));
+        stock.adjust(order.getRequest().getQuantity());
+        inventoryStockRepository.save(stock);
+        inventoryMovementRepository.save(new InventoryMovementEntity(
+                order.getRequest().getItem(),
+                warehouse,
+                order.getRequest().getQuantity(),
+                "구매 발주 입고: " + order.getOrderNo(),
+                user.displayName()
+        ));
+
+        return PurchaseOrderResponse.from(order);
     }
 
     private Specification<PurchaseOrderEntity> orderSpecification(String search, LocalDate fromDate, LocalDate toDate) {

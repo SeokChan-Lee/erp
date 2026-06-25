@@ -9,6 +9,7 @@ import type {
   CustomerUpdatePayload,
   PurchaseOrder,
   PurchaseOrderQueryParams,
+  PurchaseOrderReceivePayload,
   PurchaseRequest,
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
@@ -223,6 +224,22 @@ export function useCreatePurchaseOrderMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+    }
+  });
+}
+
+export function useReceivePurchaseOrderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ orderId, payload }: { orderId: number; payload: PurchaseOrderReceivePayload }) =>
+      http<PurchaseOrder>(`/purchases/orders/${orderId}/receive`, {
+        method: "POST",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
     }
   });
 }

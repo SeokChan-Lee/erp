@@ -366,6 +366,20 @@ Query:
 
 Returns paged purchase orders with the connected purchase request, supplier, item, total amount, order owner, and ordered time.
 
+### `POST /api/purchases/orders/{id}/receive`
+
+Requires `PURCHASE_UPDATE`.
+
+Request:
+
+```json
+{
+  "warehouseId": 1
+}
+```
+
+Receives a purchase order into the selected warehouse. The backend blocks duplicate receiving, increases current stock by the ordered quantity, and records an inventory movement with the purchase order number.
+
 ## Dashboard
 
 ### `GET /api/dashboard/summary`

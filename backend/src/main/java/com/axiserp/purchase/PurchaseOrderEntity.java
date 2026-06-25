@@ -7,8 +7,11 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+
+import com.axiserp.inventory.WarehouseEntity;
 
 import java.time.LocalDateTime;
 
@@ -32,6 +35,15 @@ public class PurchaseOrderEntity {
 
     @Column(nullable = false)
     private LocalDateTime orderedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "received_warehouse_id")
+    private WarehouseEntity receivedWarehouse;
+
+    @Column(length = 80)
+    private String receivedBy;
+
+    private LocalDateTime receivedAt;
 
     protected PurchaseOrderEntity() {
     }
@@ -61,5 +73,30 @@ public class PurchaseOrderEntity {
 
     public LocalDateTime getOrderedAt() {
         return orderedAt;
+    }
+
+    public WarehouseEntity getReceivedWarehouse() {
+        return receivedWarehouse;
+    }
+
+    public String getReceivedBy() {
+        return receivedBy;
+    }
+
+    public LocalDateTime getReceivedAt() {
+        return receivedAt;
+    }
+
+    public boolean isReceived() {
+        return receivedAt != null;
+    }
+
+    public void receive(WarehouseEntity warehouse, String receivedBy) {
+        if (isReceived()) {
+            throw new IllegalStateException("이미 입고 처리된 발주입니다.");
+        }
+        this.receivedWarehouse = warehouse;
+        this.receivedBy = receivedBy;
+        this.receivedAt = LocalDateTime.now();
     }
 }

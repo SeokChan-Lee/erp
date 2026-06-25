@@ -124,6 +124,13 @@ export type PurchaseOrder = {
   totalAmount: number;
   orderedBy: string;
   orderedAt: string;
+  receivedWarehouse: {
+    id: number;
+    code: string;
+    name: string;
+  } | null;
+  receivedBy: string | null;
+  receivedAt: string | null;
 };
 
 export type PurchaseOrderQueryParams = {
@@ -132,4 +139,8 @@ export type PurchaseOrderQueryParams = {
   search: string;
   fromDate: string;
   toDate: string;
+};
+
+export type PurchaseOrderReceivePayload = {
+  warehouseId: number;
 };

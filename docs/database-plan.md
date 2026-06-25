@@ -30,6 +30,7 @@ Flyway migrations currently create and manage:
 - `suppliers`
 - `purchase_requests`
 - `purchase_orders`
+  - Stores receiving fields (`received_warehouse_id`, `received_by`, `received_at`) so duplicate receiving can be blocked while inventory movement history remains in `inventory_movements`.
 
 ## Seed Data
 

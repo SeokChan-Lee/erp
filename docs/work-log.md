@@ -19,6 +19,7 @@
 - Added processor and processed time persistence for purchase request approval and cancellation.
 - Added purchase order conversion from approved purchase requests with duplicate conversion protection.
 - Added purchase order list API and purchase page order list with server-side search, date filters, and pagination.
+- Added purchase order receiving API and UI that records inventory movement and increases current stock.
 - Added a `구매/거래처` frontend route and sidebar menu.
 - Added supplier registration, supplier list/edit modal, purchase request registration, and purchase request list UI.
 - Added purchase request status filter and row-level approval/cancellation actions.

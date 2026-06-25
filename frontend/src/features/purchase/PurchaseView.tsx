@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, Eye, PencilLine, Plus, Search, Send, ShoppingCart, X } from "lucide-react";
+import { Check, Eye, PackageCheck, PencilLine, Plus, Search, Send, ShoppingCart, X } from "lucide-react";
 
-import { useItemsQuery } from "../inventory/api/inventoryApi";
+import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
@@ -23,6 +23,7 @@ import {
   useCustomersQuery,
   usePurchaseOrdersQuery,
   usePurchaseRequestsQuery,
+  useReceivePurchaseOrderMutation,
   useSuppliersQuery,
   useUpdateCustomerMutation,
   useUpdateSupplierMutation
@@ -33,6 +34,7 @@ import type {
   CustomerQueryParams,
   CustomerStatusFilter,
   CustomerUpdatePayload,
+  PurchaseOrder,
   PurchaseOrderQueryParams,
   PurchaseRequest,
   PurchaseRequestCreatePayload,
@@ -108,6 +110,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [editingCustomer, setEditingCustomer] = useState<CustomerEditForm | null>(null);
   const [editingSupplier, setEditingSupplier] = useState<SupplierEditForm | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PurchaseRequest | null>(null);
+  const [receivingOrder, setReceivingOrder] = useState<PurchaseOrder | null>(null);
+  const [receiveWarehouseId, setReceiveWarehouseId] = useState(0);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -182,6 +186,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const { data: requestsPage, error: requestsError, isLoading: requestsLoading } = usePurchaseRequestsQuery(requestParams);
   const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = usePurchaseOrdersQuery(orderParams);
   const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
+  const { data: warehouses = [], error: warehousesError } = useWarehousesQuery();
   const createCustomer = useCreateCustomerMutation();
   const updateCustomer = useUpdateCustomerMutation();
   const createSupplier = useCreateSupplierMutation();
@@ -190,6 +195,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const approveRequest = useApprovePurchaseRequestMutation();
   const cancelRequest = useCancelPurchaseRequestMutation();
   const createOrder = useCreatePurchaseOrderMutation();
+  const receiveOrder = useReceivePurchaseOrderMutation();
 
   const customers = customersPage?.content ?? [];
   const totalCustomers = customersPage?.totalItems ?? 0;
@@ -210,6 +216,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     requestsError ||
     ordersError ||
     itemsError ||
+    warehousesError ||
     createCustomer.error ||
     updateCustomer.error ||
     createSupplier.error ||
@@ -217,7 +224,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     createRequest.error ||
     approveRequest.error ||
     cancelRequest.error ||
-    createOrder.error;
+    createOrder.error ||
+    receiveOrder.error;
   const customerStatusOptions = [
     { value: "ALL" as CustomerStatusFilter, label: "전체" },
     { value: "ACTIVE" as CustomerStatusFilter, label: "사용" },
@@ -237,9 +245,11 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   ];
   const supplierOptions = activeSuppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} · ${supplier.name}` }));
   const itemOptions = items.map((item) => ({ value: item.id, label: `${item.sku} · ${item.name}` }));
+  const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: `${warehouse.code} · ${warehouse.name}` }));
   const customerFormReady = Object.values(customerForm).every((value) => value.trim().length > 0);
   const supplierFormReady = Object.values(supplierForm).every((value) => value.trim().length > 0);
   const purchaseFormReady = selectedSupplierId > 0 && selectedItemId > 0 && purchaseForm.quantity > 0 && purchaseForm.unitPrice > 0;
+  const selectedReceiveWarehouseId = receiveWarehouseId || warehouses[0]?.id || 0;
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -412,6 +422,30 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     setOrderFromDate(orderFromDateInput);
     setOrderToDate(orderToDateInput);
     setOrderPage(1);
+  };
+
+  const openReceiveModal = (order: PurchaseOrder) => {
+    setReceivingOrder(order);
+    setReceiveWarehouseId(warehouses[0]?.id ?? 0);
+  };
+
+  const handleReceiveOrder = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!receivingOrder || selectedReceiveWarehouseId <= 0) return;
+
+    receiveOrder.mutate(
+      {
+        orderId: receivingOrder.id,
+        payload: { warehouseId: selectedReceiveWarehouseId }
+      },
+      {
+        onSuccess: () => {
+          setReceivingOrder(null);
+          setReceiveWarehouseId(0);
+          setToastMessage("구매 발주 입고가 처리되었습니다.");
+        }
+      }
+    );
   };
 
   const handleCloseCustomerCreate = () => {
@@ -835,6 +869,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                     <th className="px-4 py-3">수량</th>
                     <th className="px-4 py-3">금액</th>
                     <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-axis-border bg-white">
@@ -855,12 +890,33 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                       </td>
                       <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{order.request.quantity.toLocaleString("ko-KR")} {order.request.item.unit}</td>
                       <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(order.totalAmount)}</td>
-                      <td className="px-4 py-4"><PurchaseStatusBadge status={order.request.status} /></td>
+                      <td className="px-4 py-4"><ReceiveStatusBadge received={order.receivedAt !== null} /></td>
+                      <td className="px-4 py-4">
+                        {order.receivedAt ? (
+                          <div className="text-xs font-semibold text-axis-muted">
+                            <p>{order.receivedWarehouse?.name ?? "입고 창고"}</p>
+                            <p className="mt-1">{formatDateTime(order.receivedAt)} · {order.receivedBy}</p>
+                          </div>
+                        ) : canCancelPurchase ? (
+                          <Button
+                            className="h-8 gap-1.5 px-3 text-xs"
+                            disabled={receiveOrder.isPending || warehouses.length === 0}
+                            type="button"
+                            variant="secondary"
+                            onClick={() => openReceiveModal(order)}
+                          >
+                            <PackageCheck size={14} strokeWidth={2.2} />
+                            입고 처리
+                          </Button>
+                        ) : (
+                          <span className="text-xs font-semibold text-axis-muted">입고 대기</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                   {orders.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>조건에 맞는 구매 발주가 없습니다.</td>
+                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={8}>조건에 맞는 구매 발주가 없습니다.</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -904,6 +960,52 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-6 text-axis-muted">{selectedRequest.memo?.trim() || "등록된 메모가 없습니다."}</p>
             </div>
           </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={receivingOrder !== null}
+        title="구매 발주 입고 처리"
+        description="발주 품목을 입고할 창고를 선택하면 현재고와 재고 이동 이력이 함께 반영됩니다."
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setReceivingOrder(null);
+                setReceiveWarehouseId(0);
+              }}
+            >
+              취소
+            </Button>
+            <Button disabled={selectedReceiveWarehouseId <= 0 || receiveOrder.isPending} type="submit" form="purchase-order-receive-form">
+              {receiveOrder.isPending ? "처리 중" : "입고 처리"}
+            </Button>
+          </>
+        }
+        onClose={() => {
+          setReceivingOrder(null);
+          setReceiveWarehouseId(0);
+        }}
+      >
+        {receivingOrder ? (
+          <form id="purchase-order-receive-form" className="space-y-4" onSubmit={handleReceiveOrder}>
+            <div className="rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
+              <p className="text-sm font-bold text-axis-ink">{receivingOrder.orderNo}</p>
+              <p className="mt-1 text-xs font-semibold text-axis-muted">{receivingOrder.request.requestNo} · {receivingOrder.request.supplier.name}</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <DetailItem label="품목" value={`${receivingOrder.request.item.sku} · ${receivingOrder.request.item.name}`} />
+              <DetailItem label="입고 수량" value={`${receivingOrder.request.quantity.toLocaleString("ko-KR")} ${receivingOrder.request.item.unit}`} />
+            </div>
+            <SelectField
+              label="입고 창고"
+              value={selectedReceiveWarehouseId}
+              options={warehouseOptions}
+              onChange={setReceiveWarehouseId}
+            />
+          </form>
         ) : null}
       </Modal>
 
@@ -1116,6 +1218,14 @@ function PurchaseStatusBadge({ status }: { status: string }) {
           : "bg-blue-50 text-blue-700";
 
   return <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", className].join(" ")}>{label}</span>;
+}
+
+function ReceiveStatusBadge({ received }: { received: boolean }) {
+  return (
+    <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", received ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"].join(" ")}>
+      {received ? "입고 완료" : "입고 대기"}
+    </span>
+  );
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
