@@ -6,7 +6,8 @@ import type {
   SalesCustomer,
   SalesOrder,
   SalesOrderCreatePayload,
-  SalesOrderQueryParams
+  SalesOrderQueryParams,
+  SalesOrderShipPayload
 } from "./dto";
 
 export const salesKeys = {
@@ -68,6 +69,22 @@ export function useCancelSalesOrderMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: salesKeys.orderRoot });
+    }
+  });
+}
+
+export function useShipSalesOrderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ orderId, payload }: { orderId: number; payload: SalesOrderShipPayload }) =>
+      http<SalesOrder>(`/sales/orders/${orderId}/ship`, {
+        method: "POST",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: salesKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
     }
   });
 }

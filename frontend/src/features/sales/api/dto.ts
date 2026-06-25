@@ -36,6 +36,13 @@ export type SalesOrder = {
   orderedAt: string;
   processedBy: string | null;
   processedAt: string | null;
+  shippedWarehouse: {
+    id: number;
+    code: string;
+    name: string;
+  } | null;
+  shippedBy: string | null;
+  shippedAt: string | null;
 };
 
 export type SalesOrderQueryParams = {
@@ -51,4 +58,8 @@ export type SalesOrderCreatePayload = {
   quantity: number;
   unitPrice: number;
   memo: string;
+};
+
+export type SalesOrderShipPayload = {
+  warehouseId: number;
 };

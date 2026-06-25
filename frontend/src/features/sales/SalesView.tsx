@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Eye, Search, Send, X } from "lucide-react";
+import { Eye, PackageCheck, Search, Send, X } from "lucide-react";
 
-import { useItemsQuery } from "../inventory/api/inventoryApi";
+import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
@@ -16,7 +16,8 @@ import {
   useActiveSalesCustomersQuery,
   useCancelSalesOrderMutation,
   useCreateSalesOrderMutation,
-  useSalesOrdersQuery
+  useSalesOrdersQuery,
+  useShipSalesOrderMutation
 } from "./api/salesApi";
 import type {
   SalesOrder,
@@ -42,6 +43,8 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   const [orderStatus, setOrderStatus] = useState<SalesOrderStatusFilter>("ALL");
   const [salesForm, setSalesForm] = useState<SalesOrderCreatePayload>(initialSalesForm);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
+  const [shippingOrder, setShippingOrder] = useState<SalesOrder | null>(null);
+  const [shipWarehouseId, setShipWarehouseId] = useState(0);
   const [toastMessage, setToastMessage] = useState("");
 
   const canCreateSales = permissions.includes("SALES_CREATE");
@@ -68,9 +71,11 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
 
   const { data: customersPage, error: customersError } = useActiveSalesCustomersQuery();
   const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
+  const { data: warehouses = [], error: warehousesError } = useWarehousesQuery();
   const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = useSalesOrdersQuery(orderParams);
   const createOrder = useCreateSalesOrderMutation();
   const cancelOrder = useCancelSalesOrderMutation();
+  const shipOrder = useShipSalesOrderMutation();
 
   const customers = customersPage?.content ?? [];
   const items = itemsPage?.content ?? [];
@@ -80,13 +85,15 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   const selectedItemId = salesForm.itemId || items[0]?.id || 0;
   const customerOptions = customers.map((customer) => ({ value: customer.id, label: `${customer.code} · ${customer.name}` }));
   const itemOptions = items.map((item) => ({ value: item.id, label: `${item.sku} · ${item.name}` }));
+  const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: `${warehouse.code} · ${warehouse.name}` }));
   const statusOptions = [
     { value: "ALL" as SalesOrderStatusFilter, label: "전체" },
     { value: "REGISTERED" as SalesOrderStatusFilter, label: "등록" },
     { value: "CANCELED" as SalesOrderStatusFilter, label: "취소" }
   ];
   const salesFormReady = selectedCustomerId > 0 && selectedItemId > 0 && salesForm.quantity > 0 && salesForm.unitPrice > 0;
-  const pageError = customersError || itemsError || ordersError || createOrder.error || cancelOrder.error;
+  const selectedShipWarehouseId = shipWarehouseId || warehouses[0]?.id || 0;
+  const pageError = customersError || itemsError || warehousesError || ordersError || createOrder.error || cancelOrder.error || shipOrder.error;
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -125,6 +132,30 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
     cancelOrder.mutate(orderId, {
       onSuccess: () => setToastMessage("판매 수주가 취소되었습니다.")
     });
+  };
+
+  const openShipModal = (order: SalesOrder) => {
+    setShippingOrder(order);
+    setShipWarehouseId(warehouses[0]?.id ?? 0);
+  };
+
+  const handleShipOrder = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!shippingOrder || selectedShipWarehouseId <= 0) return;
+
+    shipOrder.mutate(
+      {
+        orderId: shippingOrder.id,
+        payload: { warehouseId: selectedShipWarehouseId }
+      },
+      {
+        onSuccess: () => {
+          setShippingOrder(null);
+          setShipWarehouseId(0);
+          setToastMessage("판매 수주 출고가 처리되었습니다.");
+        }
+      }
+    );
   };
 
   return (
@@ -216,6 +247,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
                   <th className="px-4 py-3">수량</th>
                   <th className="px-4 py-3">금액</th>
                   <th className="px-4 py-3">상태</th>
+                  <th className="px-4 py-3">출고</th>
                   <th className="px-4 py-3">관리</th>
                 </tr>
               </thead>
@@ -237,16 +269,29 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
                     <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{order.quantity.toLocaleString("ko-KR")} {order.item.unit}</td>
                     <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(order.totalAmount)}</td>
                     <td className="px-4 py-4"><SalesStatusBadge status={order.status} /></td>
+                    <td className="px-4 py-4"><ShipStatusBadge shipped={order.shippedAt !== null} /></td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-2">
                         <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedOrder(order)}>
                           <Eye size={14} strokeWidth={2.2} />
                           상세
                         </Button>
-                        {order.status === "REGISTERED" && canUpdateSales ? (
+                        {order.status === "REGISTERED" && !order.shippedAt && canUpdateSales ? (
+                          <Button
+                            className="h-8 gap-1.5 px-3 text-xs"
+                            disabled={shipOrder.isPending || warehouses.length === 0}
+                            type="button"
+                            variant="secondary"
+                            onClick={() => openShipModal(order)}
+                          >
+                            <PackageCheck size={14} strokeWidth={2.2} />
+                            출고 처리
+                          </Button>
+                        ) : null}
+                        {order.status === "REGISTERED" && !order.shippedAt && canUpdateSales ? (
                           <Button
                             className="h-8 gap-1.5 px-3 text-xs text-rose-700"
-                            disabled={cancelOrder.isPending}
+                            disabled={cancelOrder.isPending || shipOrder.isPending}
                             type="button"
                             variant="secondary"
                             onClick={() => handleCancelOrder(order.id)}
@@ -261,7 +306,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
                 ))}
                 {orders.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>등록된 판매 수주가 없습니다.</td>
+                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={8}>등록된 판매 수주가 없습니다.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -270,6 +315,52 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
           </div>
         )}
       </Panel>
+
+      <Modal
+        open={shippingOrder !== null}
+        title="판매 수주 출고 처리"
+        description="수주 품목을 출고할 창고를 선택하면 현재고와 재고 이동 이력이 함께 반영됩니다."
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShippingOrder(null);
+                setShipWarehouseId(0);
+              }}
+            >
+              취소
+            </Button>
+            <Button disabled={selectedShipWarehouseId <= 0 || shipOrder.isPending} type="submit" form="sales-order-ship-form">
+              {shipOrder.isPending ? "처리 중" : "출고 처리"}
+            </Button>
+          </>
+        }
+        onClose={() => {
+          setShippingOrder(null);
+          setShipWarehouseId(0);
+        }}
+      >
+        {shippingOrder ? (
+          <form id="sales-order-ship-form" className="space-y-4" onSubmit={handleShipOrder}>
+            <div className="rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
+              <p className="text-sm font-bold text-axis-ink">{shippingOrder.orderNo}</p>
+              <p className="mt-1 text-xs font-semibold text-axis-muted">{shippingOrder.customer.name} · {formatCurrency(shippingOrder.totalAmount)}</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <DetailItem label="품목" value={`${shippingOrder.item.sku} · ${shippingOrder.item.name}`} />
+              <DetailItem label="출고 수량" value={`${shippingOrder.quantity.toLocaleString("ko-KR")} ${shippingOrder.item.unit}`} />
+            </div>
+            <SelectField
+              label="출고 창고"
+              value={selectedShipWarehouseId}
+              options={warehouseOptions}
+              onChange={setShipWarehouseId}
+            />
+          </form>
+        ) : null}
+      </Modal>
 
       <Modal
         open={selectedOrder !== null}
@@ -294,6 +385,8 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
               <DetailItem label="단가" value={formatCurrency(selectedOrder.unitPrice)} />
               <DetailItem label="합계 금액" value={formatCurrency(selectedOrder.totalAmount)} />
               <DetailItem label="처리자" value={selectedOrder.processedBy ?? "아직 처리되지 않음"} />
+              <DetailItem label="출고 창고" value={selectedOrder.shippedWarehouse?.name ?? "아직 출고되지 않음"} />
+              <DetailItem label="출고 처리" value={selectedOrder.shippedAt ? `${formatDateTime(selectedOrder.shippedAt)} · ${selectedOrder.shippedBy}` : "아직 출고되지 않음"} />
             </div>
             <div className="rounded-lg border border-axis-border px-4 py-3">
               <p className="text-sm font-bold text-axis-ink">수주 메모</p>
@@ -311,6 +404,14 @@ function SalesStatusBadge({ status }: { status: string }) {
   return (
     <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", canceled ? "bg-axis-bg text-axis-muted" : "bg-emerald-50 text-emerald-700"].join(" ")}>
       {canceled ? "취소" : "등록"}
+    </span>
+  );
+}
+
+function ShipStatusBadge({ shipped }: { shipped: boolean }) {
+  return (
+    <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", shipped ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"].join(" ")}>
+      {shipped ? "출고 완료" : "출고 대기"}
     </span>
   );
 }
