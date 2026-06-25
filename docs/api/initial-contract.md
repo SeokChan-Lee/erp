@@ -402,6 +402,7 @@ Returns initial dashboard metrics:
 - pending purchase receipts
 - registered sales orders
 - pending sales shipments
+- recent activity items for purchase, sales, and inventory
 
 ## Sales
 

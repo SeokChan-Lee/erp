@@ -1,5 +1,7 @@
 package com.axiserp.dashboard.api;
 
+import java.util.List;
+
 public record DashboardSummaryResponse(
         long checkedIn,
         long pendingApprovals,
@@ -8,6 +10,7 @@ public record DashboardSummaryResponse(
         long pendingPurchaseRequests,
         long pendingPurchaseReceipts,
         long registeredSalesOrders,
-        long pendingSalesShipments
+        long pendingSalesShipments,
+        List<DashboardRecentActivityResponse> recentActivityItems
 ) {
 }

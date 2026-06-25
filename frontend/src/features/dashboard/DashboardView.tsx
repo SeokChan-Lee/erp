@@ -14,6 +14,7 @@ export function DashboardView() {
   const pendingPurchaseReceipts = summary?.pendingPurchaseReceipts ?? 0;
   const registeredSalesOrders = summary?.registeredSalesOrders ?? 0;
   const pendingSalesShipments = summary?.pendingSalesShipments ?? 0;
+  const recentActivityItems = summary?.recentActivityItems ?? [];
 
   const workSignals = [
     { label: "승인 대기", value: String(pendingApprovals), tone: "text-axis-blue" },
@@ -84,21 +85,57 @@ export function DashboardView() {
           </div>
         </Panel>
 
-        <Panel title="MVP 구현 순서" description="핵심 흐름이 안정될 때까지 범위를 작게 유지합니다.">
-          <ol className="space-y-3">
-            {["인증과 권한", "직원과 출퇴근", "대시보드 요약", "품목과 재고 기본"].map(
-              (item, index) => (
-                <li key={item} className="flex gap-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-axis-ink text-xs font-semibold text-white">
-                    {index + 1}
-                  </span>
-                  <span className="pt-1 text-sm font-medium text-axis-ink">{item}</span>
-                </li>
-              )
-            )}
-          </ol>
+        <Panel title="최근 활동" description="구매, 판매, 재고 처리 내역을 최신순으로 확인합니다.">
+          {recentActivityItems.length > 0 ? (
+            <div className="divide-y divide-axis-border">
+              {recentActivityItems.map((activity) => (
+                <div key={activity.id} className="py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ActivityBadge type={activity.type} />
+                        <p className="text-sm font-bold text-axis-ink">{activity.label}</p>
+                      </div>
+                      <p className="mt-2 truncate text-sm font-semibold text-axis-muted">{activity.description}</p>
+                      <p className="mt-1 text-xs font-semibold text-axis-muted">{activity.referenceNo} · {formatProcessorName(activity.processedBy)}</p>
+                    </div>
+                    <span className="shrink-0 text-xs font-semibold text-axis-muted">{formatDateTime(activity.occurredAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
+              최근 활동이 없습니다.
+            </p>
+          )}
         </Panel>
       </div>
     </div>
   );
+}
+
+function ActivityBadge({ type }: { type: "INVENTORY" | "PURCHASE" | "SALES" }) {
+  const meta =
+    type === "PURCHASE"
+      ? { label: "구매", className: "bg-blue-50 text-blue-700" }
+      : type === "SALES"
+        ? { label: "판매", className: "bg-violet-50 text-violet-700" }
+        : { label: "재고", className: "bg-emerald-50 text-emerald-700" };
+
+  return <span className={["inline-flex h-6 items-center rounded-full px-2 text-xs font-bold", meta.className].join(" ")}>{meta.label}</span>;
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function formatProcessorName(value: string) {
+  if (value === "admin") return "시스템 관리자";
+  return value.trim() || "-";
 }

@@ -40,6 +40,7 @@
 - Improved inventory movement history readability by separating purchase, sales, and manual adjustment sources from the raw reason text.
 - Renamed inventory history labels from adjustment-only wording to movement wording to match purchase, sales, and manual stock changes.
 - Added dashboard query invalidation after purchase and sales mutations that change approval, receipt, shipment, inventory, or activity metrics.
+- Added dashboard recent activity list backed by purchase orders, sales orders, and inventory movements.
 
 ## 2026-06-24
 
