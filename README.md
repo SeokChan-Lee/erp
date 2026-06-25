@@ -9,7 +9,6 @@
 - 프론트엔드: React, TypeScript, Tailwind CSS, Zustand
 - 백엔드: Java, Spring Boot
 - 로그인: 쿠키 기반 인증
-- UI: MUI 없이 직접 만든 공통 컴포넌트 사용
 - 폰트: Pretendard
 - 차트: 통계 기능이 들어갈 경우 Chart.js 사용 예정
 
