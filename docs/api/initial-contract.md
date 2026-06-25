@@ -287,7 +287,7 @@ Request:
 }
 ```
 
-Response includes request number, supplier summary, item summary, quantity, unit price, total amount, request status, memo, requester, and requested time.
+Response includes request number, supplier summary, item summary, quantity, unit price, total amount, request status, memo, requester, requested time, processor, and processed time.
 
 ### `PATCH /api/purchases/requests/{id}/approve`
 

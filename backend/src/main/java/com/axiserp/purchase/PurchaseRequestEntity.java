@@ -54,6 +54,11 @@ public class PurchaseRequestEntity {
     @Column(nullable = false)
     private LocalDateTime requestedAt;
 
+    @Column(length = 80)
+    private String processedBy;
+
+    private LocalDateTime processedAt;
+
     protected PurchaseRequestEntity() {
     }
 
@@ -97,18 +102,22 @@ public class PurchaseRequestEntity {
         return status;
     }
 
-    public void approve() {
+    public void approve(String processedBy) {
         if (status != PurchaseRequestStatus.REQUESTED) {
             throw new IllegalStateException("요청 상태의 구매 요청만 승인할 수 있습니다.");
         }
         this.status = PurchaseRequestStatus.APPROVED;
+        this.processedBy = processedBy;
+        this.processedAt = LocalDateTime.now();
     }
 
-    public void cancel() {
+    public void cancel(String processedBy) {
         if (status != PurchaseRequestStatus.REQUESTED) {
             throw new IllegalStateException("요청 상태의 구매 요청만 취소할 수 있습니다.");
         }
         this.status = PurchaseRequestStatus.CANCELED;
+        this.processedBy = processedBy;
+        this.processedAt = LocalDateTime.now();
     }
 
     public String getMemo() {
@@ -121,5 +130,13 @@ public class PurchaseRequestEntity {
 
     public LocalDateTime getRequestedAt() {
         return requestedAt;
+    }
+
+    public String getProcessedBy() {
+        return processedBy;
+    }
+
+    public LocalDateTime getProcessedAt() {
+        return processedAt;
     }
 }

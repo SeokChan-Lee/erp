@@ -14,6 +14,7 @@
 - Added supplier list, create, and update APIs with backend-owned Korean error messages.
 - Added purchase request list and create APIs linked to active suppliers and active item masters.
 - Added purchase request status filtering, approval, and cancellation APIs.
+- Added processor and processed time persistence for purchase request approval and cancellation.
 - Added a `구매/거래처` frontend route and sidebar menu.
 - Added supplier registration, supplier list/edit modal, purchase request registration, and purchase request list UI.
 - Added purchase request status filter and row-level approval/cancellation actions.

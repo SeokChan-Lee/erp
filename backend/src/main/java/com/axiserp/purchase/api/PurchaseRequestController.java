@@ -111,11 +111,11 @@ public class PurchaseRequestController {
             @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
             @PathVariable Long id
     ) {
-        authService.requirePermission(sessionId, Permission.PURCHASE_APPROVE);
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.PURCHASE_APPROVE);
         PurchaseRequestEntity request = purchaseRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 요청을 찾을 수 없습니다."));
         try {
-            request.approve();
+            request.approve(user.displayName());
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }
@@ -128,11 +128,11 @@ public class PurchaseRequestController {
             @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
             @PathVariable Long id
     ) {
-        authService.requirePermission(sessionId, Permission.PURCHASE_UPDATE);
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.PURCHASE_UPDATE);
         PurchaseRequestEntity request = purchaseRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 요청을 찾을 수 없습니다."));
         try {
-            request.cancel();
+            request.cancel(user.displayName());
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }

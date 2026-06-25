@@ -18,7 +18,9 @@ public record PurchaseRequestResponse(
         PurchaseRequestStatus status,
         String memo,
         String requestedBy,
-        LocalDateTime requestedAt
+        LocalDateTime requestedAt,
+        String processedBy,
+        LocalDateTime processedAt
 ) {
     public static PurchaseRequestResponse from(PurchaseRequestEntity request) {
         return new PurchaseRequestResponse(
@@ -32,7 +34,9 @@ public record PurchaseRequestResponse(
                 request.getStatus(),
                 request.getMemo(),
                 request.getRequestedBy(),
-                request.getRequestedAt()
+                request.getRequestedAt(),
+                request.getProcessedBy(),
+                request.getProcessedAt()
         );
     }
 }

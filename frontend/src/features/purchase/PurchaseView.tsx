@@ -550,6 +550,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               <DetailItem label="단가" value={formatCurrency(selectedRequest.unitPrice)} />
               <DetailItem label="합계 금액" value={formatCurrency(selectedRequest.totalAmount)} />
               <DetailItem label="품목 분류" value={selectedRequest.item.category} />
+              <DetailItem label="처리자" value={selectedRequest.processedBy ?? "아직 처리되지 않음"} />
+              <DetailItem label="처리일" value={selectedRequest.processedAt ? formatDateTime(selectedRequest.processedAt) : "아직 처리되지 않음"} />
             </div>
 
             <div className="rounded-lg border border-axis-border px-4 py-3">

@@ -61,6 +61,8 @@ export type PurchaseRequest = {
   memo: string | null;
   requestedBy: string;
   requestedAt: string;
+  processedBy: string | null;
+  processedAt: string | null;
 };
 
 export type PurchaseRequestQueryParams = {
