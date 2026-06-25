@@ -31,6 +31,7 @@
 
 - Added sales order schema, entity, repository, and backend APIs for list, create, and cancel.
 - Added sales order frontend route with create form, server-side list search, status filter, detail modal, and cancel action.
+- Added sales order shipping backend API that decreases stock and records inventory movement with insufficient-stock protection.
 
 ## 2026-06-24
 

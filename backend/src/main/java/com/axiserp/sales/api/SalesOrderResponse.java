@@ -2,6 +2,7 @@ package com.axiserp.sales.api;
 
 import com.axiserp.customer.api.CustomerResponse;
 import com.axiserp.inventory.api.ItemResponse;
+import com.axiserp.inventory.api.WarehouseResponse;
 import com.axiserp.sales.SalesOrderEntity;
 import com.axiserp.sales.SalesOrderStatus;
 
@@ -21,7 +22,10 @@ public record SalesOrderResponse(
         String orderedBy,
         LocalDateTime orderedAt,
         String processedBy,
-        LocalDateTime processedAt
+        LocalDateTime processedAt,
+        WarehouseResponse shippedWarehouse,
+        String shippedBy,
+        LocalDateTime shippedAt
 ) {
     public static SalesOrderResponse from(SalesOrderEntity order) {
         return new SalesOrderResponse(
@@ -37,7 +41,10 @@ public record SalesOrderResponse(
                 order.getOrderedBy(),
                 order.getOrderedAt(),
                 order.getProcessedBy(),
-                order.getProcessedAt()
+                order.getProcessedAt(),
+                order.getShippedWarehouse() == null ? null : WarehouseResponse.from(order.getShippedWarehouse()),
+                order.getShippedBy(),
+                order.getShippedAt()
         );
     }
 }

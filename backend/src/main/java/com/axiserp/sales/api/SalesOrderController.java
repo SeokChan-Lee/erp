@@ -5,8 +5,14 @@ import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
 import com.axiserp.customer.CustomerEntity;
 import com.axiserp.customer.CustomerRepository;
+import com.axiserp.inventory.InventoryMovementEntity;
+import com.axiserp.inventory.InventoryMovementRepository;
+import com.axiserp.inventory.InventoryStockEntity;
+import com.axiserp.inventory.InventoryStockRepository;
 import com.axiserp.inventory.ItemEntity;
 import com.axiserp.inventory.ItemRepository;
+import com.axiserp.inventory.WarehouseEntity;
+import com.axiserp.inventory.WarehouseRepository;
 import com.axiserp.permission.Permission;
 import com.axiserp.sales.SalesOrderEntity;
 import com.axiserp.sales.SalesOrderRepository;
@@ -42,17 +48,26 @@ public class SalesOrderController {
     private final CustomerRepository customerRepository;
     private final ItemRepository itemRepository;
     private final SalesOrderRepository salesOrderRepository;
+    private final WarehouseRepository warehouseRepository;
+    private final InventoryStockRepository inventoryStockRepository;
+    private final InventoryMovementRepository inventoryMovementRepository;
 
     public SalesOrderController(
             AuthService authService,
             CustomerRepository customerRepository,
             ItemRepository itemRepository,
-            SalesOrderRepository salesOrderRepository
+            SalesOrderRepository salesOrderRepository,
+            WarehouseRepository warehouseRepository,
+            InventoryStockRepository inventoryStockRepository,
+            InventoryMovementRepository inventoryMovementRepository
     ) {
         this.authService = authService;
         this.customerRepository = customerRepository;
         this.itemRepository = itemRepository;
         this.salesOrderRepository = salesOrderRepository;
+        this.warehouseRepository = warehouseRepository;
+        this.inventoryStockRepository = inventoryStockRepository;
+        this.inventoryMovementRepository = inventoryMovementRepository;
     }
 
     @GetMapping
@@ -101,6 +116,44 @@ public class SalesOrderController {
                 request.memo() == null ? null : request.memo().trim(),
                 user.displayName()
         ));
+        return SalesOrderResponse.from(order);
+    }
+
+    @PostMapping("/{id}/ship")
+    @Transactional
+    public SalesOrderResponse ship(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id,
+            @Valid @RequestBody SalesOrderShipRequest request
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.SALES_UPDATE);
+        SalesOrderEntity order = salesOrderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "판매 수주를 찾을 수 없습니다."));
+        WarehouseEntity warehouse = warehouseRepository.findById(request.warehouseId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "출고 창고를 찾을 수 없습니다."));
+        InventoryStockEntity stock = inventoryStockRepository
+                .findByItem_IdAndWarehouse_Id(order.getItem().getId(), warehouse.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택한 창고에 해당 품목 재고가 없습니다."));
+        if (stock.getQuantity() < order.getQuantity()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "출고 가능한 재고가 부족합니다.");
+        }
+
+        try {
+            order.ship(warehouse, user.displayName());
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
+        }
+
+        stock.adjust(-order.getQuantity());
+        inventoryStockRepository.save(stock);
+        inventoryMovementRepository.save(new InventoryMovementEntity(
+                order.getItem(),
+                warehouse,
+                -order.getQuantity(),
+                "판매 수주 출고: " + order.getOrderNo(),
+                user.displayName()
+        ));
+
         return SalesOrderResponse.from(order);
     }
 

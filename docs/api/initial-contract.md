@@ -431,6 +431,20 @@ Requires `SALES_UPDATE`.
 
 Cancels a registered sales order.
 
+### `POST /api/sales/orders/{id}/ship`
+
+Requires `SALES_UPDATE`.
+
+Request:
+
+```json
+{
+  "warehouseId": 1
+}
+```
+
+Ships a registered sales order from the selected warehouse. The backend blocks duplicate shipping, blocks shipping when stock is insufficient, decreases current stock, and records an inventory movement with the sales order number.
+
 ## Organization
 
 ### `GET /api/departments`

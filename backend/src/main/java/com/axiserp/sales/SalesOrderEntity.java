@@ -2,6 +2,7 @@ package com.axiserp.sales;
 
 import com.axiserp.customer.CustomerEntity;
 import com.axiserp.inventory.ItemEntity;
+import com.axiserp.inventory.WarehouseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -59,6 +60,15 @@ public class SalesOrderEntity {
     private String processedBy;
 
     private LocalDateTime processedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shipped_warehouse_id")
+    private WarehouseEntity shippedWarehouse;
+
+    @Column(length = 80)
+    private String shippedBy;
+
+    private LocalDateTime shippedAt;
 
     protected SalesOrderEntity() {
     }
@@ -123,12 +133,43 @@ public class SalesOrderEntity {
         return processedAt;
     }
 
+    public WarehouseEntity getShippedWarehouse() {
+        return shippedWarehouse;
+    }
+
+    public String getShippedBy() {
+        return shippedBy;
+    }
+
+    public LocalDateTime getShippedAt() {
+        return shippedAt;
+    }
+
+    public boolean isShipped() {
+        return shippedAt != null;
+    }
+
     public void cancel(String processedBy) {
         if (status != SalesOrderStatus.REGISTERED) {
             throw new IllegalStateException("등록 상태의 판매 수주만 취소할 수 있습니다.");
         }
+        if (isShipped()) {
+            throw new IllegalStateException("이미 출고 처리된 판매 수주는 취소할 수 없습니다.");
+        }
         this.status = SalesOrderStatus.CANCELED;
         this.processedBy = processedBy;
         this.processedAt = LocalDateTime.now();
+    }
+
+    public void ship(WarehouseEntity warehouse, String shippedBy) {
+        if (status != SalesOrderStatus.REGISTERED) {
+            throw new IllegalStateException("등록 상태의 판매 수주만 출고할 수 있습니다.");
+        }
+        if (isShipped()) {
+            throw new IllegalStateException("이미 출고 처리된 판매 수주입니다.");
+        }
+        this.shippedWarehouse = warehouse;
+        this.shippedBy = shippedBy;
+        this.shippedAt = LocalDateTime.now();
     }
 }
