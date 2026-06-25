@@ -12,7 +12,7 @@ import {
   useWarehousesQuery
 } from "./api/inventoryApi";
 import type {
-  InventoryAdjustmentPayload,
+  InventoryMovement,
   InventoryStock,
   InventoryMovementQueryParams,
   Item,
@@ -41,10 +41,17 @@ const initialItemForm: ItemCreatePayload = {
   safetyStock: 0
 };
 
-const initialAdjustmentForm: InventoryAdjustmentPayload = {
+type InventoryAdjustmentForm = {
+  itemId: number;
+  warehouseId: number;
+  targetQuantity: number;
+  reason: string;
+};
+
+const initialAdjustmentForm: InventoryAdjustmentForm = {
   itemId: 0,
   warehouseId: 0,
-  quantityDelta: 1,
+  targetQuantity: 0,
   reason: ""
 };
 
@@ -66,10 +73,11 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const [movementWarehouseId, setMovementWarehouseId] = useState(0);
   const [movementStartDate, setMovementStartDate] = useState("");
   const [movementEndDate, setMovementEndDate] = useState("");
+  const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
   const [itemForm, setItemForm] = useState<ItemCreatePayload>(initialItemForm);
   const [editForm, setEditForm] = useState<ItemEditForm | null>(null);
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
-  const [adjustmentForm, setAdjustmentForm] = useState<InventoryAdjustmentPayload>(initialAdjustmentForm);
+  const [adjustmentForm, setAdjustmentForm] = useState<InventoryAdjustmentForm>(initialAdjustmentForm);
   const canCreateItem = permissions.includes("ITEM_CREATE");
   const canUpdateItem = permissions.includes("ITEM_UPDATE");
   const canAdjustInventory = permissions.includes("INVENTORY_ADJUST");
@@ -106,6 +114,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const { data: warehouses = [], error: warehouseError } = useWarehousesQuery();
   const { data: itemsPage, error: itemsError, isLoading: itemsLoading } = useItemsQuery(itemParams);
   const { data: stocks = [], error: stocksError, isLoading: stocksLoading } = useInventoryStocksQuery(stockParams);
+  const { data: adjustmentStocks = [], error: adjustmentStocksError } = useInventoryStocksQuery({ search: "", warehouseId: 0 });
   const { data: movementsPage, error: movementsError, isLoading: movementsLoading } = useInventoryMovementsQuery(movementParams);
   const createItem = useCreateItemMutation();
   const updateItem = useUpdateItemMutation();
@@ -118,11 +127,16 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const activeItems = items.filter((item) => item.active).length;
   const selectedWarehouseId = adjustmentForm.warehouseId || warehouses[0]?.id || 0;
   const selectedItemId = adjustmentForm.itemId || items[0]?.id || 0;
+  const selectedAdjustmentStock = findInventoryStock(adjustmentStocks, selectedItemId, selectedWarehouseId);
+  const selectedAdjustmentUnit = selectedAdjustmentStock?.item.unit ?? items.find((item) => item.id === selectedItemId)?.unit ?? "개";
+  const currentAdjustmentQuantity = selectedAdjustmentStock?.quantity ?? 0;
+  const adjustmentQuantityDelta = adjustmentForm.targetQuantity - currentAdjustmentQuantity;
   const pageError =
     overviewError ||
     warehouseError ||
     itemsError ||
     stocksError ||
+    adjustmentStocksError ||
     movementsError ||
     createItem.error ||
     updateItem.error ||
@@ -135,6 +149,13 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const itemOptions = items
     .filter((item) => item.active)
     .map((item) => ({ value: item.id, label: `${item.sku} · ${item.name}` }));
+  const adjustmentItemOptions = Array.from(
+    new Map(
+      adjustmentStocks
+        .filter((stock) => stock.item.active)
+        .map((stock) => [stock.item.id, { value: stock.item.id, label: `${stock.item.sku} · ${stock.item.name}` }])
+    ).values()
+  );
   const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
   const stockWarehouseOptions = [{ value: 0, label: "전체 창고" }, ...warehouseOptions];
   const itemFormReady =
@@ -146,7 +167,8 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const adjustmentReady =
     selectedItemId > 0 &&
     selectedWarehouseId > 0 &&
-    adjustmentForm.quantityDelta !== 0 &&
+    adjustmentForm.targetQuantity >= 0 &&
+    adjustmentQuantityDelta !== 0 &&
     adjustmentForm.reason.trim().length > 0;
 
   const handleCreateItem = (event: FormEvent<HTMLFormElement>) => {
@@ -207,7 +229,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       {
         itemId: selectedItemId,
         warehouseId: selectedWarehouseId,
-        quantityDelta: adjustmentForm.quantityDelta,
+        quantityDelta: adjustmentQuantityDelta,
         reason: adjustmentForm.reason.trim()
       },
       {
@@ -220,14 +242,28 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   };
 
   const openAdjustmentModal = (stock?: InventoryStock) => {
+    const itemId = stock?.item.id ?? selectedItemId;
+    const warehouseId = stock?.warehouse.id ?? selectedWarehouseId;
+    const currentQuantity = stock?.quantity ?? findInventoryStock(adjustmentStocks, itemId, warehouseId)?.quantity ?? 0;
+
     setAdjustmentForm((current) => ({
       ...current,
-      itemId: stock?.item.id ?? current.itemId,
-      warehouseId: stock?.warehouse.id ?? current.warehouseId,
-      quantityDelta: 1,
+      itemId,
+      warehouseId,
+      targetQuantity: currentQuantity,
       reason: ""
     }));
     setAdjustmentModalOpen(true);
+  };
+
+  const changeAdjustmentItem = (itemId: number) => {
+    const nextQuantity = findInventoryStock(adjustmentStocks, itemId, selectedWarehouseId)?.quantity ?? 0;
+    setAdjustmentForm((current) => ({ ...current, itemId, targetQuantity: nextQuantity }));
+  };
+
+  const changeAdjustmentWarehouse = (warehouseId: number) => {
+    const nextQuantity = findInventoryStock(adjustmentStocks, selectedItemId, warehouseId)?.quantity ?? 0;
+    setAdjustmentForm((current) => ({ ...current, warehouseId, targetQuantity: nextQuantity }));
   };
 
   return (
@@ -518,6 +554,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                   <th className="px-4 py-3">조정 수량</th>
                   <th className="px-4 py-3">처리자</th>
                   <th className="px-4 py-3">사유</th>
+                  <th className="px-4 py-3">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-axis-border bg-white">
@@ -538,11 +575,16 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                         {movement.reason}
                       </span>
                     </td>
+                    <td className="px-4 py-4">
+                      <Button className="h-8 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedMovement(movement)}>
+                        상세
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {movements.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={6}>
+                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>
                       조건에 맞는 조정 이력이 없습니다.
                     </td>
                   </tr>
@@ -557,7 +599,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       <Modal
         open={adjustmentModalOpen}
         title="재고 조정"
-        description="실사 차이, 초기 수량 보정 등 현재고를 직접 조정합니다."
+        description="현재고를 기준으로 조정 후 수량을 입력합니다."
         footer={
           <>
             <Button type="button" variant="secondary" onClick={() => setAdjustmentModalOpen(false)}>
@@ -578,7 +620,10 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               </span>
               <div>
                 <p className="text-sm font-bold text-axis-ink">조정 기준</p>
-                <p className="mt-1 text-xs font-semibold text-axis-muted">조정 수량은 양수 또는 음수로 입력합니다.</p>
+                <p className="mt-1 text-xs font-semibold text-axis-muted">
+                  현재고 {currentAdjustmentQuantity.toLocaleString("ko-KR")} {selectedAdjustmentUnit} 기준으로 저장 시 변경량{" "}
+                  {formatSignedQuantity(adjustmentQuantityDelta, selectedAdjustmentUnit)}이 기록됩니다.
+                </p>
               </div>
             </div>
           </div>
@@ -586,10 +631,10 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             <SelectField
               label="품목"
               value={selectedItemId}
-              options={itemOptions}
+              options={adjustmentItemOptions.length > 0 ? adjustmentItemOptions : itemOptions}
               placeholder="품목 선택"
-              disabled={itemOptions.length === 0}
-              onChange={(itemId) => setAdjustmentForm((current) => ({ ...current, itemId }))}
+              disabled={adjustmentItemOptions.length === 0 && itemOptions.length === 0}
+              onChange={changeAdjustmentItem}
             />
             <SelectField
               label="창고"
@@ -597,13 +642,14 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               options={warehouseOptions}
               placeholder="창고 선택"
               disabled={warehouseOptions.length === 0}
-              onChange={(warehouseId) => setAdjustmentForm((current) => ({ ...current, warehouseId }))}
+              onChange={changeAdjustmentWarehouse}
             />
             <TextField
-              label="조정 수량"
+              label="조정 후 현재고"
               type="number"
-              value={adjustmentForm.quantityDelta}
-              onChange={(event) => setAdjustmentForm((current) => ({ ...current, quantityDelta: Number(event.target.value) }))}
+              min={0}
+              value={adjustmentForm.targetQuantity}
+              onChange={(event) => setAdjustmentForm((current) => ({ ...current, targetQuantity: Number(event.target.value) }))}
               required
             />
           </div>
@@ -618,6 +664,35 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             />
           </label>
         </form>
+      </Modal>
+
+      <Modal
+        open={selectedMovement !== null}
+        title="재고 조정 이력 상세"
+        description="재고 조정 처리 기준과 사유를 확인합니다."
+        footer={
+          <Button type="button" variant="secondary" onClick={() => setSelectedMovement(null)}>
+            닫기
+          </Button>
+        }
+        onClose={() => setSelectedMovement(null)}
+      >
+        {selectedMovement ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <InfoItem label="처리 일시" value={formatDateTime(selectedMovement.processedAt)} />
+              <InfoItem label="처리자" value={formatProcessorName(selectedMovement.processedBy)} />
+              <InfoItem label="품목" value={`${selectedMovement.item.sku} · ${selectedMovement.item.name}`} />
+              <InfoItem label="창고" value={selectedMovement.warehouse.name} />
+              <InfoItem label="조정 수량" value={formatSignedQuantity(selectedMovement.quantityDelta, selectedMovement.item.unit)} />
+              <InfoItem label="분류" value={selectedMovement.item.category} />
+            </div>
+            <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
+              <p className="text-xs font-bold text-axis-muted">조정 사유</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-axis-ink">{selectedMovement.reason}</p>
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <Modal
@@ -708,7 +783,7 @@ function StockBadge({ belowSafetyStock }: { belowSafetyStock: boolean }) {
 
 function MovementQuantityBadge({ quantityDelta, unit }: { quantityDelta: number; unit: string }) {
   const positive = quantityDelta > 0;
-  const text = `${positive ? "+" : ""}${quantityDelta.toLocaleString("ko-KR")} ${unit}`;
+  const text = formatSignedQuantity(quantityDelta, unit);
 
   return (
     <span
@@ -720,6 +795,14 @@ function MovementQuantityBadge({ quantityDelta, unit }: { quantityDelta: number;
       {text}
     </span>
   );
+}
+
+function findInventoryStock(stocks: InventoryStock[], itemId: number, warehouseId: number) {
+  return stocks.find((stock) => stock.item.id === itemId && stock.warehouse.id === warehouseId);
+}
+
+function formatSignedQuantity(quantity: number, unit: string) {
+  return `${quantity > 0 ? "+" : ""}${quantity.toLocaleString("ko-KR")} ${unit}`;
 }
 
 function formatDateTime(value: string) {
@@ -737,4 +820,13 @@ function formatProcessorName(value: string) {
     return "시스템 관리자";
   }
   return value.trim() || "-";
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-axis-border bg-white px-4 py-3">
+      <p className="text-xs font-bold text-axis-muted">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-axis-ink">{value}</p>
+    </div>
+  );
 }
