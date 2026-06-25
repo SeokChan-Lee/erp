@@ -380,6 +380,12 @@ Request:
 
 Receives a purchase order into the selected warehouse. The backend blocks duplicate receiving, increases current stock by the ordered quantity, and records an inventory movement with the purchase order number.
 
+### `POST /api/purchases/orders/{id}/receive/cancel`
+
+Requires `PURCHASE_UPDATE`.
+
+Cancels a received purchase order. The backend blocks cancellation for orders that were not received, blocks cancellation when stock would become negative, decreases current stock, clears receiving fields, and records an inventory movement with the purchase order number.
+
 ## Dashboard
 
 ### `GET /api/dashboard/summary`

@@ -115,6 +115,41 @@ public class PurchaseOrderController {
         return PurchaseOrderResponse.from(order);
     }
 
+    @PostMapping("/{id}/receive/cancel")
+    @Transactional
+    public PurchaseOrderResponse cancelReceive(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Long id
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.PURCHASE_UPDATE);
+        PurchaseOrderEntity order = purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 발주를 찾을 수 없습니다."));
+        if (!order.isReceived() || order.getReceivedWarehouse() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "입고 처리되지 않은 발주입니다.");
+        }
+
+        WarehouseEntity warehouse = order.getReceivedWarehouse();
+        InventoryStockEntity stock = inventoryStockRepository
+                .findByItem_IdAndWarehouse_Id(order.getRequest().getItem().getId(), warehouse.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "입고 취소할 재고가 없습니다."));
+        if (stock.getQuantity() < order.getRequest().getQuantity()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "입고 취소 후 재고 수량이 0보다 작아질 수 없습니다.");
+        }
+
+        stock.adjust(-order.getRequest().getQuantity());
+        inventoryStockRepository.save(stock);
+        inventoryMovementRepository.save(new InventoryMovementEntity(
+                order.getRequest().getItem(),
+                warehouse,
+                -order.getRequest().getQuantity(),
+                "구매 발주 입고 취소: " + order.getOrderNo(),
+                user.displayName()
+        ));
+        order.cancelReceive();
+
+        return PurchaseOrderResponse.from(order);
+    }
+
     private Specification<PurchaseOrderEntity> orderSpecification(String search, LocalDate fromDate, LocalDate toDate) {
         return (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();

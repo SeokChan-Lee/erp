@@ -99,4 +99,13 @@ public class PurchaseOrderEntity {
         this.receivedBy = receivedBy;
         this.receivedAt = LocalDateTime.now();
     }
+
+    public void cancelReceive() {
+        if (!isReceived()) {
+            throw new IllegalStateException("입고 처리되지 않은 발주입니다.");
+        }
+        this.receivedWarehouse = null;
+        this.receivedBy = null;
+        this.receivedAt = null;
+    }
 }

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, Eye, PackageCheck, PencilLine, Plus, Search, Send, ShoppingCart, X } from "lucide-react";
+import { Check, Eye, PackageCheck, PencilLine, Plus, RotateCcw, Search, Send, ShoppingCart, X } from "lucide-react";
 
 import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
@@ -15,6 +15,7 @@ import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
 import {
   useApprovePurchaseRequestMutation,
+  useCancelReceivePurchaseOrderMutation,
   useCancelPurchaseRequestMutation,
   useCreateCustomerMutation,
   useCreatePurchaseOrderMutation,
@@ -196,6 +197,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const cancelRequest = useCancelPurchaseRequestMutation();
   const createOrder = useCreatePurchaseOrderMutation();
   const receiveOrder = useReceivePurchaseOrderMutation();
+  const cancelReceiveOrder = useCancelReceivePurchaseOrderMutation();
 
   const customers = customersPage?.content ?? [];
   const totalCustomers = customersPage?.totalItems ?? 0;
@@ -225,7 +227,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     approveRequest.error ||
     cancelRequest.error ||
     createOrder.error ||
-    receiveOrder.error;
+    receiveOrder.error ||
+    cancelReceiveOrder.error;
   const customerStatusOptions = [
     { value: "ALL" as CustomerStatusFilter, label: "전체" },
     { value: "ACTIVE" as CustomerStatusFilter, label: "사용" },
@@ -446,6 +449,12 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         }
       }
     );
+  };
+
+  const handleCancelReceiveOrder = (orderId: number) => {
+    cancelReceiveOrder.mutate(orderId, {
+      onSuccess: () => setToastMessage("구매 발주 입고가 취소되었습니다.")
+    });
   };
 
   const handleCloseCustomerCreate = () => {
@@ -893,14 +902,28 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                       <td className="px-4 py-4"><ReceiveStatusBadge received={order.receivedAt !== null} /></td>
                       <td className="px-4 py-4">
                         {order.receivedAt ? (
-                          <div className="text-xs font-semibold text-axis-muted">
-                            <p>{order.receivedWarehouse?.name ?? "입고 창고"}</p>
-                            <p className="mt-1">{formatDateTime(order.receivedAt)} · {order.receivedBy}</p>
+                          <div className="space-y-2">
+                            <div className="text-xs font-semibold text-axis-muted">
+                              <p>{order.receivedWarehouse?.name ?? "입고 창고"}</p>
+                              <p className="mt-1">{formatDateTime(order.receivedAt)} · {order.receivedBy}</p>
+                            </div>
+                            {canCancelPurchase ? (
+                              <Button
+                                className="h-8 gap-1.5 px-3 text-xs text-rose-700"
+                                disabled={cancelReceiveOrder.isPending}
+                                type="button"
+                                variant="secondary"
+                                onClick={() => handleCancelReceiveOrder(order.id)}
+                              >
+                                <RotateCcw size={14} strokeWidth={2.2} />
+                                입고 취소
+                              </Button>
+                            ) : null}
                           </div>
                         ) : canCancelPurchase ? (
                           <Button
                             className="h-8 gap-1.5 px-3 text-xs"
-                            disabled={receiveOrder.isPending || warehouses.length === 0}
+                            disabled={receiveOrder.isPending || cancelReceiveOrder.isPending || warehouses.length === 0}
                             type="button"
                             variant="secondary"
                             onClick={() => openReceiveModal(order)}

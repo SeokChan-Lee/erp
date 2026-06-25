@@ -243,3 +243,19 @@ export function useReceivePurchaseOrderMutation() {
     }
   });
 }
+
+export function useCancelReceivePurchaseOrderMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (orderId: number) =>
+      http<PurchaseOrder>(`/purchases/orders/${orderId}/receive/cancel`, {
+        method: "POST"
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    }
+  });
+}
