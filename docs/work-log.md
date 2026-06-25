@@ -174,3 +174,9 @@
 - Added a purchase order detail modal from the purchase order list.
 - Grouped purchase order, linked request, supplier contact, item, amount, receipt, and memo information in the detail view.
 - Expanded the sales order detail modal with customer contact, item category, order status, shipment status, cancellation processing, and memo information.
+
+### Inventory Movement Source Contract
+
+- Added `sourceType`, `sourceLabel`, and `sourceReferenceNo` to inventory movement API responses.
+- Moved purchase, sales, and manual movement source classification out of the frontend reason-text parser.
+- Updated the inventory movement table and detail modal to render backend-owned source fields.

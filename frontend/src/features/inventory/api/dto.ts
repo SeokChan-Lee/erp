@@ -31,6 +31,9 @@ export type InventoryMovement = {
   warehouse: Warehouse;
   quantityDelta: number;
   reason: string;
+  sourceType: "PURCHASE_RECEIPT" | "PURCHASE_RECEIPT_CANCEL" | "SALES_SHIPMENT" | "SALES_SHIPMENT_CANCEL" | "MANUAL_ADJUSTMENT";
+  sourceLabel: string;
+  sourceReferenceNo: string;
   processedBy: string;
   processedAt: string;
 };

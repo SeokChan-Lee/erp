@@ -725,6 +725,36 @@ Requires `INVENTORY_READ`.
 
 Returns item count, active item count, safety-stock shortage count, and warehouse count.
 
+### `GET /api/inventory/movements`
+
+Requires `INVENTORY_READ`.
+
+Returns paged inventory movement history. Source metadata is returned as first-class fields so the frontend does not parse the free-form reason text.
+
+Query parameters:
+
+- `page`: 1-based page number.
+- `pageSize`: page size. Current frontend default is 20.
+- `search`: optional keyword for item, warehouse, reason, source reference number, or processor.
+- `warehouseId`: optional warehouse filter.
+- `startDate`: optional processed date start, `yyyy-MM-dd`.
+- `endDate`: optional processed date end, `yyyy-MM-dd`.
+
+Response item:
+
+```json
+{
+  "id": 1,
+  "quantityDelta": 5,
+  "reason": "구매 발주 입고: PO-20260625-001",
+  "sourceType": "PURCHASE_RECEIPT",
+  "sourceLabel": "구매 입고",
+  "sourceReferenceNo": "PO-20260625-001",
+  "processedBy": "시스템 관리자",
+  "processedAt": "2026-06-25T10:30:00"
+}
+```
+
 ### `POST /api/inventory/adjustments`
 
 Requires `INVENTORY_ADJUST`.
