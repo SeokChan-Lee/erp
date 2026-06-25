@@ -55,6 +55,7 @@ export function useCreateSalesOrderMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: salesKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }
@@ -69,6 +70,7 @@ export function useCancelSalesOrderMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: salesKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }
@@ -85,6 +87,7 @@ export function useShipSalesOrderMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: salesKeys.orderRoot });
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }

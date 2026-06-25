@@ -182,6 +182,7 @@ export function useCreatePurchaseRequestMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }
@@ -196,6 +197,7 @@ export function useApprovePurchaseRequestMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }
@@ -210,6 +212,7 @@ export function useCancelPurchaseRequestMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }
@@ -224,6 +227,8 @@ export function useCreatePurchaseOrderMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.orderRoot });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }
@@ -240,6 +245,7 @@ export function useReceivePurchaseOrderMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.orderRoot });
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     }
   });
 }

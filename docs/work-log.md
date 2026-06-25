@@ -39,6 +39,7 @@
 - Added sales shipment cancellation API and UI with stock rollback and inventory movement logging.
 - Improved inventory movement history readability by separating purchase, sales, and manual adjustment sources from the raw reason text.
 - Renamed inventory history labels from adjustment-only wording to movement wording to match purchase, sales, and manual stock changes.
+- Added dashboard query invalidation after purchase and sales mutations that change approval, receipt, shipment, inventory, or activity metrics.
 
 ## 2026-06-24
 
