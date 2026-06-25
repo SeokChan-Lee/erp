@@ -111,6 +111,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [editingCustomer, setEditingCustomer] = useState<CustomerEditForm | null>(null);
   const [editingSupplier, setEditingSupplier] = useState<SupplierEditForm | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PurchaseRequest | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
   const [receivingOrder, setReceivingOrder] = useState<PurchaseOrder | null>(null);
   const [receiveWarehouseId, setReceiveWarehouseId] = useState(0);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
@@ -901,13 +902,31 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                       <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(order.totalAmount)}</td>
                       <td className="px-4 py-4"><ReceiveStatusBadge received={order.receivedAt !== null} /></td>
                       <td className="px-4 py-4">
-                        {order.receivedAt ? (
-                          <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedOrder(order)}>
+                            <Eye size={14} strokeWidth={2.2} />
+                            상세
+                          </Button>
+                          {order.receivedAt ? (
                             <div className="text-xs font-semibold text-axis-muted">
                               <p>{order.receivedWarehouse?.name ?? "입고 창고"}</p>
                               <p className="mt-1">{formatDateTime(order.receivedAt)} · {order.receivedBy}</p>
                             </div>
-                            {canCancelPurchase ? (
+                          ) : canCancelPurchase ? (
+                            <Button
+                              className="h-8 gap-1.5 px-3 text-xs"
+                              disabled={receiveOrder.isPending || cancelReceiveOrder.isPending || warehouses.length === 0}
+                              type="button"
+                              variant="secondary"
+                              onClick={() => openReceiveModal(order)}
+                            >
+                              <PackageCheck size={14} strokeWidth={2.2} />
+                              입고 처리
+                            </Button>
+                          ) : (
+                            <span className="text-xs font-semibold text-axis-muted">입고 대기</span>
+                          )}
+                          {order.receivedAt && canCancelPurchase ? (
                               <Button
                                 className="h-8 gap-1.5 px-3 text-xs text-rose-700"
                                 disabled={cancelReceiveOrder.isPending}
@@ -918,22 +937,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                                 <RotateCcw size={14} strokeWidth={2.2} />
                                 입고 취소
                               </Button>
-                            ) : null}
-                          </div>
-                        ) : canCancelPurchase ? (
-                          <Button
-                            className="h-8 gap-1.5 px-3 text-xs"
-                            disabled={receiveOrder.isPending || cancelReceiveOrder.isPending || warehouses.length === 0}
-                            type="button"
-                            variant="secondary"
-                            onClick={() => openReceiveModal(order)}
-                          >
-                            <PackageCheck size={14} strokeWidth={2.2} />
-                            입고 처리
-                          </Button>
-                        ) : (
-                          <span className="text-xs font-semibold text-axis-muted">입고 대기</span>
-                        )}
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -981,6 +986,46 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             <div className="rounded-lg border border-axis-border px-4 py-3">
               <p className="text-sm font-bold text-axis-ink">요청 메모</p>
               <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-6 text-axis-muted">{selectedRequest.memo?.trim() || "등록된 메모가 없습니다."}</p>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={selectedOrder !== null}
+        title="구매 발주 상세"
+        description="발주, 연결된 구매 요청, 입고 처리 정보를 함께 확인합니다."
+        footer={<Button type="button" variant="secondary" onClick={() => setSelectedOrder(null)}>닫기</Button>}
+        onClose={() => setSelectedOrder(null)}
+      >
+        {selectedOrder ? (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
+              <div>
+                <p className="text-sm font-bold text-axis-ink">{selectedOrder.orderNo}</p>
+                <p className="mt-1 text-xs font-semibold text-axis-muted">{formatDateTime(selectedOrder.orderedAt)} · {selectedOrder.orderedBy}</p>
+              </div>
+              <ReceiveStatusBadge received={selectedOrder.receivedAt !== null} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <DetailItem label="연결 요청" value={selectedOrder.request.requestNo} />
+              <DetailItem label="요청 상태" value={purchaseStatusLabel(selectedOrder.request.status)} />
+              <DetailItem label="공급사" value={`${selectedOrder.request.supplier.code} · ${selectedOrder.request.supplier.name}`} />
+              <DetailItem label="공급사 담당" value={`${selectedOrder.request.supplier.contactName} · ${selectedOrder.request.supplier.phone}`} />
+              <DetailItem label="품목" value={`${selectedOrder.request.item.sku} · ${selectedOrder.request.item.name}`} />
+              <DetailItem label="품목 분류" value={selectedOrder.request.item.category} />
+              <DetailItem label="수량" value={`${selectedOrder.request.quantity.toLocaleString("ko-KR")} ${selectedOrder.request.item.unit}`} />
+              <DetailItem label="단가" value={formatCurrency(selectedOrder.request.unitPrice)} />
+              <DetailItem label="합계 금액" value={formatCurrency(selectedOrder.totalAmount)} />
+              <DetailItem label="입고 창고" value={selectedOrder.receivedWarehouse?.name ?? "아직 입고되지 않음"} />
+              <DetailItem label="입고 처리" value={selectedOrder.receivedAt ? `${formatDateTime(selectedOrder.receivedAt)} · ${selectedOrder.receivedBy}` : "아직 입고되지 않음"} />
+              <DetailItem label="요청 처리" value={selectedOrder.request.processedAt ? `${formatDateTime(selectedOrder.request.processedAt)} · ${selectedOrder.request.processedBy}` : "아직 처리되지 않음"} />
+            </div>
+
+            <div className="rounded-lg border border-axis-border px-4 py-3">
+              <p className="text-sm font-bold text-axis-ink">요청 메모</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-6 text-axis-muted">{selectedOrder.request.memo?.trim() || "등록된 메모가 없습니다."}</p>
             </div>
           </div>
         ) : null}
@@ -1230,7 +1275,7 @@ function StatusBadge({ active }: { active: boolean }) {
 }
 
 function PurchaseStatusBadge({ status }: { status: string }) {
-  const label = status === "ORDERED" ? "발주" : status === "APPROVED" ? "승인" : status === "CANCELED" ? "취소" : "요청";
+  const label = purchaseStatusLabel(status);
   const className =
     status === "ORDERED"
       ? "bg-violet-50 text-violet-700"
@@ -1241,6 +1286,10 @@ function PurchaseStatusBadge({ status }: { status: string }) {
           : "bg-blue-50 text-blue-700";
 
   return <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", className].join(" ")}>{label}</span>;
+}
+
+function purchaseStatusLabel(status: string) {
+  return status === "ORDERED" ? "발주" : status === "APPROVED" ? "승인" : status === "CANCELED" ? "취소" : "요청";
 }
 
 function ReceiveStatusBadge({ received }: { received: boolean }) {

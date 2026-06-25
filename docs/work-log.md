@@ -168,3 +168,9 @@
 - Replaced major form inputs across login, organization, user management, attendance, and inventory screens with the shared text field.
 - Changed text search fields to update backend API search parameters only when Enter is pressed.
 - Kept search filtering backend-owned through existing API query parameters instead of client-side list filtering.
+
+### Purchase and Sales Detail Views
+
+- Added a purchase order detail modal from the purchase order list.
+- Grouped purchase order, linked request, supplier contact, item, amount, receipt, and memo information in the detail view.
+- Expanded the sales order detail modal with customer contact, item category, order status, shipment status, cancellation processing, and memo information.

@@ -385,7 +385,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
       <Modal
         open={selectedOrder !== null}
         title="판매 수주 상세"
-        description="판매 수주의 고객사, 품목, 금액, 메모를 확인합니다."
+        description="판매 수주의 고객사, 품목, 출고와 취소 처리 정보를 함께 확인합니다."
         footer={<Button type="button" variant="secondary" onClick={() => setSelectedOrder(null)}>닫기</Button>}
         onClose={() => setSelectedOrder(null)}
       >
@@ -400,13 +400,19 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <DetailItem label="고객사" value={`${selectedOrder.customer.code} · ${selectedOrder.customer.name}`} />
+              <DetailItem label="사업자등록번호" value={selectedOrder.customer.businessNumber} />
+              <DetailItem label="고객 담당" value={`${selectedOrder.customer.contactName} · ${selectedOrder.customer.phone}`} />
+              <DetailItem label="고객 이메일" value={selectedOrder.customer.email} />
               <DetailItem label="품목" value={`${selectedOrder.item.sku} · ${selectedOrder.item.name}`} />
+              <DetailItem label="품목 분류" value={selectedOrder.item.category} />
               <DetailItem label="수량" value={`${selectedOrder.quantity.toLocaleString("ko-KR")} ${selectedOrder.item.unit}`} />
               <DetailItem label="단가" value={formatCurrency(selectedOrder.unitPrice)} />
               <DetailItem label="합계 금액" value={formatCurrency(selectedOrder.totalAmount)} />
-              <DetailItem label="처리자" value={selectedOrder.processedBy ?? "아직 처리되지 않음"} />
+              <DetailItem label="수주 상태" value={selectedOrder.status === "CANCELED" ? "취소" : "등록"} />
+              <DetailItem label="출고 상태" value={selectedOrder.shippedAt ? "출고 완료" : "출고 대기"} />
               <DetailItem label="출고 창고" value={selectedOrder.shippedWarehouse?.name ?? "아직 출고되지 않음"} />
               <DetailItem label="출고 처리" value={selectedOrder.shippedAt ? `${formatDateTime(selectedOrder.shippedAt)} · ${selectedOrder.shippedBy}` : "아직 출고되지 않음"} />
+              <DetailItem label="취소 처리" value={selectedOrder.processedAt ? `${formatDateTime(selectedOrder.processedAt)} · ${selectedOrder.processedBy}` : "취소되지 않음"} />
             </div>
             <div className="rounded-lg border border-axis-border px-4 py-3">
               <p className="text-sm font-bold text-axis-ink">수주 메모</p>
