@@ -258,6 +258,53 @@ Request:
 }
 ```
 
+## Customer
+
+### `GET /api/customers`
+
+Requires `CUSTOMER_READ`.
+
+Query parameters:
+
+- `page`: 1-based page number. Defaults to `1`.
+- `pageSize`: item count per page. Defaults to `20`; maximum `100`.
+- `search`: optional keyword for customer code, name, business number, or contact name.
+- `status`: `ALL`, `ACTIVE`, or `INACTIVE`. Defaults to `ALL`.
+
+### `POST /api/customers`
+
+Requires `CUSTOMER_CREATE`.
+
+Request:
+
+```json
+{
+  "code": "AX-CUS-003",
+  "name": "신규 고객사",
+  "businessNumber": "201-88-00003",
+  "contactName": "홍고객",
+  "phone": "02-4000-3000",
+  "email": "customer@axis.local"
+}
+```
+
+### `PATCH /api/customers/{id}`
+
+Requires `CUSTOMER_UPDATE`.
+
+Request:
+
+```json
+{
+  "name": "신규 고객사",
+  "businessNumber": "201-88-00003",
+  "contactName": "홍고객",
+  "phone": "02-4000-3000",
+  "email": "customer@axis.local",
+  "active": true
+}
+```
+
 ## Purchase
 
 ### `GET /api/purchases/requests`

@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http } from "../../../shared/api/http";
 import type { PageResponse } from "../../../shared/api/page";
 import type {
+  Customer,
+  CustomerCreatePayload,
+  CustomerQueryParams,
+  CustomerUpdatePayload,
   PurchaseOrder,
   PurchaseRequest,
   PurchaseRequestCreatePayload,
@@ -14,11 +18,63 @@ import type {
 } from "./dto";
 
 export const purchaseKeys = {
+  customerRoot: ["purchase", "customers"] as const,
+  customers: (params: CustomerQueryParams) => ["purchase", "customers", params] as const,
   supplierRoot: ["purchase", "suppliers"] as const,
   suppliers: (params: SupplierQueryParams) => ["purchase", "suppliers", params] as const,
   requestRoot: ["purchase", "requests"] as const,
   requests: (params: PurchaseRequestQueryParams) => ["purchase", "requests", params] as const
 };
+
+export function useCustomersQuery(params: CustomerQueryParams, enabled = true) {
+  return useQuery({
+    queryKey: purchaseKeys.customers(params),
+    enabled,
+    queryFn: () => {
+      const query = new URLSearchParams({
+        page: String(params.page),
+        pageSize: String(params.pageSize)
+      });
+      if (params.search.trim()) {
+        query.set("search", params.search.trim());
+      }
+      if (params.status !== "ALL") {
+        query.set("status", params.status);
+      }
+      return http<PageResponse<Customer>>(`/customers?${query.toString()}`);
+    }
+  });
+}
+
+export function useCreateCustomerMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CustomerCreatePayload) =>
+      http<Customer>("/customers", {
+        method: "POST",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.customerRoot });
+    }
+  });
+}
+
+export function useUpdateCustomerMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ customerId, payload }: { customerId: number; payload: CustomerUpdatePayload }) =>
+      http<Customer>(`/customers/${customerId}`, {
+        method: "PATCH",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.customerRoot });
+    }
+  });
+}
 
 export function useSuppliersQuery(params: SupplierQueryParams) {
   return useQuery({

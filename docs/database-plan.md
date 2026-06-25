@@ -26,8 +26,10 @@ Flyway migrations currently create and manage:
 - `warehouses`
 - `inventory_stocks`
 - `inventory_movements`
+- `customers`
 - `suppliers`
 - `purchase_requests`
+- `purchase_orders`
 
 ## Seed Data
 
@@ -44,6 +46,8 @@ The local development seeder creates:
 - Initial item and stock records
 - Supplier `AX-SUP-001`
 - Supplier `AX-SUP-002`
+- Customer `AX-CUS-001`
+- Customer `AX-CUS-002`
 
 ## Next Steps
 

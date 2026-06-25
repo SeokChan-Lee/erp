@@ -15,14 +15,22 @@ import { Toast } from "../../shared/ui/Toast";
 import {
   useApprovePurchaseRequestMutation,
   useCancelPurchaseRequestMutation,
+  useCreateCustomerMutation,
   useCreatePurchaseOrderMutation,
   useCreatePurchaseRequestMutation,
   useCreateSupplierMutation,
+  useCustomersQuery,
   usePurchaseRequestsQuery,
   useSuppliersQuery,
+  useUpdateCustomerMutation,
   useUpdateSupplierMutation
 } from "./api/purchaseApi";
 import type {
+  Customer,
+  CustomerCreatePayload,
+  CustomerQueryParams,
+  CustomerStatusFilter,
+  CustomerUpdatePayload,
   PurchaseRequest,
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
@@ -45,6 +53,15 @@ const initialSupplierForm: SupplierCreatePayload = {
   email: ""
 };
 
+const initialCustomerForm: CustomerCreatePayload = {
+  code: "",
+  name: "",
+  businessNumber: "",
+  contactName: "",
+  phone: "",
+  email: ""
+};
+
 const initialPurchaseForm: PurchaseRequestCreatePayload = {
   supplierId: 0,
   itemId: 0,
@@ -57,7 +74,15 @@ type SupplierEditForm = SupplierUpdatePayload & {
   id: number;
 };
 
+type CustomerEditForm = CustomerUpdatePayload & {
+  id: number;
+};
+
 export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customerSearchInput, setCustomerSearchInput] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerStatus, setCustomerStatus] = useState<CustomerStatusFilter>("ALL");
   const [supplierPage, setSupplierPage] = useState(1);
   const [supplierSearchInput, setSupplierSearchInput] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -66,19 +91,34 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [requestSearchInput, setRequestSearchInput] = useState("");
   const [requestSearch, setRequestSearch] = useState("");
   const [requestStatus, setRequestStatus] = useState<PurchaseRequestStatusFilter>("ALL");
+  const [customerCreateOpen, setCustomerCreateOpen] = useState(false);
   const [supplierCreateOpen, setSupplierCreateOpen] = useState(false);
+  const [customerForm, setCustomerForm] = useState<CustomerCreatePayload>(initialCustomerForm);
   const [supplierForm, setSupplierForm] = useState<SupplierCreatePayload>(initialSupplierForm);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerEditForm | null>(null);
   const [editingSupplier, setEditingSupplier] = useState<SupplierEditForm | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PurchaseRequest | null>(null);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
   const [toastMessage, setToastMessage] = useState("");
 
+  const canReadCustomer = permissions.includes("CUSTOMER_READ");
+  const canCreateCustomer = permissions.includes("CUSTOMER_CREATE");
+  const canUpdateCustomer = permissions.includes("CUSTOMER_UPDATE");
   const canCreateSupplier = permissions.includes("SUPPLIER_CREATE");
   const canUpdateSupplier = permissions.includes("SUPPLIER_UPDATE");
   const canCreatePurchase = permissions.includes("PURCHASE_CREATE");
   const canApprovePurchase = permissions.includes("PURCHASE_APPROVE");
   const canCancelPurchase = permissions.includes("PURCHASE_UPDATE");
 
+  const customerParams = useMemo<CustomerQueryParams>(
+    () => ({
+      page: customerPage,
+      pageSize: PAGE_SIZE,
+      search: customerSearch,
+      status: customerStatus
+    }),
+    [customerPage, customerSearch, customerStatus]
+  );
   const supplierParams = useMemo<SupplierQueryParams>(
     () => ({
       page: supplierPage,
@@ -116,10 +156,13 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     []
   );
 
+  const { data: customersPage, error: customersError, isLoading: customersLoading } = useCustomersQuery(customerParams, canReadCustomer);
   const { data: suppliersPage, error: suppliersError, isLoading: suppliersLoading } = useSuppliersQuery(supplierParams);
   const { data: activeSuppliersPage, error: activeSuppliersError } = useSuppliersQuery(allSupplierParams);
   const { data: requestsPage, error: requestsError, isLoading: requestsLoading } = usePurchaseRequestsQuery(requestParams);
   const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
+  const createCustomer = useCreateCustomerMutation();
+  const updateCustomer = useUpdateCustomerMutation();
   const createSupplier = useCreateSupplierMutation();
   const updateSupplier = useUpdateSupplierMutation();
   const createRequest = useCreatePurchaseRequestMutation();
@@ -127,6 +170,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const cancelRequest = useCancelPurchaseRequestMutation();
   const createOrder = useCreatePurchaseOrderMutation();
 
+  const customers = customersPage?.content ?? [];
+  const totalCustomers = customersPage?.totalItems ?? 0;
   const suppliers = suppliersPage?.content ?? [];
   const totalSuppliers = suppliersPage?.totalItems ?? 0;
   const activeSuppliers = activeSuppliersPage?.content ?? [];
@@ -135,7 +180,25 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const totalRequests = requestsPage?.totalItems ?? 0;
   const selectedSupplierId = purchaseForm.supplierId || activeSuppliers[0]?.id || 0;
   const selectedItemId = purchaseForm.itemId || items[0]?.id || 0;
-  const pageError = suppliersError || activeSuppliersError || requestsError || itemsError || createSupplier.error || updateSupplier.error || createRequest.error || approveRequest.error || cancelRequest.error || createOrder.error;
+  const pageError =
+    customersError ||
+    suppliersError ||
+    activeSuppliersError ||
+    requestsError ||
+    itemsError ||
+    createCustomer.error ||
+    updateCustomer.error ||
+    createSupplier.error ||
+    updateSupplier.error ||
+    createRequest.error ||
+    approveRequest.error ||
+    cancelRequest.error ||
+    createOrder.error;
+  const customerStatusOptions = [
+    { value: "ALL" as CustomerStatusFilter, label: "전체" },
+    { value: "ACTIVE" as CustomerStatusFilter, label: "사용" },
+    { value: "INACTIVE" as CustomerStatusFilter, label: "비활성" }
+  ];
   const supplierStatusOptions = [
     { value: "ALL" as SupplierStatusFilter, label: "전체" },
     { value: "ACTIVE" as SupplierStatusFilter, label: "사용" },
@@ -150,6 +213,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   ];
   const supplierOptions = activeSuppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} · ${supplier.name}` }));
   const itemOptions = items.map((item) => ({ value: item.id, label: `${item.sku} · ${item.name}` }));
+  const customerFormReady = Object.values(customerForm).every((value) => value.trim().length > 0);
   const supplierFormReady = Object.values(supplierForm).every((value) => value.trim().length > 0);
   const purchaseFormReady = selectedSupplierId > 0 && selectedItemId > 0 && purchaseForm.quantity > 0 && purchaseForm.unitPrice > 0;
 
@@ -159,6 +223,66 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     const timerId = window.setTimeout(() => setToastMessage(""), 2600);
     return () => window.clearTimeout(timerId);
   }, [toastMessage]);
+
+  const handleCreateCustomer = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!customerFormReady) return;
+
+    createCustomer.mutate(
+      {
+        code: customerForm.code.trim(),
+        name: customerForm.name.trim(),
+        businessNumber: customerForm.businessNumber.trim(),
+        contactName: customerForm.contactName.trim(),
+        phone: customerForm.phone.trim(),
+        email: customerForm.email.trim()
+      },
+      {
+        onSuccess: () => {
+          setCustomerForm(initialCustomerForm);
+          setCustomerCreateOpen(false);
+          setToastMessage("고객사가 등록되었습니다.");
+        }
+      }
+    );
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer({
+      id: customer.id,
+      name: customer.name,
+      businessNumber: customer.businessNumber,
+      contactName: customer.contactName,
+      phone: customer.phone,
+      email: customer.email,
+      active: customer.active
+    });
+  };
+
+  const handleUpdateCustomer = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingCustomer) return;
+
+    updateCustomer.mutate(
+      {
+        customerId: editingCustomer.id,
+        payload: {
+          name: editingCustomer.name.trim(),
+          businessNumber: editingCustomer.businessNumber.trim(),
+          contactName: editingCustomer.contactName.trim(),
+          phone: editingCustomer.phone.trim(),
+          email: editingCustomer.email.trim(),
+          active: editingCustomer.active
+        }
+      },
+      {
+        onSuccess: () => {
+          setEditingCustomer(null);
+          setToastMessage("고객사 정보가 수정되었습니다.");
+        }
+      }
+    );
+  };
 
   const handleCreateSupplier = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -259,6 +383,11 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     });
   };
 
+  const handleCloseCustomerCreate = () => {
+    setCustomerCreateOpen(false);
+    setCustomerForm(initialCustomerForm);
+  };
+
   const handleCloseSupplierCreate = () => {
     setSupplierCreateOpen(false);
     setSupplierForm(initialSupplierForm);
@@ -273,6 +402,104 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
       ) : null}
 
       <Toast open={toastMessage.length > 0} message={toastMessage} variant="success" onClose={() => setToastMessage("")} />
+
+      {canReadCustomer ? (
+        <Panel
+          title="고객사 목록"
+          description="판매 업무에서 사용할 고객 거래처 기준 정보를 관리합니다."
+          action={
+            canCreateCustomer ? (
+              <Button className="gap-2" type="button" onClick={() => setCustomerCreateOpen(true)}>
+                <Plus size={17} strokeWidth={2.2} />
+                고객사 등록
+              </Button>
+            ) : null
+          }
+        >
+          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_auto]">
+            <TextField
+              label="검색"
+              placeholder="코드, 고객사명, 사업자번호, 담당자"
+              value={customerSearchInput}
+              leftIcon={<Search size={17} strokeWidth={2.2} />}
+              onChange={(event) => setCustomerSearchInput(event.target.value)}
+              onEnter={() => {
+                setCustomerSearch(customerSearchInput.trim());
+                setCustomerPage(1);
+              }}
+            />
+            <SelectField
+              label="상태"
+              value={customerStatus}
+              options={customerStatusOptions}
+              onChange={(status) => {
+                setCustomerStatus(status);
+                setCustomerPage(1);
+              }}
+            />
+            <Button
+              className="mt-7 h-11"
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setCustomerSearch(customerSearchInput.trim());
+                setCustomerPage(1);
+              }}
+            >
+              검색 적용
+            </Button>
+          </div>
+
+          {customersLoading ? (
+            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">고객사 목록을 불러오는 중입니다.</p>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-axis-border">
+              <table className="w-full min-w-[1080px] border-collapse text-left">
+                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                  <tr>
+                    <th className="px-4 py-3">고객사</th>
+                    <th className="px-4 py-3">사업자등록번호</th>
+                    <th className="px-4 py-3">담당자</th>
+                    <th className="px-4 py-3">연락처</th>
+                    <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-axis-border bg-white">
+                  {customers.map((customer) => (
+                    <tr key={customer.id} className={customer.active ? "" : "bg-axis-bg/60"}>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-bold text-axis-ink">{customer.name}</p>
+                        <p className="mt-1 text-xs font-semibold text-axis-muted">{customer.code} · {customer.email}</p>
+                      </td>
+                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{customer.businessNumber}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{customer.contactName}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{customer.phone}</td>
+                      <td className="px-4 py-4"><StatusBadge active={customer.active} /></td>
+                      <td className="px-4 py-4">
+                        {canUpdateCustomer ? (
+                          <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => handleEditCustomer(customer)}>
+                            <PencilLine size={14} strokeWidth={2.2} />
+                            수정
+                          </Button>
+                        ) : (
+                          <span className="text-xs font-semibold text-axis-muted">조회 전용</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {customers.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={6}>조건에 맞는 고객사가 없습니다.</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+              <Pagination page={customerPage} pageSize={PAGE_SIZE} totalItems={totalCustomers} onPageChange={setCustomerPage} />
+            </div>
+          )}
+        </Panel>
+      ) : null}
 
       <Panel
         title="공급사 목록"
@@ -584,6 +811,67 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
       </Modal>
 
       <Modal
+        open={customerCreateOpen}
+        title="고객사 등록"
+        description="판매 업무에서 사용할 고객 거래처 기준 정보를 등록합니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={handleCloseCustomerCreate}>취소</Button>
+            <Button disabled={!customerFormReady || createCustomer.isPending} type="submit" form="customer-create-form">
+              {createCustomer.isPending ? "등록 중" : "등록"}
+            </Button>
+          </>
+        }
+        onClose={handleCloseCustomerCreate}
+      >
+        <form id="customer-create-form" className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateCustomer}>
+          <TextField
+            label="고객사 코드"
+            value={customerForm.code}
+            onChange={(event) => setCustomerForm((current) => ({ ...current, code: event.target.value }))}
+            placeholder="AX-CUS-003"
+            required
+          />
+          <TextField
+            label="고객사명"
+            value={customerForm.name}
+            onChange={(event) => setCustomerForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="신규 고객사"
+            required
+          />
+          <TextField
+            label="사업자등록번호"
+            value={customerForm.businessNumber}
+            onChange={(event) => setCustomerForm((current) => ({ ...current, businessNumber: event.target.value }))}
+            placeholder="201-88-00003"
+            required
+          />
+          <TextField
+            label="담당자"
+            value={customerForm.contactName}
+            onChange={(event) => setCustomerForm((current) => ({ ...current, contactName: event.target.value }))}
+            placeholder="홍고객"
+            required
+          />
+          <TextField
+            label="연락처"
+            value={customerForm.phone}
+            onChange={(event) => setCustomerForm((current) => ({ ...current, phone: event.target.value }))}
+            placeholder="02-4000-3000"
+            required
+          />
+          <TextField
+            label="이메일"
+            type="email"
+            value={customerForm.email}
+            onChange={(event) => setCustomerForm((current) => ({ ...current, email: event.target.value }))}
+            placeholder="customer@axis.local"
+            required
+          />
+        </form>
+      </Modal>
+
+      <Modal
         open={supplierCreateOpen}
         title="공급사 등록"
         description="구매 요청에서 사용할 공급 거래처 기준 정보를 등록합니다."
@@ -642,6 +930,38 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             required
           />
         </form>
+      </Modal>
+
+      <Modal
+        open={editingCustomer !== null}
+        title="고객사 정보 수정"
+        description="고객 거래처의 기본 정보와 사용 상태를 수정합니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setEditingCustomer(null)}>취소</Button>
+            <Button disabled={updateCustomer.isPending} type="submit" form="customer-edit-form">{updateCustomer.isPending ? "저장 중" : "저장"}</Button>
+          </>
+        }
+        onClose={() => setEditingCustomer(null)}
+      >
+        {editingCustomer ? (
+          <form id="customer-edit-form" className="grid gap-4 md:grid-cols-2" onSubmit={handleUpdateCustomer}>
+            <TextField label="고객사명" value={editingCustomer.name} onChange={(event) => setEditingCustomer((current) => (current ? { ...current, name: event.target.value } : current))} required />
+            <TextField label="사업자등록번호" value={editingCustomer.businessNumber} onChange={(event) => setEditingCustomer((current) => (current ? { ...current, businessNumber: event.target.value } : current))} required />
+            <TextField label="담당자" value={editingCustomer.contactName} onChange={(event) => setEditingCustomer((current) => (current ? { ...current, contactName: event.target.value } : current))} required />
+            <TextField label="연락처" value={editingCustomer.phone} onChange={(event) => setEditingCustomer((current) => (current ? { ...current, phone: event.target.value } : current))} required />
+            <TextField label="이메일" type="email" value={editingCustomer.email} onChange={(event) => setEditingCustomer((current) => (current ? { ...current, email: event.target.value } : current))} required />
+            <SelectField
+              label="상태"
+              value={editingCustomer.active ? "ACTIVE" : "INACTIVE"}
+              options={[
+                { value: "ACTIVE", label: "사용" },
+                { value: "INACTIVE", label: "비활성" }
+              ]}
+              onChange={(status) => setEditingCustomer((current) => (current ? { ...current, active: status === "ACTIVE" } : current))}
+            />
+          </form>
+        ) : null}
       </Modal>
 
       <Modal

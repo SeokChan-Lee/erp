@@ -21,7 +21,7 @@ const navItems = [
   { to: "/users", label: "사용자 관리", description: "직원 등록과 계정 설정", icon: UserCog, permission: "USER_READ" },
   { to: "/attendance", label: "출퇴근", description: "근태 체크 및 기록", icon: Clock3, permission: "ATTENDANCE_READ_SELF" },
   { to: "/inventory", label: "품목/재고", description: "품목 기준과 현재고", icon: PackageSearch, permission: "INVENTORY_READ" },
-  { to: "/purchase", label: "구매/거래처", description: "공급사와 구매 요청", icon: Handshake, permission: "SUPPLIER_READ" },
+  { to: "/purchase", label: "구매/거래처", description: "고객사, 공급사, 구매 요청", icon: Handshake, permissions: ["CUSTOMER_READ", "SUPPLIER_READ", "PURCHASE_READ"] },
   { to: "/access", label: "권한", description: "역할과 권한 관리", icon: ShieldCheck, permission: "ROLE_READ" },
   { to: "/my-page", label: "마이페이지", description: "내 계정 정보", icon: UserRound }
 ];
@@ -45,13 +45,17 @@ export function App() {
   }
 
   const title = pageTitle(location.pathname);
-  const visibleNavItems = navItems.filter((item) => !item.permission || user.permissions.includes(item.permission));
+  const visibleNavItems = navItems.filter((item) => {
+    const itemPermissions = "permissions" in item ? item.permissions : undefined;
+    if (itemPermissions?.length) return itemPermissions.some((permission) => user.permissions.includes(permission));
+    return !item.permission || user.permissions.includes(item.permission);
+  });
   const canReadEmployees = user.permissions.includes("EMPLOYEE_READ");
   const canReadUsers = user.permissions.includes("USER_READ");
   const canReadRoles = user.permissions.includes("ROLE_READ");
   const canReadAttendance = user.permissions.includes("ATTENDANCE_READ_SELF");
   const canReadInventory = user.permissions.includes("INVENTORY_READ");
-  const canReadPurchase = user.permissions.includes("SUPPLIER_READ") || user.permissions.includes("PURCHASE_READ");
+  const canReadPurchase = user.permissions.includes("CUSTOMER_READ") || user.permissions.includes("SUPPLIER_READ") || user.permissions.includes("PURCHASE_READ");
 
   return (
     <div className="min-h-screen bg-axis-bg text-axis-ink">

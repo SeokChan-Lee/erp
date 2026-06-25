@@ -10,6 +10,8 @@
 
 ### Purchase and Supplier Master MVP
 
+- Added customer master tables and customer create/list/update APIs.
+- Added customer master management UI in the purchase/trading partner page.
 - Added supplier master tables and purchase request tables through Flyway migration V9.
 - Added supplier list, create, and update APIs with backend-owned Korean error messages.
 - Added purchase request list and create APIs linked to active suppliers and active item masters.

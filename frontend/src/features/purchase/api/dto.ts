@@ -1,4 +1,5 @@
 export type SupplierStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+export type CustomerStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 export type Supplier = {
   id: number;
@@ -28,6 +29,42 @@ export type SupplierCreatePayload = {
 };
 
 export type SupplierUpdatePayload = {
+  name: string;
+  businessNumber: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  active: boolean;
+};
+
+export type Customer = {
+  id: number;
+  code: string;
+  name: string;
+  businessNumber: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  active: boolean;
+};
+
+export type CustomerQueryParams = {
+  page: number;
+  pageSize: number;
+  search: string;
+  status: CustomerStatusFilter;
+};
+
+export type CustomerCreatePayload = {
+  code: string;
+  name: string;
+  businessNumber: string;
+  contactName: string;
+  phone: string;
+  email: string;
+};
+
+export type CustomerUpdatePayload = {
   name: string;
   businessNumber: string;
   contactName: string;
