@@ -37,6 +37,7 @@ Examples:
 - `ROLE_READ`
 - `ROLE_UPDATE`
 - `EMPLOYEE_READ`
+- `DEPARTMENT_CREATE`
 - `EMPLOYEE_CREATE`
 - `EMPLOYEE_UPDATE`
 - `EMPLOYEE_DELETE`
@@ -47,6 +48,7 @@ Examples:
 - `ATTENDANCE_READ_ALL`
 - `ATTENDANCE_UPDATE`
 - `ATTENDANCE_APPROVE`
+- `ATTENDANCE_SETTINGS_UPDATE`
 - `CUSTOMER_READ`
 - `CUSTOMER_CREATE`
 - `CUSTOMER_UPDATE`
@@ -150,3 +152,5 @@ Example:
 - `ATTENDANCE_READ_SELF` allows only the current user's records.
 - `ATTENDANCE_READ_DEPARTMENT` allows records for employees in departments the user manages.
 - `ATTENDANCE_READ_ALL` allows company-wide attendance records.
+- `ATTENDANCE_SETTINGS_UPDATE` allows changing company attendance standard times.
+- `DEPARTMENT_CREATE` allows adding department master records.

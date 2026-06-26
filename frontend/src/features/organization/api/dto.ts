@@ -5,6 +5,12 @@ export type Department = {
   description: string;
 };
 
+export type DepartmentCreatePayload = {
+  code: string;
+  name: string;
+  description: string;
+};
+
 export type EmployeeStatus = "ACTIVE" | "ON_LEAVE" | "RESIGNED";
 
 export type Employee = {

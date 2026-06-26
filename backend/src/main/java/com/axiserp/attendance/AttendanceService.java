@@ -3,6 +3,8 @@ package com.axiserp.attendance;
 import com.axiserp.attendance.api.AttendanceRecordResponse;
 import com.axiserp.attendance.api.AttendanceChangeRequestCreateRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestResponse;
+import com.axiserp.attendance.api.AttendanceSettingsResponse;
+import com.axiserp.attendance.api.AttendanceSettingsUpdateRequest;
 import com.axiserp.attendance.api.AttendanceUpdateRequest;
 import com.axiserp.common.api.PageResponse;
 import com.axiserp.user.UserAccountRepository;
@@ -28,19 +30,20 @@ import java.util.Map;
 @Service
 public class AttendanceService {
 
-    private static final LocalTime LATE_AFTER = LocalTime.of(9, 10);
-
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final AttendanceChangeRequestRepository attendanceChangeRequestRepository;
+    private final AttendanceSettingsRepository attendanceSettingsRepository;
     private final UserAccountRepository userAccountRepository;
 
     public AttendanceService(
             AttendanceRecordRepository attendanceRecordRepository,
             AttendanceChangeRequestRepository attendanceChangeRequestRepository,
+            AttendanceSettingsRepository attendanceSettingsRepository,
             UserAccountRepository userAccountRepository
     ) {
         this.attendanceRecordRepository = attendanceRecordRepository;
         this.attendanceChangeRequestRepository = attendanceChangeRequestRepository;
+        this.attendanceSettingsRepository = attendanceSettingsRepository;
         this.userAccountRepository = userAccountRepository;
     }
 
@@ -53,7 +56,7 @@ public class AttendanceService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        AttendanceStatus status = now.toLocalTime().isAfter(LATE_AFTER)
+        AttendanceStatus status = now.toLocalTime().isAfter(currentSettings().getLateAfterAt())
                 ? AttendanceStatus.LATE
                 : AttendanceStatus.WORKING;
         AttendanceRecordEntity next = current == null
@@ -118,6 +121,19 @@ public class AttendanceService {
                 .stream()
                 .map(this::toRecord)
                 .toList();
+    }
+
+    @Transactional
+    public AttendanceSettingsResponse settings() {
+        return AttendanceSettingsResponse.from(currentSettings());
+    }
+
+    @Transactional
+    public AttendanceSettingsResponse updateSettings(AttendanceSettingsUpdateRequest request) {
+        validateSettings(request.standardCheckInAt(), request.standardCheckOutAt(), request.lateAfterAt());
+        AttendanceSettingsEntity settings = currentSettings();
+        settings.update(request.standardCheckInAt(), request.standardCheckOutAt(), request.lateAfterAt());
+        return AttendanceSettingsResponse.from(settings);
     }
 
     @Transactional
@@ -247,7 +263,7 @@ public class AttendanceService {
 
     private AttendanceRecordEntity applyAttendance(String username, LocalDate workDate, LocalTime checkInAt, LocalTime checkOutAt) {
         validateAttendanceTime(checkInAt, checkOutAt);
-        AttendanceStatus status = checkInAt.isAfter(LATE_AFTER)
+        AttendanceStatus status = checkInAt.isAfter(currentSettings().getLateAfterAt())
                 ? AttendanceStatus.LATE
                 : AttendanceStatus.NORMAL;
         AttendanceRecordEntity record = attendanceRecordRepository
@@ -262,6 +278,28 @@ public class AttendanceService {
         record.checkIn(workDate.atTime(checkInAt), status);
         record.checkOut(workDate.atTime(checkOutAt), status);
         return attendanceRecordRepository.save(record);
+    }
+
+    private AttendanceSettingsEntity currentSettings() {
+        return attendanceSettingsRepository.findAll().stream()
+                .findFirst()
+                .orElseGet(() -> attendanceSettingsRepository.save(new AttendanceSettingsEntity(
+                        LocalTime.of(9, 0),
+                        LocalTime.of(18, 0),
+                        LocalTime.of(9, 10)
+                )));
+    }
+
+    private void validateSettings(LocalTime standardCheckInAt, LocalTime standardCheckOutAt, LocalTime lateAfterAt) {
+        if (!standardCheckOutAt.isAfter(standardCheckInAt)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "퇴근 기준 시간은 출근 기준 시간보다 늦어야 합니다.");
+        }
+        if (lateAfterAt.isBefore(standardCheckInAt)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지각 기준 시간은 출근 기준 시간보다 빠를 수 없습니다.");
+        }
+        if (!standardCheckOutAt.isAfter(lateAfterAt)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지각 기준 시간은 퇴근 기준 시간보다 빨라야 합니다.");
+        }
     }
 
     private AttendanceRecordResponse toRecord(AttendanceRecordEntity entity) {

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { http } from "../../../shared/api/http";
-import type { Department, Employee, EmployeeCreatePayload, EmployeeUpdatePayload } from "./dto";
+import type { Department, DepartmentCreatePayload, Employee, EmployeeCreatePayload, EmployeeUpdatePayload } from "./dto";
 
 export const organizationKeys = {
   departments: ["organization", "departments"] as const,
@@ -19,6 +19,21 @@ export function useEmployeesQuery() {
   return useQuery({
     queryKey: organizationKeys.employees,
     queryFn: () => http<Employee[]>("/employees")
+  });
+}
+
+export function useCreateDepartmentMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: DepartmentCreatePayload) =>
+      http<Department>("/departments", {
+        method: "POST",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: organizationKeys.departments });
+    }
   });
 }
 

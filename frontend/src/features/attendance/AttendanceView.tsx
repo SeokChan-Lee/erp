@@ -1,19 +1,22 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import {
   useApproveAttendanceChangeRequestsMutation,
   useAttendanceChangeRequestHistoryQuery,
   useAttendanceMutation,
+  useAttendanceSettingsQuery,
   useCreateAttendanceChangeRequestMutation,
   useMonthlyAttendanceQuery,
   usePendingAttendanceChangeRequestsQuery,
   useRejectAttendanceChangeRequestsMutation,
   useTodayAttendanceQuery,
+  useUpdateAttendanceSettingsMutation,
   useUpdateAttendanceMutation
 } from "./api/attendanceApi";
 import type {
   AttendanceChangeRequest,
   AttendanceChangeRequestHistoryParams,
+  AttendanceSettings,
   AttendanceChangeRequestStatus
 } from "./api/dto";
 import { AttendanceCalendar } from "./components/AttendanceCalendar";
@@ -37,6 +40,15 @@ const initialRequestForm = {
   reason: ""
 };
 
+function defaultRequestFormFromSettings(settings?: AttendanceSettings) {
+  return {
+    workDate: formatDateInputValue(new Date()),
+    requestedCheckInAt: normalizeTimeInputValue(settings?.standardCheckInAt) || initialRequestForm.requestedCheckInAt,
+    requestedCheckOutAt: normalizeTimeInputValue(settings?.standardCheckOutAt) || initialRequestForm.requestedCheckOutAt,
+    reason: ""
+  };
+}
+
 export function AttendanceView({ permissions = [] }: { permissions?: string[] }) {
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const today = new Date();
@@ -54,9 +66,16 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
   const [historyStartDate, setHistoryStartDate] = useState("");
   const [historyEndDate, setHistoryEndDate] = useState("");
   const [historyPage, setHistoryPage] = useState(1);
+  const [settingsForm, setSettingsForm] = useState({
+    standardCheckInAt: "",
+    standardCheckOutAt: "",
+    lateAfterAt: ""
+  });
   const canApproveAttendance = permissions.includes("ATTENDANCE_APPROVE");
   const canUpdateAttendance = permissions.includes("ATTENDANCE_UPDATE");
+  const canUpdateAttendanceSettings = permissions.includes("ATTENDANCE_SETTINGS_UPDATE");
   const { data: today, error } = useTodayAttendanceQuery();
+  const { data: attendanceSettings, error: settingsError } = useAttendanceSettingsQuery();
   const {
     data: monthlyRecords = [],
     error: monthlyError,
@@ -85,6 +104,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
   } = useAttendanceChangeRequestHistoryQuery(historyParams, canApproveAttendance);
   const createChangeRequest = useCreateAttendanceChangeRequestMutation();
   const updateAttendance = useUpdateAttendanceMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
+  const updateAttendanceSettings = useUpdateAttendanceSettingsMutation();
   const approveChangeRequests = useApproveAttendanceChangeRequestsMutation(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1);
   const rejectChangeRequests = useRejectAttendanceChangeRequestsMutation();
   const checkInMutation = useAttendanceMutation("check-in");
@@ -99,6 +119,13 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
     requestForm.requestedCheckInAt.length > 0 &&
     requestForm.requestedCheckOutAt.length > 0 &&
     (canUpdateAttendance || requestForm.reason.trim().length > 0);
+  const settingsFormReady =
+    settingsForm.standardCheckInAt.length > 0 &&
+    settingsForm.standardCheckOutAt.length > 0 &&
+    settingsForm.lateAfterAt.length > 0 &&
+    settingsForm.standardCheckOutAt > settingsForm.standardCheckInAt &&
+    settingsForm.lateAfterAt >= settingsForm.standardCheckInAt &&
+    settingsForm.lateAfterAt < settingsForm.standardCheckOutAt;
   const allSelected = pendingRequests.length > 0 && selectedRequestIds.length === pendingRequests.length;
 
   const selectedRequestSet = useMemo(() => new Set(selectedRequestIds), [selectedRequestIds]);
@@ -114,6 +141,24 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
   const requestHistory = requestHistoryPage?.content ?? [];
   const totalHistoryItems = requestHistoryPage?.totalItems ?? 0;
 
+  useEffect(() => {
+    if (!attendanceSettings) return;
+
+    const nextSettingsForm = {
+      standardCheckInAt: normalizeTimeInputValue(attendanceSettings.standardCheckInAt),
+      standardCheckOutAt: normalizeTimeInputValue(attendanceSettings.standardCheckOutAt),
+      lateAfterAt: normalizeTimeInputValue(attendanceSettings.lateAfterAt)
+    };
+    setSettingsForm(nextSettingsForm);
+    if (!requestOpen) {
+      setRequestForm((current) => ({
+        ...current,
+        requestedCheckInAt: nextSettingsForm.standardCheckInAt,
+        requestedCheckOutAt: nextSettingsForm.standardCheckOutAt
+      }));
+    }
+  }, [attendanceSettings, requestOpen]);
+
   const handleRequestSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!requestFormReady) return;
@@ -128,7 +173,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
         {
           onSuccess: () => {
             setRequestOpen(false);
-            setRequestForm(initialRequestForm);
+            setRequestForm(defaultRequestFormFromSettings(attendanceSettings));
           }
         }
       );
@@ -143,10 +188,17 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
       {
         onSuccess: () => {
           setRequestOpen(false);
-          setRequestForm(initialRequestForm);
+          setRequestForm(defaultRequestFormFromSettings(attendanceSettings));
         }
       }
     );
+  };
+
+  const handleSettingsSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!settingsFormReady) return;
+
+    updateAttendanceSettings.mutate(settingsForm);
   };
 
   const toggleRequest = (requestId: number) => {
@@ -198,6 +250,12 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
             <p className="mt-2 text-sm text-axis-muted">
               출근 {formatTime(today?.checkInAt)} / 퇴근 {formatTime(today?.checkOutAt)}
             </p>
+            {attendanceSettings ? (
+              <p className="mt-2 text-xs font-semibold text-axis-muted">
+                기준 {normalizeTimeInputValue(attendanceSettings.standardCheckInAt)} - {normalizeTimeInputValue(attendanceSettings.standardCheckOutAt)} · 지각 기준{" "}
+                {normalizeTimeInputValue(attendanceSettings.lateAfterAt)}
+              </p>
+            ) : null}
           </div>
           <div className="flex gap-3">
             <Button disabled={checkInDisabled} onClick={() => checkInMutation.mutate()}>
@@ -215,28 +273,60 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
 
       {error ||
       monthlyError ||
+      settingsError ||
       pendingRequestsError ||
       requestHistoryError ||
       checkInMutation.error ||
       checkOutMutation.error ||
       createChangeRequest.error ||
       updateAttendance.error ||
+      updateAttendanceSettings.error ||
       rejectChangeRequests.error ||
       approveChangeRequests.error ? (
         <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {getErrorMessage(
             error ||
               monthlyError ||
+              settingsError ||
               pendingRequestsError ||
               requestHistoryError ||
               checkInMutation.error ||
               checkOutMutation.error ||
               createChangeRequest.error ||
               updateAttendance.error ||
+              updateAttendanceSettings.error ||
               rejectChangeRequests.error ||
               approveChangeRequests.error
           )}
         </p>
+      ) : null}
+
+      {canUpdateAttendanceSettings ? (
+        <Panel title="출퇴근 기준 시간" description="근태 상태 계산에 사용할 출근, 퇴근, 지각 기준 시간을 설정합니다.">
+          <form className="grid items-end gap-4 md:grid-cols-[1fr_1fr_1fr_auto]" onSubmit={handleSettingsSubmit}>
+            <TimeField
+              label="출근 기준"
+              value={settingsForm.standardCheckInAt}
+              onChange={(standardCheckInAt) => setSettingsForm((current) => ({ ...current, standardCheckInAt }))}
+              required
+            />
+            <TimeField
+              label="퇴근 기준"
+              value={settingsForm.standardCheckOutAt}
+              onChange={(standardCheckOutAt) => setSettingsForm((current) => ({ ...current, standardCheckOutAt }))}
+              required
+            />
+            <TimeField
+              label="지각 기준"
+              value={settingsForm.lateAfterAt}
+              onChange={(lateAfterAt) => setSettingsForm((current) => ({ ...current, lateAfterAt }))}
+              required
+            />
+            <Button className="h-11" disabled={!settingsFormReady || updateAttendanceSettings.isPending}>
+              {updateAttendanceSettings.isPending ? "저장 중" : "기준 저장"}
+            </Button>
+          </form>
+        </Panel>
       ) : null}
 
       <Panel title="월간 근태 캘린더" description="일자별 출근, 퇴근, 근태 상태를 캘린더로 확인합니다.">
@@ -584,6 +674,10 @@ function formatDateInputValue(date: Date) {
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function normalizeTimeInputValue(value?: string) {
+  return value ? value.slice(0, 5) : "";
 }
 
 function InfoItem({ label, value }: { label: string; value: string }) {

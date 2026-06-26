@@ -215,3 +215,10 @@
 - Added processed reason persistence for rejected purchase requests.
 - Changed purchase request cancellation into a rejection modal with a required reason.
 - Shows the rejection reason in purchase request details and audit log detail text.
+
+### Attendance Settings and Department Creation
+
+- Added editable attendance standard times with `ATTENDANCE_SETTINGS_UPDATE` permission.
+- Moved attendance late-status calculation from a hardcoded time to persisted settings.
+- Added department creation with `DEPARTMENT_CREATE` permission.
+- Added organization and attendance UI sections for users with the matching permissions.

@@ -2,12 +2,13 @@ import { FormEvent, useMemo, useState } from "react";
 import { Building2, Mail, Plus, UsersRound } from "lucide-react";
 
 import {
+  useCreateDepartmentMutation,
   useCreateEmployeeMutation,
   useDepartmentsQuery,
   useEmployeesQuery,
   useUpdateEmployeeMutation
 } from "./api/organizationApi";
-import type { Employee, EmployeeCreatePayload, EmployeeStatus, EmployeeUpdatePayload } from "./api/dto";
+import type { DepartmentCreatePayload, Employee, EmployeeCreatePayload, EmployeeStatus, EmployeeUpdatePayload } from "./api/dto";
 import { Button } from "../../shared/ui/Button";
 import { employeeStatusMeta } from "../../shared/config/domainLabels";
 import { getErrorMessage } from "../../shared/api/http";
@@ -28,6 +29,12 @@ const initialForm: EmployeeCreatePayload = {
   departmentId: 0
 };
 
+const initialDepartmentForm: DepartmentCreatePayload = {
+  code: "",
+  name: "",
+  description: ""
+};
+
 type EmployeeEditForm = EmployeeUpdatePayload & {
   id: number;
 };
@@ -35,18 +42,21 @@ type EmployeeEditForm = EmployeeUpdatePayload & {
 export function OrganizationView({ permissions = [] }: { permissions?: string[] }) {
   const { data: departments = [], error: departmentError } = useDepartmentsQuery();
   const { data: employees = [], error: employeeError } = useEmployeesQuery();
+  const createDepartment = useCreateDepartmentMutation();
   const createEmployee = useCreateEmployeeMutation();
   const updateEmployee = useUpdateEmployeeMutation();
+  const [departmentForm, setDepartmentForm] = useState<DepartmentCreatePayload>(initialDepartmentForm);
   const [form, setForm] = useState<EmployeeCreatePayload>(initialForm);
   const [editForm, setEditForm] = useState<EmployeeEditForm | null>(null);
   const [employeePage, setEmployeePage] = useState(1);
   const canCreateEmployee = permissions.includes("EMPLOYEE_CREATE");
+  const canCreateDepartment = permissions.includes("DEPARTMENT_CREATE");
   const canUpdateEmployee = permissions.includes("EMPLOYEE_UPDATE");
 
   const activeEmployees = employees.filter((employee) => employee.status === "ACTIVE").length;
   const managementCount = employees.filter((employee) => employee.department.code === "MGMT").length;
   const operationCount = employees.filter((employee) => employee.department.code === "OPS").length;
-  const error = departmentError ?? employeeError;
+  const error = departmentError ?? employeeError ?? createDepartment.error;
   const selectedDepartmentId = form.departmentId || departments[0]?.id || 0;
   const departmentOptions = departments.map((department) => ({ value: department.id, label: department.name }));
   const statusOptions = Object.entries(employeeStatusMeta).map(([status, meta]) => ({
@@ -59,6 +69,23 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
     () => employees.slice((currentEmployeePage - 1) * PAGE_SIZE, currentEmployeePage * PAGE_SIZE),
     [currentEmployeePage, employees]
   );
+  const departmentFormReady = departmentForm.code.trim().length > 0 && departmentForm.name.trim().length > 0;
+
+  const handleCreateDepartment = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!departmentFormReady) return;
+
+    createDepartment.mutate(
+      {
+        code: departmentForm.code.trim(),
+        name: departmentForm.name.trim(),
+        description: departmentForm.description.trim()
+      },
+      {
+        onSuccess: () => setDepartmentForm(initialDepartmentForm)
+      }
+    );
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -136,6 +163,37 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
         <MetricCard label="부서" value={`${departments.length}개`} />
         <MetricCard label="운영 배치" value={`${operationCount}명`} change={`관리 ${managementCount}명`} />
       </div>
+
+      {canCreateDepartment ? (
+        <Panel title="부서 등록" description="직원 배치와 권한 범위에서 사용할 부서를 등록합니다.">
+          <form className="grid items-end gap-4 xl:grid-cols-[180px_1fr_1.5fr_auto]" onSubmit={handleCreateDepartment}>
+            <TextField
+              label="부서 코드"
+              value={departmentForm.code}
+              onChange={(event) => setDepartmentForm((current) => ({ ...current, code: event.target.value }))}
+              placeholder="예: DEV"
+              required
+            />
+            <TextField
+              label="부서명"
+              value={departmentForm.name}
+              onChange={(event) => setDepartmentForm((current) => ({ ...current, name: event.target.value }))}
+              placeholder="예: 개발팀"
+              required
+            />
+            <TextField
+              label="설명"
+              value={departmentForm.description}
+              onChange={(event) => setDepartmentForm((current) => ({ ...current, description: event.target.value }))}
+              placeholder="부서 역할을 입력해 주세요"
+            />
+            <Button className="h-11 gap-2" disabled={!departmentFormReady || createDepartment.isPending}>
+              <Plus size={17} strokeWidth={2.2} />
+              {createDepartment.isPending ? "등록 중" : "등록"}
+            </Button>
+          </form>
+        </Panel>
+      ) : null}
 
       {canCreateEmployee ? (
         <Panel title="직원 등록" description="직원 마스터 정보를 등록합니다. 로그인 계정까지 함께 만들 때는 사용자 관리에서 처리합니다.">

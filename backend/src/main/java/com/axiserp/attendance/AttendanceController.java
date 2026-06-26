@@ -7,6 +7,8 @@ import com.axiserp.attendance.api.AttendanceChangeRequestApproveRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestCreateRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestRejectRequest;
 import com.axiserp.attendance.api.AttendanceChangeRequestResponse;
+import com.axiserp.attendance.api.AttendanceSettingsResponse;
+import com.axiserp.attendance.api.AttendanceSettingsUpdateRequest;
 import com.axiserp.attendance.api.AttendanceUpdateRequest;
 import com.axiserp.permission.Permission;
 import com.axiserp.common.api.PageResponse;
@@ -60,6 +62,21 @@ public class AttendanceController {
     ) {
         AuthUserResponse user = authService.requirePermission(sessionId, Permission.ATTENDANCE_READ_SELF);
         return attendanceService.monthlyFor(user.username(), year, month);
+    }
+
+    @GetMapping("/attendance/settings")
+    public AttendanceSettingsResponse settings(@CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId) {
+        authService.requirePermission(sessionId, Permission.ATTENDANCE_READ_SELF);
+        return attendanceService.settings();
+    }
+
+    @PatchMapping("/admin/attendance/settings")
+    public AttendanceSettingsResponse updateSettings(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @Valid @RequestBody AttendanceSettingsUpdateRequest request
+    ) {
+        authService.requirePermission(sessionId, Permission.ATTENDANCE_SETTINGS_UPDATE);
+        return attendanceService.updateSettings(request);
     }
 
     @PostMapping("/attendance/change-requests")

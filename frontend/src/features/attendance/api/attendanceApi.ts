@@ -9,11 +9,14 @@ import type {
   AttendanceChangeRequestPayload,
   AttendanceChangeRequestRejectPayload,
   AttendanceRecord,
+  AttendanceSettings,
+  AttendanceSettingsUpdatePayload,
   AttendanceUpdatePayload
 } from "./dto";
 
 export const attendanceKeys = {
   today: ["attendance", "today"] as const,
+  settings: ["attendance", "settings"] as const,
   monthly: (year: number, month: number) => ["attendance", "monthly", year, month] as const,
   changeRequests: ["attendance", "change-requests"] as const,
   changeRequestHistoryRoot: ["attendance", "change-requests", "history"] as const,
@@ -32,6 +35,30 @@ export function useMonthlyAttendanceQuery(year: number, month: number) {
   return useQuery({
     queryKey: attendanceKeys.monthly(year, month),
     queryFn: () => http<AttendanceRecord[]>(`/attendance/me/monthly?year=${year}&month=${month}`)
+  });
+}
+
+export function useAttendanceSettingsQuery() {
+  return useQuery({
+    queryKey: attendanceKeys.settings,
+    queryFn: () => http<AttendanceSettings>("/attendance/settings")
+  });
+}
+
+export function useUpdateAttendanceSettingsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: AttendanceSettingsUpdatePayload) =>
+      http<AttendanceSettings>("/admin/attendance/settings", {
+        method: "PATCH",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.settings });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.today });
+      void queryClient.invalidateQueries({ queryKey: ["attendance", "monthly"] });
+    }
   });
 }
 

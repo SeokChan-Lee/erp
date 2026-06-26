@@ -74,6 +74,28 @@ Requires `ATTENDANCE_READ_SELF`.
 
 Returns the current user's attendance records in the requested month.
 
+### `GET /api/attendance/settings`
+
+Requires `ATTENDANCE_READ_SELF`.
+
+Returns the current attendance standard times.
+
+### `PATCH /api/admin/attendance/settings`
+
+Requires `ATTENDANCE_SETTINGS_UPDATE`.
+
+Updates the attendance standard times used for status calculation.
+
+Request:
+
+```json
+{
+  "standardCheckInAt": "09:00",
+  "standardCheckOutAt": "18:00",
+  "lateAfterAt": "09:10"
+}
+```
+
 ### `POST /api/attendance/change-requests`
 
 Requires `ATTENDANCE_READ_SELF`.
@@ -519,6 +541,22 @@ Cancels a shipped sales order. The backend blocks cancellation for orders that w
 Requires `EMPLOYEE_READ`.
 
 Returns department master data.
+
+### `POST /api/departments`
+
+Requires `DEPARTMENT_CREATE`.
+
+Creates a department master record.
+
+Request:
+
+```json
+{
+  "code": "DEV",
+  "name": "개발팀",
+  "description": "서비스 개발 담당 부서"
+}
+```
 
 ### `GET /api/employees`
 

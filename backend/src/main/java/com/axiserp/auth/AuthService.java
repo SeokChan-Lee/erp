@@ -178,18 +178,22 @@ public class AuthService {
                 Permission.ROLE_READ,
                 Permission.ROLE_UPDATE,
                 Permission.EMPLOYEE_READ,
+                Permission.DEPARTMENT_CREATE,
                 Permission.EMPLOYEE_CREATE,
                 Permission.EMPLOYEE_UPDATE,
-                Permission.ATTENDANCE_READ_ALL
+                Permission.ATTENDANCE_READ_ALL,
+                Permission.ATTENDANCE_SETTINGS_UPDATE
         )));
         defaults.put(Role.HR_MANAGER, orderedPermissions(EnumSet.of(
                 Permission.DASHBOARD_VIEW,
                 Permission.EMPLOYEE_READ,
+                Permission.DEPARTMENT_CREATE,
                 Permission.EMPLOYEE_CREATE,
                 Permission.EMPLOYEE_UPDATE,
                 Permission.ATTENDANCE_READ_ALL,
                 Permission.ATTENDANCE_UPDATE,
-                Permission.ATTENDANCE_APPROVE
+                Permission.ATTENDANCE_APPROVE,
+                Permission.ATTENDANCE_SETTINGS_UPDATE
         )));
         defaults.put(Role.SALES_MANAGER, orderedPermissions(EnumSet.of(
                 Permission.DASHBOARD_VIEW,

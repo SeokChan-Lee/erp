@@ -38,6 +38,14 @@ export type AttendanceUpdatePayload = {
   requestedCheckOutAt: string;
 };
 
+export type AttendanceSettings = {
+  standardCheckInAt: string;
+  standardCheckOutAt: string;
+  lateAfterAt: string;
+};
+
+export type AttendanceSettingsUpdatePayload = AttendanceSettings;
+
 export type AttendanceChangeRequestApprovePayload = {
   requestIds: number[];
 };

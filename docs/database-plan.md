@@ -20,6 +20,7 @@ Flyway migrations currently create and manage:
 - `app_users`
 - `app_user_roles`
 - `role_permissions`
+- `attendance_settings`
 - `attendance_records`
 - `attendance_change_requests`
 - `items`
