@@ -597,28 +597,28 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
           </p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-axis-border">
-            <table className="w-full min-w-[1080px] border-collapse text-left">
+            <table className="w-full min-w-[1280px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
-                  <th className="px-4 py-3">처리 일시</th>
+                  <th className="w-[150px] whitespace-nowrap px-4 py-3">처리 일시</th>
                   <th className="px-4 py-3">품목</th>
-                  <th className="px-4 py-3">창고</th>
-                  <th className="px-4 py-3">이동 수량</th>
-                  <th className="px-4 py-3">출처</th>
-                  <th className="px-4 py-3">처리자</th>
+                  <th className="w-[120px] whitespace-nowrap px-4 py-3">창고</th>
+                  <th className="w-[110px] whitespace-nowrap px-4 py-3">이동 수량</th>
+                  <th className="w-[220px] whitespace-nowrap px-4 py-3">출처</th>
+                  <th className="w-[120px] whitespace-nowrap px-4 py-3">처리자</th>
                   <th className="px-4 py-3">사유</th>
-                  <th className="px-4 py-3">관리</th>
+                  <th className="w-[90px] whitespace-nowrap px-4 py-3 text-right">관리</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-axis-border bg-white">
                 {movements.map((movement) => (
                   <tr key={movement.id}>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{formatDateTime(movement.processedAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-muted">{formatDateTime(movement.processedAt)}</td>
                     <td className="px-4 py-4">
                       <p className="text-sm font-bold text-axis-ink">{movement.item.name}</p>
                       <p className="mt-1 text-xs font-semibold text-axis-muted">{movement.item.sku}</p>
                     </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{movement.warehouse.name}</td>
+                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-muted">{movement.warehouse.name}</td>
                     <td className="px-4 py-4">
                       <MovementQuantityBadge quantityDelta={movement.quantityDelta} unit={movement.item.unit} />
                     </td>
@@ -629,13 +629,13 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                         sourceReferenceNo={movement.sourceReferenceNo}
                       />
                     </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatProcessorName(movement.processedBy)}</td>
+                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-ink">{formatProcessorName(movement.processedBy)}</td>
                     <td className="max-w-[320px] px-4 py-4 text-sm font-medium text-axis-muted">
                       <span className="block truncate" title={movement.reason}>
                         {movement.reason}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-4 text-right">
                       <Button className="h-8 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedMovement(movement)}>
                         상세
                       </Button>
@@ -849,7 +849,7 @@ function MovementQuantityBadge({ quantityDelta, unit }: { quantityDelta: number;
   return (
     <span
       className={[
-        "inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold",
+        "inline-flex h-7 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-bold",
         positive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
       ].join(" ")}
     >
@@ -876,7 +876,7 @@ function MovementSourceInfo({
 
   return (
     <div className="space-y-1">
-      <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", tone].join(" ")}>
+      <span className={["inline-flex h-7 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-bold", tone].join(" ")}>
         {sourceLabel}
       </span>
       {sourceReferenceNo ? <p className="text-xs font-semibold text-axis-muted">{sourceReferenceNo}</p> : null}
