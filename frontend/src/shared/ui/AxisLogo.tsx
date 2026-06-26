@@ -18,23 +18,17 @@ export function AxisLogo({ compact = false, inverted = false, markOnly = false }
           inverted ? "border-white/16 bg-white text-axis-ink" : "border-axis-border bg-axis-ink text-white"
         ].join(" ")}
       >
-        <span className="absolute inset-2 rounded-lg border border-current/15" />
         <svg className={compact ? "h-7 w-7" : "h-9 w-9"} viewBox="0 0 64 64" aria-hidden="true">
           <path
-            d="M14 32C22 18 42 18 50 32C42 46 22 46 14 32Z"
+            d="M18 44L46 20"
             fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="5"
-          />
-          <path
-            d="M32 16V48M18 32H46"
             stroke={inverted ? "#0071e3" : "#9ec5ff"}
             strokeLinecap="round"
-            strokeWidth="5"
+            strokeWidth="7"
           />
-          <circle cx="32" cy="32" r="6" fill="currentColor" />
+          <circle cx="18" cy="44" r="6" fill="currentColor" />
+          <circle cx="32" cy="32" r="5" fill="currentColor" opacity="0.72" />
+          <circle cx="46" cy="20" r="6" fill="currentColor" />
         </svg>
       </span>
       {markOnly ? null : (
