@@ -203,3 +203,9 @@
 - Added backend audit log persistence and a paged audit log API.
 - Recorded authentication, inventory adjustment, purchase, and sales processing events.
 - Added an operations history page with search, domain filter, date range filter, and pagination.
+
+### Audit Log Detail Flow
+
+- Added an audit log detail modal.
+- Added navigation from audit log rows to the related purchase, sales, or inventory page.
+- Supported request-number based purchase request filtering from audit log navigation.
