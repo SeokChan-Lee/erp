@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { useLoginMutation } from "./api/authApi";
 import { getErrorMessage } from "../../shared/api/http";
+import { AxisLogo } from "../../shared/ui/AxisLogo";
 import { Button } from "../../shared/ui/Button";
 import { TextField } from "../../shared/ui/TextField";
 
@@ -45,7 +46,7 @@ export function LoginView() {
       <div className="grid min-h-screen lg:grid-cols-[1fr_520px]">
         <section className="relative hidden overflow-hidden bg-[#161719] px-12 py-12 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="relative axis-fade-up">
-            <AxisBrand />
+            <AxisLogo inverted />
 
             <div className="mt-20 max-w-2xl">
               <p className="text-sm font-semibold text-white/50">ERP OPERATING MODEL</p>
@@ -98,7 +99,7 @@ export function LoginView() {
         >
           <div className="mx-auto w-full max-w-sm">
             <div className="lg:hidden">
-              <AxisBrand compact />
+              <AxisLogo compact />
             </div>
 
             <div className="mt-10 lg:mt-0">
@@ -143,38 +144,5 @@ export function LoginView() {
         </form>
       </div>
     </main>
-  );
-}
-
-function AxisBrand({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        className={[
-          "relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg",
-          compact ? "h-11 w-11 bg-axis-ink text-white" : "h-14 w-14 bg-white text-axis-ink"
-        ].join(" ")}
-      >
-        <svg className={compact ? "h-7 w-7" : "h-9 w-9"} viewBox="0 0 64 64" aria-hidden="true">
-          <path
-            d="M16 50L32 14L48 50"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="6"
-          />
-          <path d="M24 39H40" stroke="#0071e3" strokeLinecap="round" strokeWidth="6" />
-        </svg>
-      </span>
-      <div>
-        <p className={compact ? "text-xl font-semibold tracking-normal text-axis-ink" : "text-2xl font-semibold tracking-normal text-white"}>
-          Axis ERP
-        </p>
-        <p className={compact ? "mt-1 text-sm text-axis-muted" : "mt-1 text-xs font-medium text-white/50"}>
-          운영 관리 플랫폼
-        </p>
-      </div>
-    </div>
   );
 }

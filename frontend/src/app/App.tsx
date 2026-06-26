@@ -1,4 +1,4 @@
-import { BarChart3, Building2, Clock3, FileClock, Handshake, LayoutDashboard, PackageSearch, ReceiptText, ShieldCheck, UserCog, UserRound } from "lucide-react";
+import { Building2, Clock3, FileClock, Handshake, LayoutDashboard, PackageSearch, ReceiptText, ShieldCheck, UserCog, UserRound } from "lucide-react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import { AccountMenu } from "./components/AccountMenu";
@@ -15,6 +15,7 @@ import { PurchaseView } from "../features/purchase/PurchaseView";
 import { SalesView } from "../features/sales/SalesView";
 import { UserManagementView } from "../features/user-management/UserManagementView";
 import { useAppStore } from "../shared/store/appStore";
+import { AxisLogo } from "../shared/ui/AxisLogo";
 import { Button } from "../shared/ui/Button";
 
 const navItems = [
@@ -73,13 +74,7 @@ export function App() {
       >
         <div className="flex h-16 items-center justify-between border-b border-axis-border px-5">
           <div className={sidebarCollapsed ? "sr-only" : "flex items-center gap-3"}>
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-axis-ink text-white">
-              <BarChart3 size={19} strokeWidth={2.2} />
-            </span>
-            <div>
-              <p className="text-lg font-semibold tracking-normal">Axis ERP</p>
-              <p className="text-xs font-medium text-axis-muted">운영 관리 센터</p>
-            </div>
+            <AxisLogo compact />
           </div>
           <Button variant="ghost" className="h-9 w-9 px-0" onClick={toggleSidebar} aria-label="사이드바 접기">
             {sidebarCollapsed ? ">" : "<"}
