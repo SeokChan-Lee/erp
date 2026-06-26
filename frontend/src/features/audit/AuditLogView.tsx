@@ -8,6 +8,7 @@ import { DateField } from "../../shared/ui/DateField";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
 import { useAuditLogsQuery } from "./api/auditApi";
@@ -108,9 +109,7 @@ export function AuditLogView() {
           <Button className="h-11" type="button" variant="secondary" onClick={applySearch}>
             검색 적용
           </Button>
-          <Button className="h-11" type="button" variant="ghost" onClick={clearFilters}>
-            초기화
-          </Button>
+          <ResetButton onClick={clearFilters} />
         </div>
 
         {isLoading ? (

@@ -25,6 +25,7 @@ import { MetricCard } from "../../shared/ui/MetricCard";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
 
@@ -254,6 +255,14 @@ export function UserManagementView({
         onSuccess: closeEditModal
       }
     );
+  };
+
+  const resetAccountFilters = () => {
+    setAccountSearchInput("");
+    setAccountSearch("");
+    setAccountStatusFilter("ALL");
+    setAccountRoleFilter("ALL");
+    setAccountPage(1);
   };
 
   return (
@@ -488,7 +497,7 @@ export function UserManagementView({
           <p className="text-sm font-semibold text-axis-muted">사용자 현황을 불러오는 중입니다.</p>
         ) : (
           <div className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.9fr]">
+            <div className="grid items-end gap-3 lg:grid-cols-[1.5fr_0.8fr_0.9fr_auto]">
               <TextField
                 label="검색"
                 placeholder="이름, 아이디, 부서, 역할"
@@ -518,6 +527,7 @@ export function UserManagementView({
                   setAccountPage(1);
                 }}
               />
+              <ResetButton onClick={resetAccountFilters} />
             </div>
 
             <div className="overflow-hidden rounded-lg border border-axis-border">

@@ -10,6 +10,7 @@ import { DateField } from "../../shared/ui/DateField";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { ResetButton } from "../../shared/ui/ResetButton";
 import { SearchableSelectField } from "../../shared/ui/SearchableSelectField";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
@@ -508,6 +509,37 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     setSupplierForm(initialSupplierForm);
   };
 
+  const resetCustomerFilters = () => {
+    setCustomerSearchInput("");
+    setCustomerSearch("");
+    setCustomerStatus("ALL");
+    setCustomerPage(1);
+  };
+
+  const resetSupplierFilters = () => {
+    setSupplierSearchInput("");
+    setSupplierSearch("");
+    setSupplierStatus("ALL");
+    setSupplierPage(1);
+  };
+
+  const resetRequestFilters = () => {
+    setRequestSearchInput("");
+    setRequestSearch("");
+    setRequestStatus("ALL");
+    setRequestPage(1);
+  };
+
+  const resetOrderFilters = () => {
+    setOrderSearchInput("");
+    setOrderSearch("");
+    setOrderFromDateInput("");
+    setOrderToDateInput("");
+    setOrderFromDate("");
+    setOrderToDate("");
+    setOrderPage(1);
+  };
+
   return (
     <div className="space-y-6">
       {pageError ? (
@@ -531,7 +563,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             ) : null
           }
         >
-          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto]">
+          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto_auto]">
             <TextField
               label="검색"
               placeholder="코드, 고객사명, 사업자번호, 담당자"
@@ -563,6 +595,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             >
               검색 적용
             </Button>
+            <ResetButton onClick={resetCustomerFilters} />
           </div>
 
           {customersLoading ? (
@@ -628,7 +661,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           ) : null
         }
       >
-        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto]">
+        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto_auto]">
           <TextField
             label="검색"
             placeholder="코드, 공급사명, 사업자번호, 담당자"
@@ -660,6 +693,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           >
             검색 적용
           </Button>
+          <ResetButton onClick={resetSupplierFilters} />
         </div>
 
         {suppliersLoading ? (
@@ -772,7 +806,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         ) : null}
 
         <Panel title="구매 요청 목록" description="등록된 구매 요청과 공급사, 품목, 금액을 확인합니다.">
-          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_auto]">
+          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_auto_auto]">
             <TextField
               label="검색"
               placeholder="요청번호, 공급사, 품목, 메모"
@@ -804,6 +838,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             >
               검색 적용
             </Button>
+            <ResetButton onClick={resetRequestFilters} />
           </div>
 
           {requestsLoading ? (
@@ -905,7 +940,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         </Panel>
 
         <Panel title="구매 발주 목록" description="승인된 구매 요청에서 전환된 발주 기록을 확인합니다.">
-          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_180px_auto]">
+          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_180px_auto_auto]">
             <TextField
               label="검색"
               placeholder="발주번호, 요청번호, 공급사, 품목, 담당자"
@@ -919,6 +954,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             <Button className="h-11" type="button" variant="secondary" onClick={handleApplyOrderSearch}>
               검색 적용
             </Button>
+            <ResetButton onClick={resetOrderFilters} />
           </div>
 
           {ordersLoading ? (

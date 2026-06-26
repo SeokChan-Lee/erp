@@ -27,6 +27,7 @@ import { DateField } from "../../shared/ui/DateField";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
 import { TimeField } from "../../shared/ui/TimeField";
@@ -240,6 +241,15 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
     );
   };
 
+  const resetHistoryFilters = () => {
+    setHistorySearchInput("");
+    setHistorySearch("");
+    setHistoryStatusFilter("ALL");
+    setHistoryStartDate("");
+    setHistoryEndDate("");
+    setHistoryPage(1);
+  };
+
   return (
     <div className="space-y-6">
       <Panel title="오늘 근태" description="현재 로그인한 사용자의 출퇴근 기록을 처리합니다.">
@@ -429,7 +439,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
             <p className="text-sm font-semibold text-axis-muted">처리 이력을 불러오는 중입니다.</p>
           ) : (
             <div className="space-y-4">
-              <div className="grid gap-3 xl:grid-cols-[1.25fr_0.75fr_0.75fr_0.75fr_auto]">
+              <div className="grid items-end gap-3 xl:grid-cols-[1.25fr_0.75fr_0.75fr_0.75fr_auto]">
                 <TextField
                   label="검색"
                   placeholder="직원, 일자, 사유, 처리자"
@@ -465,20 +475,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                     setHistoryPage(1);
                   }}
                 />
-                <div className="flex items-end">
-                  <Button
-                    className="h-11 w-full px-3"
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setHistoryStartDate("");
-                      setHistoryEndDate("");
-                      setHistoryPage(1);
-                    }}
-                  >
-                    기간 초기화
-                  </Button>
-                </div>
+                <ResetButton className="w-full" onClick={resetHistoryFilters} />
               </div>
 
               {requestHistory.length === 0 ? (

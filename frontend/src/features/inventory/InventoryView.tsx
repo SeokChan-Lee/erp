@@ -29,6 +29,7 @@ import { MetricCard } from "../../shared/ui/MetricCard";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
@@ -296,6 +297,28 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
     setAdjustmentForm((current) => ({ ...current, warehouseId, targetQuantity: nextQuantity }));
   };
 
+  const resetItemFilters = () => {
+    setItemSearchInput("");
+    setItemSearch("");
+    setItemStatus("ALL");
+    setItemPage(1);
+  };
+
+  const resetStockFilters = () => {
+    setStockSearchInput("");
+    setStockSearch("");
+    setStockWarehouseId(0);
+  };
+
+  const resetMovementFilters = () => {
+    setMovementSearchInput("");
+    setMovementSearch("");
+    setMovementWarehouseId(0);
+    setMovementStartDate("");
+    setMovementEndDate("");
+    setMovementPage(1);
+  };
+
   return (
     <div className="space-y-6">
       {pageError ? (
@@ -362,7 +385,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       ) : null}
 
       <Panel title="품목 목록" description="ERP에서 사용하는 품목 기준과 사용 상태를 관리합니다.">
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px]">
+        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto]">
           <TextField
             label="검색"
             placeholder="품목 코드, 품목명, 분류"
@@ -383,6 +406,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               setItemPage(1);
             }}
           />
+          <ResetButton onClick={resetItemFilters} />
         </div>
 
         {itemsLoading ? (
@@ -442,7 +466,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       </Panel>
 
       <Panel title="현재 재고" description="창고별 품목 수량과 안전재고 미달 여부를 확인합니다.">
-        <div className={["mb-4 grid items-end gap-3", canAdjustInventory ? "md:grid-cols-[1fr_220px_auto]" : "md:grid-cols-[1fr_220px]"].join(" ")}>
+        <div className={["mb-4 grid items-end gap-3", canAdjustInventory ? "md:grid-cols-[1fr_220px_auto_auto]" : "md:grid-cols-[1fr_220px_auto]"].join(" ")}>
           <TextField
             label="검색"
             placeholder="품목, 분류, 창고"
@@ -452,6 +476,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             onEnter={() => setStockSearch(stockSearchInput.trim())}
           />
           <SelectField label="창고" value={stockWarehouseId} options={stockWarehouseOptions} onChange={setStockWarehouseId} />
+          <ResetButton onClick={resetStockFilters} />
           {canAdjustInventory ? (
             <Button className="h-11 gap-2" type="button" onClick={() => openAdjustmentModal()}>
               <PackagePlus size={17} strokeWidth={2.2} />
@@ -566,21 +591,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               setMovementPage(1);
             }}
           />
-          <Button
-            className="h-11"
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setMovementSearchInput("");
-              setMovementSearch("");
-              setMovementWarehouseId(0);
-              setMovementStartDate("");
-              setMovementEndDate("");
-              setMovementPage(1);
-            }}
-          >
-            초기화
-          </Button>
+          <ResetButton onClick={resetMovementFilters} />
         </div>
 
         <div className="mb-4 min-h-8">

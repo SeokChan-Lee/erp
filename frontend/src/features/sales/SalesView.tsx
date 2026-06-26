@@ -9,6 +9,7 @@ import { Button } from "../../shared/ui/Button";
 import { Modal } from "../../shared/ui/Modal";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
+import { ResetButton } from "../../shared/ui/ResetButton";
 import { SearchableSelectField } from "../../shared/ui/SearchableSelectField";
 import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
@@ -148,6 +149,13 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
     setOrderPage(1);
   };
 
+  const resetOrderFilters = () => {
+    setOrderSearchInput("");
+    setOrderSearch("");
+    setOrderStatus("ALL");
+    setOrderPage(1);
+  };
+
   const handleCancelOrder = (orderId: number) => {
     cancelOrder.mutate(orderId, {
       onSuccess: () => setToastMessage("판매 수주가 취소되었습니다.")
@@ -253,7 +261,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
       ) : null}
 
       <Panel title="판매 수주 목록" description="등록된 판매 수주와 고객사, 품목, 금액을 확인합니다.">
-        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_auto]">
+        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_auto_auto]">
           <TextField
             label="검색"
             placeholder="수주번호, 고객사, 품목, 메모"
@@ -274,6 +282,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
           <Button className="h-11" type="button" variant="secondary" onClick={handleApplySearch}>
             검색 적용
           </Button>
+          <ResetButton onClick={resetOrderFilters} />
         </div>
 
         {ordersLoading ? (
