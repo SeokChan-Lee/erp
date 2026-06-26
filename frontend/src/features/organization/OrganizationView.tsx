@@ -70,6 +70,13 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
     [currentEmployeePage, employees]
   );
   const departmentFormReady = departmentForm.code.trim().length > 0 && departmentForm.name.trim().length > 0;
+  const employeeFormReady =
+    form.employeeNo.trim().length > 0 &&
+    form.displayName.trim().length > 0 &&
+    form.email.trim().length > 0 &&
+    form.positionTitle.trim().length > 0 &&
+    selectedDepartmentId > 0 &&
+    departments.length > 0;
 
   const handleCreateDepartment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -89,6 +96,8 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!employeeFormReady) return;
+
     createEmployee.mutate(
       {
         ...form,
@@ -242,7 +251,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
                 options={statusOptions}
                 onChange={(status) => setForm((value) => ({ ...value, status }))}
               />
-              <Button className="h-11 gap-2" disabled={createEmployee.isPending || departments.length === 0}>
+              <Button className="h-11 gap-2" disabled={!employeeFormReady || createEmployee.isPending}>
                 <Plus size={17} strokeWidth={2.2} />
                 {createEmployee.isPending ? "등록 중" : "등록"}
               </Button>
