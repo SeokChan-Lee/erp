@@ -35,12 +35,16 @@ import { Toast } from "../../shared/ui/Toast";
 
 const PAGE_SIZE = 20;
 
-const initialItemForm: ItemCreatePayload = {
+type ItemCreateForm = Omit<ItemCreatePayload, "safetyStock"> & {
+  safetyStock: string;
+};
+
+const initialItemForm: ItemCreateForm = {
   sku: "",
   name: "",
   category: "",
-  unit: "개",
-  safetyStock: 0
+  unit: "",
+  safetyStock: ""
 };
 
 type InventoryAdjustmentForm = {
@@ -78,7 +82,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const [movementStartDate, setMovementStartDate] = useState("");
   const [movementEndDate, setMovementEndDate] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
-  const [itemForm, setItemForm] = useState<ItemCreatePayload>(initialItemForm);
+  const [itemForm, setItemForm] = useState<ItemCreateForm>(initialItemForm);
   const [editForm, setEditForm] = useState<ItemEditForm | null>(null);
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState<InventoryAdjustmentForm>(initialAdjustmentForm);
@@ -168,7 +172,8 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
     itemForm.name.trim().length > 0 &&
     itemForm.category.trim().length > 0 &&
     itemForm.unit.trim().length > 0 &&
-    itemForm.safetyStock >= 0;
+    itemForm.safetyStock.trim().length > 0 &&
+    Number(itemForm.safetyStock) >= 0;
   const adjustmentReady =
     selectedItemId > 0 &&
     selectedWarehouseId > 0 &&
@@ -199,7 +204,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         name: itemForm.name.trim(),
         category: itemForm.category.trim(),
         unit: itemForm.unit.trim(),
-        safetyStock: itemForm.safetyStock
+        safetyStock: Number(itemForm.safetyStock)
       },
       {
         onSuccess: () => {
@@ -343,8 +348,9 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               label="안전재고"
               min={0}
               type="number"
+              placeholder="안전재고 입력"
               value={itemForm.safetyStock}
-              onChange={(event) => setItemForm((current) => ({ ...current, safetyStock: Number(event.target.value) }))}
+              onChange={(event) => setItemForm((current) => ({ ...current, safetyStock: event.target.value }))}
               required
             />
             <Button className="h-11 gap-2" disabled={!itemFormReady || createItem.isPending}>

@@ -31,11 +31,16 @@ import type {
 
 const PAGE_SIZE = 20;
 
-const initialSalesForm: SalesOrderCreatePayload = {
+type SalesOrderForm = Omit<SalesOrderCreatePayload, "quantity" | "unitPrice"> & {
+  quantity: string;
+  unitPrice: string;
+};
+
+const initialSalesForm: SalesOrderForm = {
   customerId: 0,
   itemId: 0,
-  quantity: 1,
-  unitPrice: 1,
+  quantity: "",
+  unitPrice: "",
   memo: ""
 };
 
@@ -46,7 +51,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   const [orderSearchInput, setOrderSearchInput] = useState(initialOrderSearch);
   const [orderSearch, setOrderSearch] = useState(initialOrderSearch);
   const [orderStatus, setOrderStatus] = useState<SalesOrderStatusFilter>("ALL");
-  const [salesForm, setSalesForm] = useState<SalesOrderCreatePayload>(initialSalesForm);
+  const [salesForm, setSalesForm] = useState<SalesOrderForm>(initialSalesForm);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [shippingOrder, setShippingOrder] = useState<SalesOrder | null>(null);
   const [shipWarehouseId, setShipWarehouseId] = useState(0);
@@ -98,7 +103,15 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
     { value: "REGISTERED" as SalesOrderStatusFilter, label: "등록" },
     { value: "CANCELED" as SalesOrderStatusFilter, label: "취소" }
   ];
-  const salesFormReady = selectedCustomerId > 0 && selectedItemId > 0 && salesForm.quantity > 0 && salesForm.unitPrice > 0;
+  const salesQuantity = Number(salesForm.quantity);
+  const salesUnitPrice = Number(salesForm.unitPrice);
+  const salesFormReady =
+    selectedCustomerId > 0 &&
+    selectedItemId > 0 &&
+    salesForm.quantity.trim().length > 0 &&
+    salesForm.unitPrice.trim().length > 0 &&
+    salesQuantity > 0 &&
+    salesUnitPrice > 0;
   const selectedShipWarehouseId = shipWarehouseId || warehouses[0]?.id || 0;
   const pageError = customersError || itemsError || warehousesError || ordersError || createOrder.error || cancelOrder.error || shipOrder.error || cancelShipOrder.error;
 
@@ -117,8 +130,8 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
       {
         customerId: selectedCustomerId,
         itemId: selectedItemId,
-        quantity: salesForm.quantity,
-        unitPrice: salesForm.unitPrice,
+        quantity: salesQuantity,
+        unitPrice: salesUnitPrice,
         memo: salesForm.memo.trim()
       },
       {
@@ -203,8 +216,24 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
               onChange={(itemId) => setSalesForm((current) => ({ ...current, itemId }))}
             />
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField label="수량" min={1} type="number" value={salesForm.quantity} onChange={(event) => setSalesForm((current) => ({ ...current, quantity: Number(event.target.value) }))} required />
-              <TextField label="단가" min={1} type="number" value={salesForm.unitPrice} onChange={(event) => setSalesForm((current) => ({ ...current, unitPrice: Number(event.target.value) }))} required />
+              <TextField
+                label="수량"
+                min={1}
+                type="number"
+                placeholder="수량 입력"
+                value={salesForm.quantity}
+                onChange={(event) => setSalesForm((current) => ({ ...current, quantity: event.target.value }))}
+                required
+              />
+              <TextField
+                label="단가"
+                min={1}
+                type="number"
+                placeholder="단가 입력"
+                value={salesForm.unitPrice}
+                onChange={(event) => setSalesForm((current) => ({ ...current, unitPrice: event.target.value }))}
+                required
+              />
             </div>
             <label className="block">
               <span className="text-sm font-semibold text-axis-ink">수주 메모</span>

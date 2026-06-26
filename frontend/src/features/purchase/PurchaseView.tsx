@@ -70,11 +70,16 @@ const initialCustomerForm: CustomerCreatePayload = {
   email: ""
 };
 
-const initialPurchaseForm: PurchaseRequestCreatePayload = {
+type PurchaseRequestForm = Omit<PurchaseRequestCreatePayload, "quantity" | "unitPrice"> & {
+  quantity: string;
+  unitPrice: string;
+};
+
+const initialPurchaseForm: PurchaseRequestForm = {
   supplierId: 0,
   itemId: 0,
-  quantity: 1,
-  unitPrice: 1,
+  quantity: "",
+  unitPrice: "",
   memo: ""
 };
 
@@ -121,7 +126,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [cancelReason, setCancelReason] = useState("");
   const [receivingOrder, setReceivingOrder] = useState<PurchaseOrder | null>(null);
   const [receiveWarehouseId, setReceiveWarehouseId] = useState(0);
-  const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
+  const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestForm>(initialPurchaseForm);
   const [toastMessage, setToastMessage] = useState("");
 
   const canReadCustomer = permissions.includes("CUSTOMER_READ");
@@ -260,7 +265,15 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: `${warehouse.code} · ${warehouse.name}` }));
   const customerFormReady = Object.values(customerForm).every((value) => value.trim().length > 0);
   const supplierFormReady = Object.values(supplierForm).every((value) => value.trim().length > 0);
-  const purchaseFormReady = selectedSupplierId > 0 && selectedItemId > 0 && purchaseForm.quantity > 0 && purchaseForm.unitPrice > 0;
+  const purchaseQuantity = Number(purchaseForm.quantity);
+  const purchaseUnitPrice = Number(purchaseForm.unitPrice);
+  const purchaseFormReady =
+    selectedSupplierId > 0 &&
+    selectedItemId > 0 &&
+    purchaseForm.quantity.trim().length > 0 &&
+    purchaseForm.unitPrice.trim().length > 0 &&
+    purchaseQuantity > 0 &&
+    purchaseUnitPrice > 0;
   const cancelReasonReady = cancelReason.trim().length > 0;
   const selectedReceiveWarehouseId = receiveWarehouseId || warehouses[0]?.id || 0;
 
@@ -399,8 +412,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
       {
         supplierId: selectedSupplierId,
         itemId: selectedItemId,
-        quantity: purchaseForm.quantity,
-        unitPrice: purchaseForm.unitPrice,
+        quantity: purchaseQuantity,
+        unitPrice: purchaseUnitPrice,
         memo: purchaseForm.memo.trim()
       },
       {
@@ -722,8 +735,24 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                 onChange={(itemId) => setPurchaseForm((current) => ({ ...current, itemId }))}
               />
               <div className="grid gap-4 md:grid-cols-2">
-                <TextField label="수량" min={1} type="number" value={purchaseForm.quantity} onChange={(event) => setPurchaseForm((current) => ({ ...current, quantity: Number(event.target.value) }))} required />
-                <TextField label="단가" min={1} type="number" value={purchaseForm.unitPrice} onChange={(event) => setPurchaseForm((current) => ({ ...current, unitPrice: Number(event.target.value) }))} required />
+                <TextField
+                  label="수량"
+                  min={1}
+                  type="number"
+                  placeholder="수량 입력"
+                  value={purchaseForm.quantity}
+                  onChange={(event) => setPurchaseForm((current) => ({ ...current, quantity: event.target.value }))}
+                  required
+                />
+                <TextField
+                  label="단가"
+                  min={1}
+                  type="number"
+                  placeholder="단가 입력"
+                  value={purchaseForm.unitPrice}
+                  onChange={(event) => setPurchaseForm((current) => ({ ...current, unitPrice: event.target.value }))}
+                  required
+                />
               </div>
               <label className="block">
                 <span className="text-sm font-semibold text-axis-ink">요청 메모</span>
