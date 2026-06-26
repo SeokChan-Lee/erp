@@ -100,6 +100,7 @@ export function LoginView() {
               <TextField
                 label="아이디"
                 className="h-12"
+                placeholder="아이디를 입력해 주세요"
                 autoComplete="username"
                 error={errors.username?.message}
                 {...register("username")}
@@ -108,6 +109,7 @@ export function LoginView() {
                 label="비밀번호"
                 className="h-12"
                 type="password"
+                placeholder="비밀번호를 입력해 주세요"
                 autoComplete="current-password"
                 error={errors.password?.message}
                 {...register("password")}
