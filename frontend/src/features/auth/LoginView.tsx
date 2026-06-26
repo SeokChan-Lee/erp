@@ -94,7 +94,6 @@ export function LoginView() {
             <div className="mt-10 lg:mt-0">
               <p className="text-sm font-bold text-axis-blue">로그인</p>
               <h2 className="mt-3 text-3xl font-semibold tracking-normal text-axis-ink">업무를 시작합니다.</h2>
-              <p className="mt-3 text-sm font-bold leading-6 text-[#424245]">계정 정보를 입력하면 Axis ERP 대시보드로 이동합니다.</p>
             </div>
 
             <div className="mt-8 space-y-5">
@@ -124,11 +123,6 @@ export function LoginView() {
             <Button className="mt-6 h-12 w-full" disabled={loginMutation.isPending}>
               {loginMutation.isPending ? "로그인 중" : "로그인"}
             </Button>
-
-            <div className="mt-6 rounded-lg border border-axis-border bg-axis-bg p-4 text-sm leading-6">
-              <p className="font-semibold text-axis-ink">데모 환경</p>
-              <p className="font-semibold text-[#424245]">관리자 계정 정보가 기본 입력되어 있습니다.</p>
-            </div>
           </div>
         </form>
       </div>
