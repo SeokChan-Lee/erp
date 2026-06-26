@@ -190,7 +190,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
 
   return (
     <div className="space-y-6">
-      <Panel title="오늘 근태" description="로그인 쿠키를 기준으로 현재 사용자의 출퇴근 기록을 처리합니다.">
+      <Panel title="오늘 근태" description="현재 로그인한 사용자의 출퇴근 기록을 처리합니다.">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
           <div>
             <p className="text-sm font-medium text-axis-muted">현재 상태</p>

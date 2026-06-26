@@ -70,7 +70,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
         </p>
       ) : null}
 
-      <Panel title="역할 목록" description="역할별 권한은 백엔드 저장값을 기준으로 표시합니다.">
+      <Panel title="역할 목록" description="역할별 권한 설정 현황을 확인합니다.">
         {isLoading ? (
           <p className="text-sm font-semibold text-axis-muted">역할 권한을 불러오는 중입니다.</p>
         ) : (
