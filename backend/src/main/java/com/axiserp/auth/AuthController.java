@@ -31,7 +31,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthUserResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthService.LoginResult result = authService.login(request);
-        auditLogService.record("AUTH", "AUTH_LOGIN", result.user().username(), "로그인", "쿠키 기반 세션이 생성되었습니다.", result.user().displayName());
+        auditLogService.record("AUTH", "AUTH_LOGIN", result.user().username(), "로그인", "로그인했습니다.", result.user().displayName());
         ResponseCookie cookie = ResponseCookie.from(AuthService.COOKIE_NAME, result.sessionId())
                 .httpOnly(true)
                 .sameSite("Lax")
@@ -48,7 +48,7 @@ public class AuthController {
     public ResponseEntity<Void> logout(@CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId) {
         if (sessionId != null) {
             authService.optionalUser(sessionId).ifPresent((user) ->
-                    auditLogService.record("AUTH", "AUTH_LOGOUT", user.username(), "로그아웃", "사용자 세션이 종료되었습니다.", user.displayName())
+                    auditLogService.record("AUTH", "AUTH_LOGOUT", user.username(), "로그아웃", "로그아웃했습니다.", user.displayName())
             );
             authService.logout(sessionId);
         }

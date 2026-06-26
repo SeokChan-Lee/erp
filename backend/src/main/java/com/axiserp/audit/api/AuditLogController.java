@@ -65,7 +65,9 @@ public class AuditLogController {
     private Specification<AuditLogEntity> auditLogSpecification(String search, String domainType, LocalDate startDate, LocalDate endDate) {
         return (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (!"ALL".equals(domainType)) {
+            if ("WORK".equals(domainType)) {
+                predicates.add(builder.notEqual(root.get("domainType"), "AUTH"));
+            } else if (!"ALL".equals(domainType)) {
                 predicates.add(builder.equal(root.get("domainType"), domainType));
             }
             if (startDate != null) {

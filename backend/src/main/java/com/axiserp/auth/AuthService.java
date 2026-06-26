@@ -224,6 +224,7 @@ public class AuthService {
                 Permission.ITEM_CREATE,
                 Permission.ITEM_UPDATE,
                 Permission.INVENTORY_READ,
+                Permission.WAREHOUSE_CREATE,
                 Permission.INVENTORY_MOVE,
                 Permission.INVENTORY_ADJUST
         )));

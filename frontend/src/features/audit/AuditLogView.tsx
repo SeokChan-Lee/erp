@@ -18,32 +18,48 @@ const PAGE_SIZE = 20;
 
 export function AuditLogView() {
   const navigate = useNavigate();
-  const [page, setPage] = useState(1);
+  const [loginPage, setLoginPage] = useState(1);
+  const [workPage, setWorkPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [domainType, setDomainType] = useState<AuditLogDomainFilter>("ALL");
+  const [domainType, setDomainType] = useState<AuditLogDomainFilter>("WORK");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
-  const params = useMemo<AuditLogQueryParams>(
+  const loginParams = useMemo<AuditLogQueryParams>(
     () => ({
-      page,
+      page: loginPage,
+      pageSize: PAGE_SIZE,
+      search: "",
+      domainType: "AUTH",
+      startDate: "",
+      endDate: ""
+    }),
+    [loginPage]
+  );
+
+  const workParams = useMemo<AuditLogQueryParams>(
+    () => ({
+      page: workPage,
       pageSize: PAGE_SIZE,
       search,
       domainType,
       startDate,
       endDate
     }),
-    [domainType, endDate, page, search, startDate]
+    [domainType, endDate, search, startDate, workPage]
   );
 
-  const { data: logsPage, error, isLoading } = useAuditLogsQuery(params);
-  const logs = logsPage?.content ?? [];
-  const totalLogs = logsPage?.totalItems ?? 0;
+  const { data: loginLogsPage, error: loginError, isLoading: loginLoading } = useAuditLogsQuery(loginParams);
+  const { data: workLogsPage, error: workError, isLoading: workLoading } = useAuditLogsQuery(workParams);
+  const loginLogs = loginLogsPage?.content ?? [];
+  const totalLoginLogs = loginLogsPage?.totalItems ?? 0;
+  const workLogs = workLogsPage?.content ?? [];
+  const totalWorkLogs = workLogsPage?.totalItems ?? 0;
+  const error = loginError || workError;
   const domainOptions = [
-    { value: "ALL" as const, label: "전체" },
-    { value: "AUTH" as const, label: "인증" },
+    { value: "WORK" as const, label: "전체 업무" },
     { value: "INVENTORY" as const, label: "재고" },
     { value: "PURCHASE" as const, label: "구매" },
     { value: "SALES" as const, label: "판매" }
@@ -51,16 +67,16 @@ export function AuditLogView() {
 
   const applySearch = () => {
     setSearch(searchInput.trim());
-    setPage(1);
+    setWorkPage(1);
   };
 
   const clearFilters = () => {
     setSearchInput("");
     setSearch("");
-    setDomainType("ALL");
+    setDomainType("WORK");
     setStartDate("");
     setEndDate("");
-    setPage(1);
+    setWorkPage(1);
   };
 
   return (
@@ -71,7 +87,53 @@ export function AuditLogView() {
         </p>
       ) : null}
 
-      <Panel title="운영 이력" description="로그인, 재고, 구매, 판매 처리처럼 추적이 필요한 업무 이력을 확인합니다.">
+      <Panel title="로그인 이력" description="사용자의 로그인과 로그아웃 기록을 따로 확인합니다.">
+        {loginLoading ? (
+          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
+            로그인 이력을 불러오는 중입니다.
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-axis-border">
+            <table className="w-full min-w-[760px] border-collapse text-left">
+              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
+                <tr>
+                  <th className="px-4 py-3">일시</th>
+                  <th className="px-4 py-3">작업</th>
+                  <th className="px-4 py-3">내용</th>
+                  <th className="px-4 py-3">사용자</th>
+                  <th className="px-4 py-3">관리</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-axis-border bg-white">
+                {loginLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-muted">{formatDateTime(log.occurredAt)}</td>
+                    <td className="px-4 py-4 text-sm font-bold text-axis-ink">{eventLabel(log.eventType)}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-axis-muted">{log.detail || log.summary}</td>
+                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{log.actor}</td>
+                    <td className="px-4 py-4">
+                      <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedLog(log)}>
+                        <Eye size={14} strokeWidth={2.2} />
+                        상세
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {loginLogs.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={5}>
+                      로그인 이력이 없습니다.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+            <Pagination page={loginPage} pageSize={PAGE_SIZE} totalItems={totalLoginLogs} onPageChange={setLoginPage} />
+          </div>
+        )}
+      </Panel>
+
+      <Panel title="업무 이력" description="재고, 구매, 판매 처리처럼 추적이 필요한 업무 이력을 확인합니다.">
         <div className="mb-4 grid items-end gap-3 lg:grid-cols-[1fr_160px_160px_160px_auto_auto]">
           <TextField
             label="검색"
@@ -87,7 +149,7 @@ export function AuditLogView() {
             options={domainOptions}
             onChange={(value) => {
               setDomainType(value);
-              setPage(1);
+              setWorkPage(1);
             }}
           />
           <DateField
@@ -95,7 +157,7 @@ export function AuditLogView() {
             value={startDate}
             onChange={(value) => {
               setStartDate(value);
-              setPage(1);
+              setWorkPage(1);
             }}
           />
           <DateField
@@ -103,7 +165,7 @@ export function AuditLogView() {
             value={endDate}
             onChange={(value) => {
               setEndDate(value);
-              setPage(1);
+              setWorkPage(1);
             }}
           />
           <Button className="h-11" type="button" variant="secondary" onClick={applySearch}>
@@ -112,9 +174,9 @@ export function AuditLogView() {
           <ResetButton onClick={clearFilters} />
         </div>
 
-        {isLoading ? (
+        {workLoading ? (
           <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-            운영 이력을 불러오는 중입니다.
+            업무 이력을 불러오는 중입니다.
           </p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-axis-border">
@@ -131,7 +193,7 @@ export function AuditLogView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-axis-border bg-white">
-                {logs.map((log) => {
+                {workLogs.map((log) => {
                   const targetPath = auditTargetPath(log);
                   return (
                     <tr key={log.id}>
@@ -163,23 +225,23 @@ export function AuditLogView() {
                     </tr>
                   );
                 })}
-                {logs.length === 0 ? (
+                {workLogs.length === 0 ? (
                   <tr>
                     <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>
-                      조건에 맞는 운영 이력이 없습니다.
+                      조건에 맞는 업무 이력이 없습니다.
                     </td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
-            <Pagination page={page} pageSize={PAGE_SIZE} totalItems={totalLogs} onPageChange={setPage} />
+            <Pagination page={workPage} pageSize={PAGE_SIZE} totalItems={totalWorkLogs} onPageChange={setWorkPage} />
           </div>
         )}
       </Panel>
 
       <Modal
         open={selectedLog !== null}
-        title="운영 이력 상세"
+        title="이력 상세"
         description="선택한 처리 이력의 기준 정보와 상세 내용을 확인합니다."
         footer={
           <>
@@ -203,7 +265,6 @@ export function AuditLogView() {
               <InfoItem label="작업" value={eventLabel(selectedLog.eventType)} />
               <InfoItem label="참조번호" value={selectedLog.referenceNo || "-"} />
               <InfoItem label="처리자" value={selectedLog.actor} />
-              <InfoItem label="이벤트 코드" value={selectedLog.eventType} />
             </div>
             <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
               <p className="text-xs font-bold text-axis-muted">요약</p>
@@ -276,6 +337,7 @@ function eventLabel(eventType: string) {
   const labels: Record<string, string> = {
     AUTH_LOGIN: "로그인",
     AUTH_LOGOUT: "로그아웃",
+    WAREHOUSE_CREATE: "창고 등록",
     INVENTORY_ADJUST: "재고 조정",
     PURCHASE_REQUEST_CREATE: "구매 요청 생성",
     PURCHASE_REQUEST_APPROVE: "구매 요청 승인",

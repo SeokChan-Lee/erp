@@ -1,4 +1,4 @@
-export type AuditLogDomainFilter = "ALL" | "AUTH" | "INVENTORY" | "PURCHASE" | "SALES";
+export type AuditLogDomainFilter = "ALL" | "WORK" | "AUTH" | "INVENTORY" | "PURCHASE" | "SALES";
 
 export type AuditLog = {
   id: number;

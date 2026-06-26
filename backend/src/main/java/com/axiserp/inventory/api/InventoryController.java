@@ -73,6 +73,34 @@ public class InventoryController {
                 .toList();
     }
 
+    @PostMapping("/warehouses")
+    @Transactional
+    public WarehouseResponse createWarehouse(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @Valid @RequestBody WarehouseCreateRequest request
+    ) {
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.WAREHOUSE_CREATE);
+        String code = request.code().trim().toUpperCase();
+        String name = request.name().trim();
+        if (warehouseRepository.existsByCodeIgnoreCase(code)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 창고 코드입니다.");
+        }
+
+        WarehouseEntity warehouse = warehouseRepository.save(new WarehouseEntity(code, name));
+        itemRepository.findAll().forEach((item) ->
+                inventoryStockRepository.save(new InventoryStockEntity(item, warehouse, 0))
+        );
+        auditLogService.record(
+                "INVENTORY",
+                "WAREHOUSE_CREATE",
+                code,
+                "창고 등록",
+                "%s · %s".formatted(code, name),
+                user.displayName()
+        );
+        return WarehouseResponse.from(warehouse);
+    }
+
     @GetMapping("/stocks")
     @Transactional(readOnly = true)
     public List<InventoryStockResponse> stocks(

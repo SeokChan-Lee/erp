@@ -446,13 +446,15 @@ Returns initial dashboard metrics:
 
 Requires `APPROVAL_READ`.
 
-Returns paged operational audit logs for authentication, inventory, purchase, and sales events.
+Returns paged audit logs. Login/logout history can be requested separately from business operation history.
 
 Query:
 
 - `page`, `pageSize`
 - `search`: optional keyword for event type, reference number, summary, detail, or actor.
-- `domainType`: `ALL`, `AUTH`, `INVENTORY`, `PURCHASE`, `SALES`
+- `domainType`: `ALL`, `AUTH`, `WORK`, `INVENTORY`, `PURCHASE`, `SALES`
+  - `AUTH`: login/logout history.
+  - `WORK`: inventory, purchase, and sales history excluding login/logout events.
 - `startDate`, `endDate`: ISO date range for occurrence time.
 
 Response item:
@@ -795,6 +797,21 @@ Updates item name, category, unit, safety stock, and active state.
 Requires `INVENTORY_READ`.
 
 Returns warehouse master data.
+
+### `POST /api/inventory/warehouses`
+
+Requires `WAREHOUSE_CREATE`.
+
+Creates a warehouse master record. Existing item stock rows are initialized to zero for the new warehouse.
+
+Request:
+
+```json
+{
+  "code": "WH-SEOUL",
+  "name": "서울 물류 창고"
+}
+```
 
 ### `GET /api/inventory/stocks`
 

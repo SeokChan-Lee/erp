@@ -134,6 +134,7 @@ export const permissionMeta: Record<string, PermissionMeta> = {
   ITEM_UPDATE: { label: "품목 수정", description: "품목 정보를 수정합니다.", group: "item" },
   ITEM_DELETE: { label: "품목 삭제", description: "품목을 삭제하거나 비활성화합니다.", group: "item" },
   INVENTORY_READ: { label: "재고 조회", description: "현재 재고와 재고 이력을 확인합니다.", group: "inventory" },
+  WAREHOUSE_CREATE: { label: "창고 등록", description: "재고를 관리할 창고 기준 정보를 등록합니다.", group: "inventory" },
   INVENTORY_MOVE: { label: "재고 이동", description: "입고, 출고, 창고 이동을 처리합니다.", group: "inventory" },
   INVENTORY_ADJUST: { label: "재고 조정", description: "실사 차이 등 재고 수량을 조정합니다.", group: "inventory" },
   PURCHASE_READ: { label: "구매 조회", description: "구매 요청과 발주 정보를 조회합니다.", group: "purchase" },

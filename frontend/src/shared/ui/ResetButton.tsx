@@ -11,12 +11,9 @@ type ResetButtonProps = {
 export function ResetButton({ onClick, className = "", label = "초기화" }: ResetButtonProps) {
   return (
     <Button
-      className={[
-        "h-11 gap-2 border-axis-ink bg-axis-ink px-4 text-white hover:bg-black",
-        className
-      ].join(" ")}
+      className={["h-11 gap-2 px-4", className].join(" ")}
       type="button"
-      variant="secondary"
+      variant="dark"
       onClick={onClick}
     >
       <RotateCcw size={16} strokeWidth={2.3} />

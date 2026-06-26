@@ -222,3 +222,10 @@
 - Moved attendance late-status calculation from a hardcoded time to persisted settings.
 - Added department creation with `DEPARTMENT_CREATE` permission.
 - Added organization and attendance UI sections for users with the matching permissions.
+
+### Audit and Warehouse Management
+
+- Changed authentication audit detail text to user-facing login/logout wording.
+- Split the operations history screen into login history and business operation history.
+- Added `WAREHOUSE_CREATE` permission and a warehouse creation API.
+- Added an inventory warehouse status section with warehouse registration and warehouse-specific stock viewing.

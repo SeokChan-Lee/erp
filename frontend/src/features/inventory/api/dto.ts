@@ -16,6 +16,11 @@ export type Warehouse = {
   name: string;
 };
 
+export type WarehouseCreatePayload = {
+  code: string;
+  name: string;
+};
+
 export type InventoryStock = {
   id: number;
   item: Item;

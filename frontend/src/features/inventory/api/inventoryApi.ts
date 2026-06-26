@@ -12,7 +12,8 @@ import type {
   ItemCreatePayload,
   ItemQueryParams,
   ItemUpdatePayload,
-  Warehouse
+  Warehouse,
+  WarehouseCreatePayload
 } from "./dto";
 
 export const inventoryKeys = {
@@ -36,6 +37,24 @@ export function useWarehousesQuery() {
   return useQuery({
     queryKey: inventoryKeys.warehouses,
     queryFn: () => http<Warehouse[]>("/inventory/warehouses")
+  });
+}
+
+export function useCreateWarehouseMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: WarehouseCreatePayload) =>
+      http<Warehouse>("/inventory/warehouses", {
+        method: "POST",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.warehouses });
+      void queryClient.invalidateQueries({ queryKey: ["inventory", "stocks"] });
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.overview });
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.movementRoot });
+    }
   });
 }
 

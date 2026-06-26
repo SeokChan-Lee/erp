@@ -1,9 +1,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { PackagePlus, PencilLine, Plus, Search, Warehouse } from "lucide-react";
+import { Building2, PackagePlus, PencilLine, Plus, Search, Warehouse } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import {
   useAdjustInventoryMutation,
+  useCreateWarehouseMutation,
   useCreateItemMutation,
   useInventoryMovementsQuery,
   useInventoryOverviewQuery,
@@ -48,6 +49,11 @@ const initialItemForm: ItemCreateForm = {
   safetyStock: ""
 };
 
+const initialWarehouseForm = {
+  code: "",
+  name: ""
+};
+
 type InventoryAdjustmentForm = {
   itemId: number;
   warehouseId: number;
@@ -84,12 +90,15 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const [movementEndDate, setMovementEndDate] = useState("");
   const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
   const [itemForm, setItemForm] = useState<ItemCreateForm>(initialItemForm);
+  const [warehouseCreateOpen, setWarehouseCreateOpen] = useState(false);
+  const [warehouseForm, setWarehouseForm] = useState(initialWarehouseForm);
   const [editForm, setEditForm] = useState<ItemEditForm | null>(null);
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const [adjustmentForm, setAdjustmentForm] = useState<InventoryAdjustmentForm>(initialAdjustmentForm);
   const [toastMessage, setToastMessage] = useState("");
   const canCreateItem = permissions.includes("ITEM_CREATE");
   const canUpdateItem = permissions.includes("ITEM_UPDATE");
+  const canCreateWarehouse = permissions.includes("WAREHOUSE_CREATE");
   const canAdjustInventory = permissions.includes("INVENTORY_ADJUST");
 
   const itemParams = useMemo<ItemQueryParams>(
@@ -127,6 +136,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
   const { data: adjustmentStocks = [], error: adjustmentStocksError } = useInventoryStocksQuery({ search: "", warehouseId: 0 });
   const { data: movementsPage, error: movementsError, isLoading: movementsLoading } = useInventoryMovementsQuery(movementParams);
   const createItem = useCreateItemMutation();
+  const createWarehouse = useCreateWarehouseMutation();
   const updateItem = useUpdateItemMutation();
   const adjustInventory = useAdjustInventoryMutation();
 
@@ -149,6 +159,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
     adjustmentStocksError ||
     movementsError ||
     createItem.error ||
+    createWarehouse.error ||
     updateItem.error ||
     adjustInventory.error;
   const statusOptions = [
@@ -175,6 +186,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
     itemForm.unit.trim().length > 0 &&
     itemForm.safetyStock.trim().length > 0 &&
     Number(itemForm.safetyStock) >= 0;
+  const warehouseFormReady = warehouseForm.code.trim().length > 0 && warehouseForm.name.trim().length > 0;
   const adjustmentReady =
     selectedItemId > 0 &&
     selectedWarehouseId > 0 &&
@@ -214,6 +226,31 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         }
       }
     );
+  };
+
+  const handleCreateWarehouse = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!warehouseFormReady) return;
+
+    createWarehouse.mutate(
+      {
+        code: warehouseForm.code.trim().toUpperCase(),
+        name: warehouseForm.name.trim()
+      },
+      {
+        onSuccess: () => {
+          setWarehouseForm(initialWarehouseForm);
+          setWarehouseCreateOpen(false);
+          setToastMessage("창고가 등록되었습니다.");
+        }
+      }
+    );
+  };
+
+  const handleViewWarehouseStock = (warehouseId: number) => {
+    setStockWarehouseId(warehouseId);
+    setStockSearchInput("");
+    setStockSearch("");
   };
 
   const handleEditStart = (item: Item) => {
@@ -465,6 +502,62 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
         )}
       </Panel>
 
+      <Panel
+        title="창고 현황"
+        description="등록된 창고와 창고별 재고 구성을 확인합니다."
+        action={
+          canCreateWarehouse ? (
+            <Button className="gap-2" type="button" onClick={() => setWarehouseCreateOpen(true)}>
+              <Plus size={17} strokeWidth={2.2} />
+              창고 등록
+            </Button>
+          ) : null
+        }
+      >
+        {warehouses.length === 0 ? (
+          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
+            등록된 창고가 없습니다.
+          </p>
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {warehouses.map((warehouse) => {
+              const warehouseStocks = adjustmentStocks.filter((stock) => stock.warehouse.id === warehouse.id);
+              const totalQuantity = warehouseStocks.reduce((sum, stock) => sum + stock.quantity, 0);
+              const belowSafetyCount = warehouseStocks.filter((stock) => stock.belowSafetyStock).length;
+
+              return (
+                <div key={warehouse.id} className="rounded-lg border border-axis-border bg-white p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-axis-bg text-axis-ink">
+                        <Building2 size={18} strokeWidth={2.2} />
+                      </span>
+                      <div>
+                        <p className="text-sm font-bold text-axis-ink">{warehouse.name}</p>
+                        <p className="mt-1 text-xs font-semibold text-axis-muted">{warehouse.code}</p>
+                      </div>
+                    </div>
+                    <Button
+                      className="h-8 px-3 text-xs"
+                      type="button"
+                      variant="secondary"
+                      onClick={() => handleViewWarehouseStock(warehouse.id)}
+                    >
+                      재고 보기
+                    </Button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <WarehouseStat label="품목" value={`${warehouseStocks.length.toLocaleString("ko-KR")}개`} />
+                    <WarehouseStat label="총 재고" value={totalQuantity.toLocaleString("ko-KR")} />
+                    <WarehouseStat label="확인 필요" value={`${belowSafetyCount.toLocaleString("ko-KR")}건`} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
+
       <Panel title="현재 재고" description="창고별 품목 수량과 안전재고 미달 여부를 확인합니다.">
         <div className={["mb-4 grid items-end gap-3", canAdjustInventory ? "md:grid-cols-[1fr_220px_auto_auto]" : "md:grid-cols-[1fr_220px_auto]"].join(" ")}>
           <TextField
@@ -674,6 +767,40 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       </Panel>
 
       <Modal
+        open={warehouseCreateOpen}
+        title="창고 등록"
+        description="재고를 관리할 창고 기준 정보를 등록합니다."
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setWarehouseCreateOpen(false)}>
+              취소
+            </Button>
+            <Button disabled={!warehouseFormReady || createWarehouse.isPending} type="submit" form="warehouse-create-form">
+              {createWarehouse.isPending ? "등록 중" : "등록"}
+            </Button>
+          </>
+        }
+        onClose={() => setWarehouseCreateOpen(false)}
+      >
+        <form id="warehouse-create-form" className="space-y-4" onSubmit={handleCreateWarehouse}>
+          <TextField
+            label="창고 코드"
+            value={warehouseForm.code}
+            onChange={(event) => setWarehouseForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))}
+            placeholder="WH-SEOUL"
+            required
+          />
+          <TextField
+            label="창고명"
+            value={warehouseForm.name}
+            onChange={(event) => setWarehouseForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="서울 물류 창고"
+            required
+          />
+        </form>
+      </Modal>
+
+      <Modal
         open={adjustmentModalOpen}
         title="재고 조정"
         description="현재고를 기준으로 조정 후 수량을 입력합니다."
@@ -856,6 +983,15 @@ function StockBadge({ belowSafetyStock }: { belowSafetyStock: boolean }) {
     >
       {belowSafetyStock ? "안전재고 미달" : "정상"}
     </span>
+  );
+}
+
+function WarehouseStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-axis-border bg-axis-bg px-3 py-2">
+      <p className="text-[11px] font-bold text-axis-muted">{label}</p>
+      <p className="mt-1 text-sm font-bold text-axis-ink">{value}</p>
+    </div>
   );
 }
 

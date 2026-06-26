@@ -62,6 +62,7 @@ Examples:
 - `ITEM_UPDATE`
 - `ITEM_DELETE`
 - `INVENTORY_READ`
+- `WAREHOUSE_CREATE`
 - `INVENTORY_MOVE`
 - `INVENTORY_ADJUST`
 - `PURCHASE_READ`
@@ -154,3 +155,4 @@ Example:
 - `ATTENDANCE_READ_ALL` allows company-wide attendance records.
 - `ATTENDANCE_SETTINGS_UPDATE` allows changing company attendance standard times.
 - `DEPARTMENT_CREATE` allows adding department master records.
+- `WAREHOUSE_CREATE` allows adding warehouse master records and preparing zero stock rows for existing items.
