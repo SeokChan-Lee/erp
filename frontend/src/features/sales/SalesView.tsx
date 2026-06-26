@@ -224,7 +224,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
       ) : null}
 
       <Panel title="판매 수주 목록" description="등록된 판매 수주와 고객사, 품목, 금액을 확인합니다.">
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_auto]">
+        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_auto]">
           <TextField
             label="검색"
             placeholder="수주번호, 고객사, 품목, 메모"
@@ -242,7 +242,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
               setOrderPage(1);
             }}
           />
-          <Button className="mt-7 h-11" type="button" variant="secondary" onClick={handleApplySearch}>
+          <Button className="h-11" type="button" variant="secondary" onClick={handleApplySearch}>
             검색 적용
           </Button>
         </div>

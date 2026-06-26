@@ -36,7 +36,7 @@ export function AttendanceCalendar({ monthDate, records, onMonthChange }: Attend
           </h3>
           <p className="mt-1 text-sm font-medium text-axis-muted">월간 출퇴근 기록을 일자별로 확인합니다.</p>
         </div>
-        <div className="grid gap-2 md:grid-cols-[130px_110px_auto_auto]">
+        <div className="grid items-end gap-2 md:grid-cols-[130px_110px_auto_auto]">
           <SelectField
             label="연도"
             value={year}
@@ -51,7 +51,7 @@ export function AttendanceCalendar({ monthDate, records, onMonthChange }: Attend
           />
           <button
             aria-label="이전 달"
-            className="mt-7 flex h-11 w-11 items-center justify-center rounded-lg border border-axis-border bg-white text-axis-ink transition hover:border-axis-ink"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-axis-border bg-white text-axis-ink transition hover:border-axis-ink"
             type="button"
             onClick={() => moveMonth(-1)}
           >
@@ -59,7 +59,7 @@ export function AttendanceCalendar({ monthDate, records, onMonthChange }: Attend
           </button>
           <button
             aria-label="다음 달"
-            className="mt-7 flex h-11 w-11 items-center justify-center rounded-lg border border-axis-border bg-white text-axis-ink transition hover:border-axis-ink"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-axis-border bg-white text-axis-ink transition hover:border-axis-ink"
             type="button"
             onClick={() => moveMonth(1)}
           >

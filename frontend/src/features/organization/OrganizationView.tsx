@@ -169,7 +169,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
               placeholder="운영 담당자"
               required
             />
-            <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] xl:col-span-5">
+            <div className="grid items-end gap-3 md:grid-cols-[1fr_1fr_auto] xl:col-span-5">
               <SelectField
                 label="부서"
                 value={selectedDepartmentId}
@@ -184,7 +184,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
                 options={statusOptions}
                 onChange={(status) => setForm((value) => ({ ...value, status }))}
               />
-              <Button className="mt-7 h-11 gap-2" disabled={createEmployee.isPending || departments.length === 0}>
+              <Button className="h-11 gap-2" disabled={createEmployee.isPending || departments.length === 0}>
                 <Plus size={17} strokeWidth={2.2} />
                 {createEmployee.isPending ? "등록 중" : "등록"}
               </Button>

@@ -71,7 +71,7 @@ export function AuditLogView() {
       ) : null}
 
       <Panel title="운영 이력" description="로그인, 재고, 구매, 판매 처리처럼 추적이 필요한 업무 이력을 확인합니다.">
-        <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_160px_160px_160px_auto_auto]">
+        <div className="mb-4 grid items-end gap-3 lg:grid-cols-[1fr_160px_160px_160px_auto_auto]">
           <TextField
             label="검색"
             placeholder="처리자, 참조번호, 작업 내용"
@@ -105,10 +105,10 @@ export function AuditLogView() {
               setPage(1);
             }}
           />
-          <Button className="mt-7 h-11" type="button" variant="secondary" onClick={applySearch}>
+          <Button className="h-11" type="button" variant="secondary" onClick={applySearch}>
             검색 적용
           </Button>
-          <Button className="mt-7 h-11" type="button" variant="ghost" onClick={clearFilters}>
+          <Button className="h-11" type="button" variant="ghost" onClick={clearFilters}>
             초기화
           </Button>
         </div>

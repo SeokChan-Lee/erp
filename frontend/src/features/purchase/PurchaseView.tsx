@@ -518,7 +518,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             ) : null
           }
         >
-          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_auto]">
+          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto]">
             <TextField
               label="검색"
               placeholder="코드, 고객사명, 사업자번호, 담당자"
@@ -540,7 +540,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               }}
             />
             <Button
-              className="mt-7 h-11"
+              className="h-11"
               type="button"
               variant="secondary"
               onClick={() => {
@@ -615,7 +615,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           ) : null
         }
       >
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_auto]">
+        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto]">
           <TextField
             label="검색"
             placeholder="코드, 공급사명, 사업자번호, 담당자"
@@ -637,7 +637,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             }}
           />
           <Button
-            className="mt-7 h-11"
+            className="h-11"
             type="button"
             variant="secondary"
             onClick={() => {
@@ -743,7 +743,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         ) : null}
 
         <Panel title="구매 요청 목록" description="등록된 구매 요청과 공급사, 품목, 금액을 확인합니다.">
-          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_auto]">
+          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_auto]">
             <TextField
               label="검색"
               placeholder="요청번호, 공급사, 품목, 메모"
@@ -765,7 +765,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               }}
             />
             <Button
-              className="mt-7 h-11"
+              className="h-11"
               type="button"
               variant="secondary"
               onClick={() => {
@@ -876,7 +876,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         </Panel>
 
         <Panel title="구매 발주 목록" description="승인된 구매 요청에서 전환된 발주 기록을 확인합니다.">
-          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_180px_auto]">
+          <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_180px_auto]">
             <TextField
               label="검색"
               placeholder="발주번호, 요청번호, 공급사, 품목, 담당자"
@@ -887,7 +887,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
             />
             <DateField label="시작일" value={orderFromDateInput} onChange={setOrderFromDateInput} />
             <DateField label="종료일" value={orderToDateInput} onChange={setOrderToDateInput} />
-            <Button className="mt-7 h-11" type="button" variant="secondary" onClick={handleApplyOrderSearch}>
+            <Button className="h-11" type="button" variant="secondary" onClick={handleApplyOrderSearch}>
               검색 적용
             </Button>
           </div>

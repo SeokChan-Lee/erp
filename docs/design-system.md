@@ -63,6 +63,12 @@ Recommended structure:
 - Content panels on white surfaces
 - Dashboard metrics in restrained tiles
 
+## Form Alignment
+
+- Align rows that mix labeled fields and action buttons with `items-end`.
+- Do not use manual top margin such as `mt-7` to force buttons to line up with inputs.
+- Action buttons beside text fields, select fields, and date fields should use the same 44px control height.
+
 ## Dashboard Charts
 
 Use Chart.js for chart rendering when statistics are implemented.

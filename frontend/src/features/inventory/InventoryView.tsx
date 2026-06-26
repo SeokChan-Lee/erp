@@ -310,7 +310,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
 
       {canCreateItem ? (
         <Panel title="품목 등록" description="구매, 판매, 재고 처리에서 사용할 품목 기준 정보를 등록합니다.">
-          <form className="grid gap-4 xl:grid-cols-[1fr_1.3fr_1fr_0.7fr_0.8fr_auto]" onSubmit={handleCreateItem}>
+          <form className="grid items-end gap-4 xl:grid-cols-[1fr_1.3fr_1fr_0.7fr_0.8fr_auto]" onSubmit={handleCreateItem}>
             <TextField
               label="품목 코드"
               value={itemForm.sku}
@@ -347,7 +347,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               onChange={(event) => setItemForm((current) => ({ ...current, safetyStock: Number(event.target.value) }))}
               required
             />
-            <Button className="mt-7 h-11 gap-2" disabled={!itemFormReady || createItem.isPending}>
+            <Button className="h-11 gap-2" disabled={!itemFormReady || createItem.isPending}>
               <Plus size={17} strokeWidth={2.2} />
               {createItem.isPending ? "등록 중" : "등록"}
             </Button>
@@ -436,7 +436,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       </Panel>
 
       <Panel title="현재 재고" description="창고별 품목 수량과 안전재고 미달 여부를 확인합니다.">
-        <div className={["mb-4 grid gap-3", canAdjustInventory ? "md:grid-cols-[1fr_220px_auto]" : "md:grid-cols-[1fr_220px]"].join(" ")}>
+        <div className={["mb-4 grid items-end gap-3", canAdjustInventory ? "md:grid-cols-[1fr_220px_auto]" : "md:grid-cols-[1fr_220px]"].join(" ")}>
           <TextField
             label="검색"
             placeholder="품목, 분류, 창고"
@@ -447,7 +447,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
           />
           <SelectField label="창고" value={stockWarehouseId} options={stockWarehouseOptions} onChange={setStockWarehouseId} />
           {canAdjustInventory ? (
-            <Button className="mt-7 h-11 gap-2" type="button" onClick={() => openAdjustmentModal()}>
+            <Button className="h-11 gap-2" type="button" onClick={() => openAdjustmentModal()}>
               <PackagePlus size={17} strokeWidth={2.2} />
               재고 조정
             </Button>
@@ -512,7 +512,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
       </Panel>
 
       <Panel title="재고 이동 이력" description="구매 입고, 판매 출고, 수동 조정으로 발생한 재고 수량 변경 내역을 확인합니다.">
-        <div className="mb-4 grid gap-3 xl:grid-cols-[1fr_190px_190px_190px_auto_auto]">
+        <div className="mb-4 grid items-end gap-3 xl:grid-cols-[1fr_190px_190px_190px_auto_auto]">
           <TextField
             label="검색"
             placeholder="품목, 창고, 사유, 처리자"
@@ -525,7 +525,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             }}
           />
           <Button
-            className="mt-7 h-11"
+            className="h-11"
             type="button"
             variant="secondary"
             onClick={() => {
@@ -561,7 +561,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             }}
           />
           <Button
-            className="mt-7 h-11"
+            className="h-11"
             type="button"
             variant="secondary"
             onClick={() => {
