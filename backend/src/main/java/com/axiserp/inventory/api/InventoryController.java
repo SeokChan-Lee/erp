@@ -1,5 +1,6 @@
 package com.axiserp.inventory.api;
 
+import com.axiserp.audit.AuditLogService;
 import com.axiserp.auth.AuthService;
 import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
@@ -45,19 +46,22 @@ public class InventoryController {
     private final WarehouseRepository warehouseRepository;
     private final InventoryStockRepository inventoryStockRepository;
     private final InventoryMovementRepository inventoryMovementRepository;
+    private final AuditLogService auditLogService;
 
     public InventoryController(
             AuthService authService,
             ItemRepository itemRepository,
             WarehouseRepository warehouseRepository,
             InventoryStockRepository inventoryStockRepository,
-            InventoryMovementRepository inventoryMovementRepository
+            InventoryMovementRepository inventoryMovementRepository,
+            AuditLogService auditLogService
     ) {
         this.authService = authService;
         this.itemRepository = itemRepository;
         this.warehouseRepository = warehouseRepository;
         this.inventoryStockRepository = inventoryStockRepository;
         this.inventoryMovementRepository = inventoryMovementRepository;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping("/warehouses")
@@ -162,6 +166,14 @@ public class InventoryController {
                 "",
                 user.displayName()
         ));
+        auditLogService.record(
+                "INVENTORY",
+                "INVENTORY_ADJUST",
+                item.getSku(),
+                "재고 조정",
+                "%s · %s · 변경량 %d".formatted(item.getName(), warehouse.getName(), request.quantityDelta()),
+                user.displayName()
+        );
         return InventoryStockResponse.from(savedStock);
     }
 

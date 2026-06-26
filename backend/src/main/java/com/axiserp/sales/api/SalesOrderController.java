@@ -1,5 +1,6 @@
 package com.axiserp.sales.api;
 
+import com.axiserp.audit.AuditLogService;
 import com.axiserp.auth.AuthService;
 import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
@@ -52,6 +53,7 @@ public class SalesOrderController {
     private final WarehouseRepository warehouseRepository;
     private final InventoryStockRepository inventoryStockRepository;
     private final InventoryMovementRepository inventoryMovementRepository;
+    private final AuditLogService auditLogService;
 
     public SalesOrderController(
             AuthService authService,
@@ -60,7 +62,8 @@ public class SalesOrderController {
             SalesOrderRepository salesOrderRepository,
             WarehouseRepository warehouseRepository,
             InventoryStockRepository inventoryStockRepository,
-            InventoryMovementRepository inventoryMovementRepository
+            InventoryMovementRepository inventoryMovementRepository,
+            AuditLogService auditLogService
     ) {
         this.authService = authService;
         this.customerRepository = customerRepository;
@@ -69,6 +72,7 @@ public class SalesOrderController {
         this.warehouseRepository = warehouseRepository;
         this.inventoryStockRepository = inventoryStockRepository;
         this.inventoryMovementRepository = inventoryMovementRepository;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping
@@ -129,6 +133,14 @@ public class SalesOrderController {
                 request.memo() == null ? null : request.memo().trim(),
                 user.displayName()
         ));
+        auditLogService.record(
+                "SALES",
+                "SALES_ORDER_CREATE",
+                order.getOrderNo(),
+                "판매 수주 등록",
+                "%s · %s · 수량 %d".formatted(customer.getName(), item.getName(), order.getQuantity()),
+                user.displayName()
+        );
         return SalesOrderResponse.from(order);
     }
 
@@ -168,6 +180,14 @@ public class SalesOrderController {
                 order.getOrderNo(),
                 user.displayName()
         ));
+        auditLogService.record(
+                "SALES",
+                "SALES_ORDER_SHIP",
+                order.getOrderNo(),
+                "판매 수주 출고",
+                "%s · %s · 수량 %d".formatted(order.getItem().getName(), warehouse.getName(), order.getQuantity()),
+                user.displayName()
+        );
 
         return SalesOrderResponse.from(order);
     }
@@ -206,6 +226,14 @@ public class SalesOrderController {
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }
+        auditLogService.record(
+                "SALES",
+                "SALES_ORDER_SHIP_CANCEL",
+                order.getOrderNo(),
+                "판매 수주 출고 취소",
+                "%s · %s · 수량 %d".formatted(order.getItem().getName(), warehouse.getName(), order.getQuantity()),
+                user.displayName()
+        );
 
         return SalesOrderResponse.from(order);
     }
@@ -224,6 +252,14 @@ public class SalesOrderController {
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }
+        auditLogService.record(
+                "SALES",
+                "SALES_ORDER_CANCEL",
+                order.getOrderNo(),
+                "판매 수주 취소",
+                "%s · %s".formatted(order.getCustomer().getName(), order.getItem().getName()),
+                user.displayName()
+        );
         return SalesOrderResponse.from(order);
     }
 

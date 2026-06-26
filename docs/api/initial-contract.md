@@ -410,6 +410,36 @@ Returns initial dashboard metrics:
 - pending sales shipments
 - recent activity items for purchase, sales, and inventory
 
+## Audit Logs
+
+### `GET /api/audit-logs`
+
+Requires `APPROVAL_READ`.
+
+Returns paged operational audit logs for authentication, inventory, purchase, and sales events.
+
+Query:
+
+- `page`, `pageSize`
+- `search`: optional keyword for event type, reference number, summary, detail, or actor.
+- `domainType`: `ALL`, `AUTH`, `INVENTORY`, `PURCHASE`, `SALES`
+- `startDate`, `endDate`: ISO date range for occurrence time.
+
+Response item:
+
+```json
+{
+  "id": 1,
+  "domainType": "PURCHASE",
+  "eventType": "PURCHASE_ORDER_RECEIVE",
+  "referenceNo": "PO-20260625-001",
+  "summary": "구매 발주 입고",
+  "detail": "표준 노트북 · 본사 창고 · 수량 3",
+  "actor": "시스템 관리자",
+  "occurredAt": "2026-06-25T10:30:00"
+}
+```
+
 ## Sales
 
 ### `GET /api/sales/orders`

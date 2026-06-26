@@ -34,6 +34,8 @@ Flyway migrations currently create and manage:
   - Stores receiving fields (`received_warehouse_id`, `received_by`, `received_at`) so duplicate receiving can be blocked while inventory movement history remains in `inventory_movements`.
 - `sales_orders`
   - Stores customer, item, quantity, unit price, order status, order owner, cancellation processor fields, and shipping fields.
+- `audit_logs`
+  - Stores authentication, inventory, purchase, and sales processing events for operational audit review.
 
 ## Seed Data
 

@@ -1,5 +1,6 @@
 package com.axiserp.purchase.api;
 
+import com.axiserp.audit.AuditLogService;
 import com.axiserp.auth.AuthService;
 import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
@@ -44,19 +45,22 @@ public class PurchaseOrderController {
     private final WarehouseRepository warehouseRepository;
     private final InventoryStockRepository inventoryStockRepository;
     private final InventoryMovementRepository inventoryMovementRepository;
+    private final AuditLogService auditLogService;
 
     public PurchaseOrderController(
             AuthService authService,
             PurchaseOrderRepository purchaseOrderRepository,
             WarehouseRepository warehouseRepository,
             InventoryStockRepository inventoryStockRepository,
-            InventoryMovementRepository inventoryMovementRepository
+            InventoryMovementRepository inventoryMovementRepository,
+            AuditLogService auditLogService
     ) {
         this.authService = authService;
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.warehouseRepository = warehouseRepository;
         this.inventoryStockRepository = inventoryStockRepository;
         this.inventoryMovementRepository = inventoryMovementRepository;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping
@@ -126,6 +130,14 @@ public class PurchaseOrderController {
                 order.getOrderNo(),
                 user.displayName()
         ));
+        auditLogService.record(
+                "PURCHASE",
+                "PURCHASE_ORDER_RECEIVE",
+                order.getOrderNo(),
+                "구매 발주 입고",
+                "%s · %s · 수량 %d".formatted(order.getRequest().getItem().getName(), warehouse.getName(), order.getRequest().getQuantity()),
+                user.displayName()
+        );
 
         return PurchaseOrderResponse.from(order);
     }
@@ -163,6 +175,14 @@ public class PurchaseOrderController {
                 user.displayName()
         ));
         order.cancelReceive();
+        auditLogService.record(
+                "PURCHASE",
+                "PURCHASE_ORDER_RECEIVE_CANCEL",
+                order.getOrderNo(),
+                "구매 발주 입고 취소",
+                "%s · %s · 수량 %d".formatted(order.getRequest().getItem().getName(), warehouse.getName(), order.getRequest().getQuantity()),
+                user.displayName()
+        );
 
         return PurchaseOrderResponse.from(order);
     }

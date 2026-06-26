@@ -197,3 +197,9 @@
 
 - Made dashboard recent activity items clickable.
 - Routed purchase, sales, and inventory activities to their owning pages with the reference number prefilled as the initial search filter.
+
+### Audit Log MVP
+
+- Added backend audit log persistence and a paged audit log API.
+- Recorded authentication, inventory adjustment, purchase, and sales processing events.
+- Added an operations history page with search, domain filter, date range filter, and pagination.

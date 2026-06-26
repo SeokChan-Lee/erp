@@ -1,8 +1,9 @@
-import { BarChart3, Building2, Clock3, Handshake, LayoutDashboard, PackageSearch, ReceiptText, ShieldCheck, UserCog, UserRound } from "lucide-react";
+import { BarChart3, Building2, Clock3, FileClock, Handshake, LayoutDashboard, PackageSearch, ReceiptText, ShieldCheck, UserCog, UserRound } from "lucide-react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import { AccountMenu } from "./components/AccountMenu";
 import { AccessControlView } from "../features/access-control/AccessControlView";
+import { AuditLogView } from "../features/audit/AuditLogView";
 import { AttendanceView } from "../features/attendance/AttendanceView";
 import { LoginView } from "../features/auth/LoginView";
 import { useMeQuery } from "../features/auth/api/authApi";
@@ -24,6 +25,7 @@ const navItems = [
   { to: "/inventory", label: "품목/재고", description: "품목 기준과 현재고", icon: PackageSearch, permission: "INVENTORY_READ" },
   { to: "/purchase", label: "구매/거래처", description: "고객사, 공급사, 구매 요청", icon: Handshake, permissions: ["CUSTOMER_READ", "SUPPLIER_READ", "PURCHASE_READ"] },
   { to: "/sales", label: "판매/수주", description: "판매 수주 관리", icon: ReceiptText, permission: "SALES_READ" },
+  { to: "/audit", label: "운영 이력", description: "처리 로그와 감사 기록", icon: FileClock, permission: "APPROVAL_READ" },
   { to: "/access", label: "권한", description: "역할과 권한 관리", icon: ShieldCheck, permission: "ROLE_READ" },
   { to: "/my-page", label: "마이페이지", description: "내 계정 정보", icon: UserRound }
 ];
@@ -59,6 +61,7 @@ export function App() {
   const canReadInventory = user.permissions.includes("INVENTORY_READ");
   const canReadPurchase = user.permissions.includes("CUSTOMER_READ") || user.permissions.includes("SUPPLIER_READ") || user.permissions.includes("PURCHASE_READ");
   const canReadSales = user.permissions.includes("SALES_READ");
+  const canReadAudit = user.permissions.includes("APPROVAL_READ");
 
   return (
     <div className="min-h-screen bg-axis-bg text-axis-ink">
@@ -137,6 +140,7 @@ export function App() {
             <Route path="/inventory" element={canReadInventory ? <InventoryView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/purchase" element={canReadPurchase ? <PurchaseView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/sales" element={canReadSales ? <SalesView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+            <Route path="/audit" element={canReadAudit ? <AuditLogView /> : <Navigate to="/dashboard" replace />} />
             <Route path="/access" element={canReadRoles ? <AccessControlView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route path="/my-page" element={<MyPageView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -154,6 +158,7 @@ function pageTitle(pathname: string) {
   if (pathname === "/inventory") return "품목/재고 관리";
   if (pathname === "/purchase") return "구매/거래처 관리";
   if (pathname === "/sales") return "판매/수주 관리";
+  if (pathname === "/audit") return "운영 이력";
   if (pathname === "/access") return "권한 관리";
   if (pathname === "/my-page") return "마이페이지";
   return "대시보드";

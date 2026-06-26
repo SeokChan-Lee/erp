@@ -1,5 +1,6 @@
 package com.axiserp.purchase.api;
 
+import com.axiserp.audit.AuditLogService;
 import com.axiserp.auth.AuthService;
 import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.common.api.PageResponse;
@@ -46,19 +47,22 @@ public class PurchaseRequestController {
     private final ItemRepository itemRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final AuditLogService auditLogService;
 
     public PurchaseRequestController(
             AuthService authService,
             SupplierRepository supplierRepository,
             ItemRepository itemRepository,
             PurchaseRequestRepository purchaseRequestRepository,
-            PurchaseOrderRepository purchaseOrderRepository
+            PurchaseOrderRepository purchaseOrderRepository,
+            AuditLogService auditLogService
     ) {
         this.authService = authService;
         this.supplierRepository = supplierRepository;
         this.itemRepository = itemRepository;
         this.purchaseRequestRepository = purchaseRequestRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping
@@ -107,6 +111,14 @@ public class PurchaseRequestController {
                 request.memo() == null ? null : request.memo().trim(),
                 user.displayName()
         ));
+        auditLogService.record(
+                "PURCHASE",
+                "PURCHASE_REQUEST_CREATE",
+                saved.getRequestNo(),
+                "구매 요청 생성",
+                "%s · %s · 수량 %d".formatted(supplier.getName(), item.getName(), request.quantity()),
+                user.displayName()
+        );
         return PurchaseRequestResponse.from(saved);
     }
 
@@ -124,6 +136,14 @@ public class PurchaseRequestController {
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }
+        auditLogService.record(
+                "PURCHASE",
+                "PURCHASE_REQUEST_APPROVE",
+                request.getRequestNo(),
+                "구매 요청 승인",
+                "%s · %s".formatted(request.getSupplier().getName(), request.getItem().getName()),
+                user.displayName()
+        );
         return PurchaseRequestResponse.from(request);
     }
 
@@ -141,6 +161,14 @@ public class PurchaseRequestController {
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }
+        auditLogService.record(
+                "PURCHASE",
+                "PURCHASE_REQUEST_CANCEL",
+                request.getRequestNo(),
+                "구매 요청 취소",
+                "%s · %s".formatted(request.getSupplier().getName(), request.getItem().getName()),
+                user.displayName()
+        );
         return PurchaseRequestResponse.from(request);
     }
 
@@ -164,6 +192,14 @@ public class PurchaseRequestController {
         }
         String orderNo = "PO-" + LocalDate.now().toString().replace("-", "") + "-" + System.currentTimeMillis();
         PurchaseOrderEntity order = purchaseOrderRepository.save(new PurchaseOrderEntity(orderNo, request, user.displayName()));
+        auditLogService.record(
+                "PURCHASE",
+                "PURCHASE_ORDER_CREATE",
+                order.getOrderNo(),
+                "구매 발주 전환",
+                "%s · 요청 %s".formatted(request.getSupplier().getName(), request.getRequestNo()),
+                user.displayName()
+        );
         return PurchaseOrderResponse.from(order);
     }
 
