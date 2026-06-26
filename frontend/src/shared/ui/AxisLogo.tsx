@@ -19,16 +19,9 @@ export function AxisLogo({ compact = false, inverted = false, markOnly = false }
         ].join(" ")}
       >
         <svg className={compact ? "h-7 w-7" : "h-9 w-9"} viewBox="0 0 64 64" aria-hidden="true">
-          <path
-            d="M18 44L46 20"
-            fill="none"
-            stroke={inverted ? "#0071e3" : "#9ec5ff"}
-            strokeLinecap="round"
-            strokeWidth="7"
-          />
-          <circle cx="18" cy="44" r="6" fill="currentColor" />
-          <circle cx="32" cy="32" r="5" fill="currentColor" opacity="0.72" />
-          <circle cx="46" cy="20" r="6" fill="currentColor" />
+          <path d="M16 18H48L40 30H16Z" fill="currentColor" opacity={inverted ? "0.92" : "1"} />
+          <path d="M24 34H56L48 46H24Z" fill={inverted ? "#0071e3" : "#9ec5ff"} />
+          <path d="M16 18L24 34H40L48 18Z" fill={inverted ? "#1d1d1f" : "#ffffff"} opacity={inverted ? "0.14" : "0.22"} />
         </svg>
       </span>
       {markOnly ? null : (

@@ -43,19 +43,19 @@ export function LoginView() {
   return (
     <main className="min-h-screen bg-axis-bg">
       <div className="grid min-h-screen lg:grid-cols-[1fr_520px]">
-        <section className="relative hidden overflow-hidden bg-[#f5f7fb] px-12 py-12 text-axis-ink lg:flex lg:items-center lg:justify-center">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(0,113,227,0.10)_0%,rgba(0,113,227,0.04)_36%,rgba(255,255,255,0)_36%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(315deg,rgba(29,29,31,0.06)_0%,rgba(29,29,31,0.02)_28%,rgba(255,255,255,0)_28%)]" />
+        <section className="relative hidden overflow-hidden bg-[#f3f5f9] px-12 py-12 text-axis-ink lg:flex lg:items-center lg:justify-center">
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.92)_0%,rgba(255,255,255,0.58)_46%,rgba(224,232,244,0.72)_46%,rgba(224,232,244,0.72)_100%)]" />
+          <div className="absolute inset-y-0 right-0 w-1/3 bg-[#e8edf5]" />
 
-          <div className="relative flex max-w-2xl flex-col items-center text-center axis-fade-up">
+          <div className="relative flex max-w-[840px] flex-col items-start text-left axis-fade-up">
             <AxisLogo />
 
             <div className="mt-12">
               <p className="text-sm font-semibold text-axis-blue">ERP OPERATING MODEL</p>
-              <h1 className="mt-5 text-5xl font-semibold leading-tight tracking-normal text-axis-ink">
+              <h1 className="mt-5 whitespace-nowrap text-4xl font-semibold leading-tight tracking-normal text-axis-ink xl:text-5xl">
                 회사 운영 데이터를 한 축으로 정렬합니다.
               </h1>
-              <p className="mx-auto mt-5 max-w-xl text-lg font-medium leading-8 text-[#424245]">
+              <p className="mt-5 max-w-xl text-lg font-medium leading-8 text-[#424245]">
                 Axis ERP는 조직, 권한, 승인, 재고 기준을 같은 구조로 연결해 업무 흐름의 기준을 분명하게 만듭니다.
               </p>
             </div>
