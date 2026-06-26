@@ -30,6 +30,7 @@ Flyway migrations currently create and manage:
 - `customers`
 - `suppliers`
 - `purchase_requests`
+  - Stores request amount, request status, requester, processor, processed time, and rejection reason for rejected purchase requests.
 - `purchase_orders`
   - Stores receiving fields (`received_warehouse_id`, `received_by`, `received_at`) so duplicate receiving can be blocked while inventory movement history remains in `inventory_movements`.
 - `sales_orders`

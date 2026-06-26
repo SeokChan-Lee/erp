@@ -20,7 +20,8 @@ public record PurchaseRequestResponse(
         String requestedBy,
         LocalDateTime requestedAt,
         String processedBy,
-        LocalDateTime processedAt
+        LocalDateTime processedAt,
+        String processedReason
 ) {
     public static PurchaseRequestResponse from(PurchaseRequestEntity request) {
         return new PurchaseRequestResponse(
@@ -36,7 +37,8 @@ public record PurchaseRequestResponse(
                 request.getRequestedBy(),
                 request.getRequestedAt(),
                 request.getProcessedBy(),
-                request.getProcessedAt()
+                request.getProcessedAt(),
+                request.getProcessedReason()
         );
     }
 }

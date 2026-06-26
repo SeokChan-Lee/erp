@@ -117,6 +117,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [editingSupplier, setEditingSupplier] = useState<SupplierEditForm | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PurchaseRequest | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [cancelingRequest, setCancelingRequest] = useState<PurchaseRequest | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [receivingOrder, setReceivingOrder] = useState<PurchaseOrder | null>(null);
   const [receiveWarehouseId, setReceiveWarehouseId] = useState(0);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseRequestCreatePayload>(initialPurchaseForm);
@@ -250,7 +252,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     { value: "ALL" as PurchaseRequestStatusFilter, label: "전체" },
     { value: "REQUESTED" as PurchaseRequestStatusFilter, label: "요청" },
     { value: "APPROVED" as PurchaseRequestStatusFilter, label: "승인" },
-    { value: "CANCELED" as PurchaseRequestStatusFilter, label: "취소" },
+    { value: "CANCELED" as PurchaseRequestStatusFilter, label: "반려" },
     { value: "ORDERED" as PurchaseRequestStatusFilter, label: "발주" }
   ];
   const supplierOptions = activeSuppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code} · ${supplier.name}` }));
@@ -259,6 +261,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const customerFormReady = Object.values(customerForm).every((value) => value.trim().length > 0);
   const supplierFormReady = Object.values(supplierForm).every((value) => value.trim().length > 0);
   const purchaseFormReady = selectedSupplierId > 0 && selectedItemId > 0 && purchaseForm.quantity > 0 && purchaseForm.unitPrice > 0;
+  const cancelReasonReady = cancelReason.trim().length > 0;
   const selectedReceiveWarehouseId = receiveWarehouseId || warehouses[0]?.id || 0;
 
   useEffect(() => {
@@ -415,10 +418,28 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
     });
   };
 
-  const handleCancelPurchase = (requestId: number) => {
-    cancelRequest.mutate(requestId, {
-      onSuccess: () => setToastMessage("구매 요청이 취소되었습니다.")
-    });
+  const openCancelRequestModal = (request: PurchaseRequest) => {
+    setCancelingRequest(request);
+    setCancelReason("");
+  };
+
+  const handleCancelPurchase = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!cancelingRequest || !cancelReasonReady) return;
+
+    cancelRequest.mutate(
+      {
+        requestId: cancelingRequest.id,
+        payload: { reason: cancelReason.trim() }
+      },
+      {
+        onSuccess: () => {
+          setCancelingRequest(null);
+          setCancelReason("");
+          setToastMessage("구매 요청이 반려되었습니다.");
+        }
+      }
+    );
   };
 
   const handleCreateOrder = (requestId: number) => {
@@ -800,30 +821,30 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                           </Button>
                           {request.status === "REQUESTED" && (canApprovePurchase || canCancelPurchase) ? (
                             <>
-                            {canApprovePurchase ? (
-                              <Button
-                                className="h-8 gap-1.5 px-3 text-xs"
-                                disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
-                                type="button"
-                                variant="secondary"
-                                onClick={() => handleApprovePurchase(request.id)}
-                              >
-                                <Check size={14} strokeWidth={2.2} />
-                                승인
-                              </Button>
-                            ) : null}
-                            {canCancelPurchase ? (
-                              <Button
-                                className="h-8 gap-1.5 px-3 text-xs text-rose-700"
-                                disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
-                                type="button"
-                                variant="secondary"
-                                onClick={() => handleCancelPurchase(request.id)}
-                              >
-                                <X size={14} strokeWidth={2.2} />
-                                취소
-                              </Button>
-                            ) : null}
+                              {canApprovePurchase ? (
+                                <Button
+                                  className="h-8 gap-1.5 px-3 text-xs"
+                                  disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() => handleApprovePurchase(request.id)}
+                                >
+                                  <Check size={14} strokeWidth={2.2} />
+                                  승인
+                                </Button>
+                              ) : null}
+                              {canCancelPurchase ? (
+                                <Button
+                                  className="h-8 gap-1.5 px-3 text-xs text-rose-700"
+                                  disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() => openCancelRequestModal(request)}
+                                >
+                                  <X size={14} strokeWidth={2.2} />
+                                  반려
+                                </Button>
+                              ) : null}
                             </>
                           ) : null}
                           {request.status === "APPROVED" && canCancelPurchase ? (
@@ -987,6 +1008,9 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               <DetailItem label="품목 분류" value={selectedRequest.item.category} />
               <DetailItem label="처리자" value={selectedRequest.processedBy ?? "아직 처리되지 않음"} />
               <DetailItem label="처리일" value={selectedRequest.processedAt ? formatDateTime(selectedRequest.processedAt) : "아직 처리되지 않음"} />
+              {selectedRequest.status === "CANCELED" ? (
+                <DetailItem label="반려 사유" value={selectedRequest.processedReason?.trim() || "등록된 반려 사유가 없습니다."} />
+              ) : null}
             </div>
 
             <div className="rounded-lg border border-axis-border px-4 py-3">
@@ -994,6 +1018,54 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-6 text-axis-muted">{selectedRequest.memo?.trim() || "등록된 메모가 없습니다."}</p>
             </div>
           </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={cancelingRequest !== null}
+        title="구매 요청 반려"
+        description="반려 사유는 구매 요청 상세와 운영 이력에 함께 남습니다."
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setCancelingRequest(null);
+                setCancelReason("");
+              }}
+            >
+              취소
+            </Button>
+            <Button disabled={!cancelReasonReady || cancelRequest.isPending} type="submit" form="purchase-request-cancel-form">
+              {cancelRequest.isPending ? "반려 중" : "반려"}
+            </Button>
+          </>
+        }
+        onClose={() => {
+          setCancelingRequest(null);
+          setCancelReason("");
+        }}
+      >
+        {cancelingRequest ? (
+          <form id="purchase-request-cancel-form" className="space-y-4" onSubmit={handleCancelPurchase}>
+            <div className="rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
+              <p className="text-sm font-bold text-axis-ink">{cancelingRequest.requestNo}</p>
+              <p className="mt-1 text-xs font-semibold text-axis-muted">
+                {cancelingRequest.supplier.name} · {cancelingRequest.item.name} · {formatCurrency(cancelingRequest.totalAmount)}
+              </p>
+            </div>
+            <label className="block">
+              <span className="text-sm font-semibold text-axis-ink">반려 사유</span>
+              <textarea
+                className="mt-2 min-h-28 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted"
+                value={cancelReason}
+                onChange={(event) => setCancelReason(event.target.value)}
+                placeholder="예: 예산 범위 초과로 이번 요청은 반려합니다."
+                required
+              />
+            </label>
+          </form>
         ) : null}
       </Modal>
 
@@ -1299,7 +1371,7 @@ function PurchaseStatusBadge({ status }: { status: string }) {
 }
 
 function purchaseStatusLabel(status: string) {
-  return status === "ORDERED" ? "발주" : status === "APPROVED" ? "승인" : status === "CANCELED" ? "취소" : "요청";
+  return status === "ORDERED" ? "발주" : status === "APPROVED" ? "승인" : status === "CANCELED" ? "반려" : "요청";
 }
 
 function ReceiveStatusBadge({ received }: { received: boolean }) {

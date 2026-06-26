@@ -59,6 +59,9 @@ public class PurchaseRequestEntity {
 
     private LocalDateTime processedAt;
 
+    @Column(length = 255)
+    private String processedReason;
+
     protected PurchaseRequestEntity() {
     }
 
@@ -109,15 +112,17 @@ public class PurchaseRequestEntity {
         this.status = PurchaseRequestStatus.APPROVED;
         this.processedBy = processedBy;
         this.processedAt = LocalDateTime.now();
+        this.processedReason = null;
     }
 
-    public void cancel(String processedBy) {
+    public void cancel(String processedBy, String processedReason) {
         if (status != PurchaseRequestStatus.REQUESTED) {
-            throw new IllegalStateException("요청 상태의 구매 요청만 취소할 수 있습니다.");
+            throw new IllegalStateException("요청 상태의 구매 요청만 반려할 수 있습니다.");
         }
         this.status = PurchaseRequestStatus.CANCELED;
         this.processedBy = processedBy;
         this.processedAt = LocalDateTime.now();
+        this.processedReason = processedReason;
     }
 
     public void markOrdered(String processedBy) {
@@ -127,6 +132,7 @@ public class PurchaseRequestEntity {
         this.status = PurchaseRequestStatus.ORDERED;
         this.processedBy = processedBy;
         this.processedAt = LocalDateTime.now();
+        this.processedReason = null;
     }
 
     public String getMemo() {
@@ -147,5 +153,9 @@ public class PurchaseRequestEntity {
 
     public LocalDateTime getProcessedAt() {
         return processedAt;
+    }
+
+    public String getProcessedReason() {
+        return processedReason;
     }
 }

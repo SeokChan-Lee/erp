@@ -100,6 +100,7 @@ export type PurchaseRequest = {
   requestedAt: string;
   processedBy: string | null;
   processedAt: string | null;
+  processedReason: string | null;
 };
 
 export type PurchaseRequestQueryParams = {
@@ -115,6 +116,10 @@ export type PurchaseRequestCreatePayload = {
   quantity: number;
   unitPrice: number;
   memo: string;
+};
+
+export type PurchaseRequestCancelPayload = {
+  reason: string;
 };
 
 export type PurchaseOrder = {

@@ -334,7 +334,7 @@ Request:
 }
 ```
 
-Response includes request number, supplier summary, item summary, quantity, unit price, total amount, request status, memo, requester, requested time, processor, and processed time.
+Response includes request number, supplier summary, item summary, quantity, unit price, total amount, request status, memo, requester, requested time, processor, processed time, and processed reason.
 
 ### `PATCH /api/purchases/requests/{id}/approve`
 
@@ -346,7 +346,15 @@ Approves a purchase request that is currently in request state.
 
 Requires `PURCHASE_UPDATE`.
 
-Cancels a purchase request that is currently in request state.
+Request:
+
+```json
+{
+  "reason": "예산 범위 초과로 이번 요청은 반려합니다."
+}
+```
+
+Rejects a purchase request that is currently in request state. The backend stores the processor, processed time, and rejection reason.
 
 ### `POST /api/purchases/requests/{id}/order`
 

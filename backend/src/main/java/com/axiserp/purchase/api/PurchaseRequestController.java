@@ -151,13 +151,14 @@ public class PurchaseRequestController {
     @Transactional
     public PurchaseRequestResponse cancel(
             @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
-            @PathVariable Long id
+            @PathVariable Long id,
+            @Valid @RequestBody PurchaseRequestCancelRequest cancelRequest
     ) {
         AuthUserResponse user = authService.requirePermission(sessionId, Permission.PURCHASE_UPDATE);
         PurchaseRequestEntity request = purchaseRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "구매 요청을 찾을 수 없습니다."));
         try {
-            request.cancel(user.displayName());
+            request.cancel(user.displayName(), cancelRequest.reason().trim());
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage());
         }
@@ -165,8 +166,8 @@ public class PurchaseRequestController {
                 "PURCHASE",
                 "PURCHASE_REQUEST_CANCEL",
                 request.getRequestNo(),
-                "구매 요청 취소",
-                "%s · %s".formatted(request.getSupplier().getName(), request.getItem().getName()),
+                "구매 요청 반려",
+                "%s · %s · 사유: %s".formatted(request.getSupplier().getName(), request.getItem().getName(), request.getProcessedReason()),
                 user.displayName()
         );
         return PurchaseRequestResponse.from(request);
@@ -225,6 +226,7 @@ public class PurchaseRequestController {
                         builder.like(builder.lower(item.get("sku")), keyword),
                         builder.like(builder.lower(item.get("name")), keyword),
                         builder.like(builder.lower(root.get("memo")), keyword),
+                        builder.like(builder.lower(root.get("processedReason")), keyword),
                         builder.like(builder.lower(root.get("requestedBy")), keyword)
                 ));
             }

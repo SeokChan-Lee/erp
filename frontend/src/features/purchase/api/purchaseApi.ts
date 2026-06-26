@@ -11,6 +11,7 @@ import type {
   PurchaseOrderQueryParams,
   PurchaseOrderReceivePayload,
   PurchaseRequest,
+  PurchaseRequestCancelPayload,
   PurchaseRequestCreatePayload,
   PurchaseRequestQueryParams,
   Supplier,
@@ -215,9 +216,10 @@ export function useCancelPurchaseRequestMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (requestId: number) =>
+    mutationFn: ({ requestId, payload }: { requestId: number; payload: PurchaseRequestCancelPayload }) =>
       http<PurchaseRequest>(`/purchases/requests/${requestId}/cancel`, {
-        method: "PATCH"
+        method: "PATCH",
+        json: payload
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.requestRoot });

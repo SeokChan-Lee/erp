@@ -209,3 +209,9 @@
 - Added an audit log detail modal.
 - Added navigation from audit log rows to the related purchase, sales, or inventory page.
 - Supported request-number based purchase request filtering from audit log navigation.
+
+### Purchase Request Rejection Reason
+
+- Added processed reason persistence for rejected purchase requests.
+- Changed purchase request cancellation into a rejection modal with a required reason.
+- Shows the rejection reason in purchase request details and audit log detail text.
