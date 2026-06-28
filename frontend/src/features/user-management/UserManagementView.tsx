@@ -52,6 +52,7 @@ const initialLinkForm = {
 
 const initialEditForm = {
   password: "",
+  passwordConfirm: "",
   roles: ["EMPLOYEE"] as RoleCode[],
   active: true
 };
@@ -159,6 +160,16 @@ export function UserManagementView({
     linkForm.password.length >= 4 &&
     linkForm.roles.length > 0;
   const editingOwnAccount = editingAccount?.username === currentUsername;
+  const editPassword = editForm.password.trim();
+  const editPasswordConfirm = editForm.passwordConfirm.trim();
+  const editPasswordChanging = editPassword.length > 0 || editPasswordConfirm.length > 0;
+  const editPasswordMatches = !editPasswordChanging || (editPassword.length > 0 && editPassword === editPasswordConfirm);
+  const editPasswordConfirmError =
+    editPasswordChanging && editPasswordConfirm.length === 0
+      ? "새 비밀번호를 한 번 더 입력해 주세요."
+      : editPasswordChanging && !editPasswordMatches
+        ? "새 비밀번호가 서로 다릅니다."
+        : undefined;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -219,7 +230,7 @@ export function UserManagementView({
 
   const openEditModal = (account: UserAccount) => {
     setEditingAccount(account);
-    setEditForm({ password: "", roles: account.roles, active: account.active });
+    setEditForm({ password: "", passwordConfirm: "", roles: account.roles, active: account.active });
   };
 
   const closeEditModal = () => {
@@ -239,16 +250,15 @@ export function UserManagementView({
 
   const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0) return;
+    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0 || !editPasswordMatches) return;
 
-    const password = editForm.password.trim();
     updateUserAccount.mutate(
       {
         userId: editingAccount.id,
         payload: {
           roles: editForm.roles,
           active: editForm.active,
-          ...(password.length > 0 ? { password } : {})
+          ...(editPassword.length > 0 ? { password: editPassword } : {})
         }
       },
       {
@@ -280,7 +290,7 @@ export function UserManagementView({
       </div>
 
       {canCreate ? (
-        <Panel title="직원 및 계정 등록" description="신규 직원의 인사 정보와 로그인 계정을 한 번에 등록합니다.">
+        <Panel title="직원 및 계정 등록" description="새 직원과 계정을 함께 추가합니다.">
           {canCreate ? (
           <form className="space-y-6" onSubmit={handleSubmit}>
             <section className="border-b border-axis-border pb-6">
@@ -290,7 +300,7 @@ export function UserManagementView({
                 </span>
                 <div>
                   <h3 className="text-sm font-bold text-axis-ink">직원 정보</h3>
-                  <p className="mt-1 text-xs font-medium text-axis-muted">조직에서 관리할 직원 마스터 정보입니다.</p>
+                  <p className="mt-1 text-xs font-medium text-axis-muted">직원 기본 정보를 입력합니다.</p>
                 </div>
               </div>
 
@@ -351,7 +361,7 @@ export function UserManagementView({
                 </span>
                 <div>
                   <h3 className="text-sm font-bold text-axis-ink">로그인 설정</h3>
-                  <p className="mt-1 text-xs font-medium text-axis-muted">접속 계정과 업무 역할을 함께 지정합니다.</p>
+                  <p className="mt-1 text-xs font-medium text-axis-muted">로그인 계정과 역할을 정합니다.</p>
                 </div>
               </div>
 
@@ -412,7 +422,7 @@ export function UserManagementView({
       ) : null}
 
       {canCreateUser ? (
-        <Panel title="기존 직원 계정 연결" description="직원 마스터에만 등록된 사용자를 ERP 접속 사용자로 전환합니다.">
+        <Panel title="기존 직원 계정 연결" description="기존 직원에 로그인 계정을 연결합니다.">
           <form onSubmit={handleLinkSubmit}>
             <div className="mb-4 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-axis-bg text-axis-ink">
@@ -420,7 +430,7 @@ export function UserManagementView({
               </span>
               <div>
                 <h3 className="text-sm font-bold text-axis-ink">기존 직원 계정 연결</h3>
-                <p className="mt-1 text-xs font-medium text-axis-muted">직원 마스터에만 등록된 사용자를 ERP 접속 사용자로 전환합니다.</p>
+                <p className="mt-1 text-xs font-medium text-axis-muted">계정이 없는 직원에게 로그인 정보를 추가합니다.</p>
               </div>
             </div>
 
@@ -492,7 +502,7 @@ export function UserManagementView({
         </Panel>
       ) : null}
 
-      <Panel title="등록된 사용자 역할 관리" description="ERP에 접속할 수 있는 직원과 현재 부여된 역할을 확인하고 수정합니다.">
+      <Panel title="등록된 사용자 역할 관리" description="등록된 사용자와 역할을 보여줍니다.">
         {accountsLoading ? (
           <p className="text-sm font-semibold text-axis-muted">사용자 현황을 불러오는 중입니다.</p>
         ) : (
@@ -608,14 +618,14 @@ export function UserManagementView({
       <Modal
         open={editingAccount !== null}
         title="사용자 계정 수정"
-        description="사용자 정보를 확인하고 비밀번호와 역할을 수정합니다."
+        description="계정 정보를 수정합니다."
         footer={
           <>
             <Button type="button" variant="secondary" onClick={closeEditModal}>
               취소
             </Button>
             <Button
-              disabled={!canUpdateRoles || editForm.roles.length === 0 || updateUserAccount.isPending}
+              disabled={!canUpdateRoles || editForm.roles.length === 0 || !editPasswordMatches || updateUserAccount.isPending}
               type="submit"
               form="user-account-edit-form"
             >
@@ -658,6 +668,14 @@ export function UserManagementView({
               type="password"
               value={editForm.password}
               onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
+            />
+            <TextField
+              label="새 비밀번호 확인"
+              placeholder="새 비밀번호를 한 번 더 입력하세요."
+              type="password"
+              value={editForm.passwordConfirm}
+              error={editPasswordConfirmError}
+              onChange={(event) => setEditForm((current) => ({ ...current, passwordConfirm: event.target.value }))}
             />
 
             <div>
