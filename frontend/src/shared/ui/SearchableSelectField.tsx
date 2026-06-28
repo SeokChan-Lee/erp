@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 
 type SelectValue = string | number;
@@ -32,7 +33,15 @@ export function SearchableSelectField<T extends SelectValue>({
 }: SearchableSelectFieldProps<T>) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [dropdownStyle, setDropdownStyle] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    maxHeight: 256
+  });
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const selectedOption = options.find((option) => option.value === value);
   const filteredOptions = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -44,7 +53,7 @@ export function SearchableSelectField<T extends SelectValue>({
     if (!open) return;
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) {
+      if (rootRef.current?.contains(event.target as Node) || dropdownRef.current?.contains(event.target as Node)) {
         return;
       }
       setOpen(false);
@@ -53,6 +62,35 @@ export function SearchableSelectField<T extends SelectValue>({
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updateDropdownPosition = () => {
+      const rect = inputRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const belowTop = rect.bottom + 4;
+      const belowSpace = window.innerHeight - belowTop - 16;
+      const aboveSpace = rect.top - 16;
+      const maxHeight = Math.max(140, Math.min(256, belowSpace < 160 && aboveSpace > belowSpace ? aboveSpace : belowSpace));
+
+      setDropdownStyle({
+        left: rect.left,
+        top: belowSpace < 160 && aboveSpace > belowSpace ? rect.top - maxHeight - 4 : belowTop,
+        width: rect.width,
+        maxHeight
+      });
+    };
+
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
   }, [open]);
 
   const handleSelect = (nextValue: T) => {
@@ -66,6 +104,7 @@ export function SearchableSelectField<T extends SelectValue>({
       <span className="text-sm font-semibold text-axis-ink">{label}</span>
       <span className="relative mt-2 block">
         <input
+          ref={inputRef}
           aria-expanded={open}
           className="axis-field pr-10 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={disabled}
@@ -107,32 +146,46 @@ export function SearchableSelectField<T extends SelectValue>({
           <ChevronDown className={open ? "rotate-180 transition" : "transition"} size={17} strokeWidth={2.2} />
         </button>
       </span>
-      {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 max-h-64 overflow-y-auto rounded-lg border border-axis-border bg-white p-1.5">
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map((option) => {
-              const selected = option.value === value;
+      {open
+        ? createPortal(
+            <div
+              ref={dropdownRef}
+              className="fixed z-[140] overflow-y-auto rounded-lg border border-axis-border bg-white p-1.5"
+              style={{
+                left: dropdownStyle.left,
+                top: dropdownStyle.top,
+                width: dropdownStyle.width,
+                maxHeight: dropdownStyle.maxHeight
+              }}
+            >
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => {
+                  const selected = option.value === value;
 
-              return (
-                <button
-                  key={String(option.value)}
-                  className={[
-                    "flex min-h-10 w-full items-center rounded-md px-3 py-2 text-left text-sm font-semibold text-axis-ink hover:bg-axis-bg",
-                    selected ? "bg-axis-bg" : ""
-                  ].join(" ")}
-                  disabled={option.disabled}
-                  type="button"
-                  onClick={() => handleSelect(option.value)}
-                >
-                  {option.label}
-                </button>
-              );
-            })
-          ) : (
-            <p className="px-3 py-3 text-sm font-semibold text-axis-muted">{options.length === 0 ? "선택 가능한 항목이 없습니다." : "검색 결과가 없습니다."}</p>
-          )}
-        </div>
-      ) : null}
+                  return (
+                    <button
+                      key={String(option.value)}
+                      className={[
+                        "flex min-h-10 w-full items-center rounded-md px-3 py-2 text-left text-sm font-semibold text-axis-ink hover:bg-axis-bg",
+                        selected ? "bg-axis-bg" : ""
+                      ].join(" ")}
+                      disabled={option.disabled}
+                      type="button"
+                      onClick={() => handleSelect(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="px-3 py-3 text-sm font-semibold text-axis-muted">
+                  {options.length === 0 ? "선택 가능한 항목이 없습니다." : "검색 결과가 없습니다."}
+                </p>
+              )}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
