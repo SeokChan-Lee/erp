@@ -181,7 +181,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
       </div>
 
       {canCreateDepartment ? (
-        <Panel title="부서 등록" description="직원 배치와 권한 범위에서 사용할 부서를 등록합니다.">
+        <Panel title="부서 등록" description="새 부서를 추가합니다.">
           <form className="grid items-end gap-4 xl:grid-cols-[180px_1fr_1.5fr_auto]" onSubmit={handleCreateDepartment}>
             <TextField
               label="부서 코드"
@@ -212,7 +212,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
       ) : null}
 
       {canCreateEmployee ? (
-        <Panel title="직원 등록" description="직원 마스터 정보를 등록합니다. 로그인 계정까지 함께 만들 때는 사용자 관리에서 처리합니다.">
+        <Panel title="직원 등록" description="새 직원을 추가합니다.">
           <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]" onSubmit={handleSubmit}>
             <TextField
               label="직원 번호"
@@ -272,7 +272,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
         </Panel>
       ) : null}
 
-      <Panel title="부서 현황" description="초기 ERP 기준 부서입니다. 이후 조직도, 팀장, 권한 범위와 연결합니다.">
+      <Panel title="부서 현황" description="현재 등록된 부서를 보여줍니다.">
         <div className="grid gap-4 md:grid-cols-2">
           {departments.map((department) => {
             const memberCount = employees.filter((employee) => employee.department.id === department.id).length;
@@ -300,7 +300,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
       </Panel>
 
       {canUpdateEmployee && editForm ? (
-        <Panel title="직원 정보 수정" description="직원 이름, 이메일, 직책, 부서, 재직 상태를 수정합니다.">
+        <Panel title="직원 정보 수정" description="선택한 직원 정보를 수정합니다.">
           <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]" onSubmit={handleEditSubmit}>
             <TextField
               label="이름"
@@ -346,7 +346,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
         </Panel>
       ) : null}
 
-      <Panel title="직원 목록" description="직원 번호, 부서, 직책, 상태를 한글 업무 용어로 정리합니다.">
+      <Panel title="직원 목록" description="등록된 직원을 보여줍니다.">
         {updateEmployee.error ? (
           <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
             {getErrorMessage(updateEmployee.error)}
