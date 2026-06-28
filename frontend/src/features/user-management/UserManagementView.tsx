@@ -659,14 +659,20 @@ export function UserManagementView({
             </div>
 
             {editingAccount.employee ? (
-              <SelectField
-                label="소속"
-                value={editForm.departmentId}
-                options={departmentOptions}
-                placeholder={departmentsLoading ? "부서 불러오는 중" : "부서 선택"}
-                disabled={departmentsLoading || departments.length === 0}
-                onChange={(departmentId) => setEditForm((current) => ({ ...current, departmentId }))}
-              />
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-axis-ink">부서 변경</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <InfoItem label="기존 부서" value={editingAccount.employee.departmentName} />
+                  <SelectField
+                    label="변경할 부서"
+                    value={editForm.departmentId}
+                    options={departmentOptions}
+                    placeholder={departmentsLoading ? "부서 불러오는 중" : "변경할 부서 선택"}
+                    disabled={departmentsLoading || departments.length === 0}
+                    onChange={(departmentId) => setEditForm((current) => ({ ...current, departmentId }))}
+                  />
+                </div>
+              </div>
             ) : (
               <InfoItem label="소속" value="미연결" />
             )}
