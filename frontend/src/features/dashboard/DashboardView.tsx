@@ -19,7 +19,7 @@ export function DashboardView() {
   const registeredSalesOrders = summary?.registeredSalesOrders ?? 0;
   const pendingSalesShipments = summary?.pendingSalesShipments ?? 0;
   const recentActivityItems = summary?.recentActivityItems ?? [];
-  const visibleRecentActivityItems = recentActivityItems.slice(0, 5);
+  const visibleRecentActivityItems = recentActivityItems.slice(0, 4);
 
   const workSignals = [
     { label: "승인 대기", value: String(pendingApprovals), tone: "text-axis-blue" },
@@ -66,7 +66,7 @@ export function DashboardView() {
         <MetricCard label="판매 출고 대기" value={`${pendingSalesShipments}건`} />
       </div>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid items-stretch gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel title="운영 처리 대기" description="오늘 바로 판단해야 하는 업무를 실제 데이터 기준으로 집계합니다.">
           <div className="divide-y divide-axis-border">
             {[
@@ -100,14 +100,13 @@ export function DashboardView() {
                   type="button"
                   onClick={() => navigate(activityTargetPath(activity))}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex h-full items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         <ActivityBadge type={activity.type} />
-                        <p className="text-sm font-bold text-axis-ink">{activity.label}</p>
+                        <p className="truncate text-sm font-bold text-axis-ink">{activity.label}</p>
                       </div>
-                      <p className="mt-2 truncate text-sm font-semibold text-axis-muted">{activity.description}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{activity.referenceNo} · {formatProcessorName(activity.processedBy)}</p>
+                      <p className="mt-1 truncate text-xs font-semibold text-axis-muted">{activity.referenceNo || activity.description}</p>
                     </div>
                     <span className="shrink-0 text-xs font-semibold text-axis-muted">{formatDateTime(activity.occurredAt)}</span>
                   </div>
