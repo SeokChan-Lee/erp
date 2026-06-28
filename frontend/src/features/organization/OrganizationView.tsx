@@ -77,6 +77,13 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
     form.positionTitle.trim().length > 0 &&
     selectedDepartmentId > 0 &&
     departments.length > 0;
+  const editFormReady =
+    editForm !== null &&
+    editForm.displayName.trim().length > 0 &&
+    editForm.email.trim().length > 0 &&
+    editForm.positionTitle.trim().length > 0 &&
+    editForm.departmentId > 0 &&
+    departments.length > 0;
 
   const handleCreateDepartment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -139,7 +146,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
 
   const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editForm) return;
+    if (!editForm || !editFormReady) return;
 
     updateEmployee.mutate(
       {
@@ -328,7 +335,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
               onChange={(status) => setEditForm((value) => (value ? { ...value, status } : value))}
             />
             <div className="flex items-end gap-2">
-              <Button className="h-11" disabled={updateEmployee.isPending || departments.length === 0}>
+              <Button className="h-11" disabled={!editFormReady || updateEmployee.isPending}>
                 {updateEmployee.isPending ? "저장 중" : "저장"}
               </Button>
               <Button className="h-11" type="button" variant="secondary" onClick={() => setEditForm(null)}>
