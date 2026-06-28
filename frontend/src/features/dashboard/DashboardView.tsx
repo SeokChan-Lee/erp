@@ -19,6 +19,7 @@ export function DashboardView() {
   const registeredSalesOrders = summary?.registeredSalesOrders ?? 0;
   const pendingSalesShipments = summary?.pendingSalesShipments ?? 0;
   const recentActivityItems = summary?.recentActivityItems ?? [];
+  const visibleRecentActivityItems = recentActivityItems.slice(0, 5);
 
   const workSignals = [
     { label: "승인 대기", value: String(pendingApprovals), tone: "text-axis-blue" },
@@ -65,7 +66,7 @@ export function DashboardView() {
         <MetricCard label="판매 출고 대기" value={`${pendingSalesShipments}건`} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid items-start gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel title="운영 처리 대기" description="오늘 바로 판단해야 하는 업무를 실제 데이터 기준으로 집계합니다.">
           <div className="divide-y divide-axis-border">
             {[
@@ -75,7 +76,7 @@ export function DashboardView() {
               { label: "재고 부족 품목 확인", value: `${lowStockItems}건` }
             ].map(
               (item) => (
-                <div key={item.label} className="flex items-center justify-between py-4">
+                <div key={item.label} className="flex min-h-[72px] items-center justify-between gap-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-axis-ink">{item.label}</p>
                     <p className="mt-1 text-sm text-axis-muted">담당 권한을 가진 관리자에게 배정됩니다.</p>
@@ -90,12 +91,12 @@ export function DashboardView() {
         </Panel>
 
         <Panel title="최근 활동" description="구매, 판매, 재고 처리 내역을 최신순으로 확인합니다.">
-          {recentActivityItems.length > 0 ? (
+          {visibleRecentActivityItems.length > 0 ? (
             <div className="divide-y divide-axis-border">
-              {recentActivityItems.map((activity) => (
+              {visibleRecentActivityItems.map((activity) => (
                 <button
                   key={activity.id}
-                  className="block w-full py-4 text-left transition hover:bg-axis-bg/70"
+                  className="block min-h-[72px] w-full py-3 text-left transition hover:bg-axis-bg/70"
                   type="button"
                   onClick={() => navigate(activityTargetPath(activity))}
                 >
