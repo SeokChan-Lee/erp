@@ -2,6 +2,7 @@ package com.axiserp.auth;
 
 import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.auth.api.LoginRequest;
+import com.axiserp.employee.EmployeeEntity;
 import com.axiserp.permission.Permission;
 import com.axiserp.permission.RolePermissionEntity;
 import com.axiserp.permission.RolePermissionRepository;
@@ -149,7 +150,25 @@ public class AuthService {
         for (Role role : account.getRoles()) {
             permissions.addAll(rolePermissions.getOrDefault(role, Set.of()));
         }
-        return new AuthUserResponse(account.getUsername(), account.getDisplayName(), account.getRoles(), permissions);
+        return new AuthUserResponse(account.getUsername(), account.getDisplayName(), toEmployeeProfile(account.getEmployee()), account.getRoles(), permissions);
+    }
+
+    private AuthUserResponse.EmployeeProfile toEmployeeProfile(EmployeeEntity employee) {
+        if (employee == null) {
+            return null;
+        }
+
+        return new AuthUserResponse.EmployeeProfile(
+                employee.getId(),
+                employee.getEmployeeNo(),
+                employee.getDisplayName(),
+                employee.getEmail(),
+                employee.getPositionTitle(),
+                employee.getStatus().name(),
+                employee.getDepartment().getId(),
+                employee.getDepartment().getCode(),
+                employee.getDepartment().getName()
+        );
     }
 
     public record LoginResult(String sessionId, AuthUserResponse user) {

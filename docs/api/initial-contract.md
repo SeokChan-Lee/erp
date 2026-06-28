@@ -21,6 +21,17 @@ Response:
 {
   "username": "admin",
   "displayName": "System Admin",
+  "employee": {
+    "id": 1,
+    "employeeNo": "A-0001",
+    "displayName": "시스템 관리자",
+    "email": "admin@axis.local",
+    "positionTitle": "시스템 관리자",
+    "status": "ACTIVE",
+    "departmentId": 1,
+    "departmentCode": "MGMT",
+    "departmentName": "경영관리"
+  },
   "roles": ["SUPER_ADMIN"],
   "permissions": ["DASHBOARD_VIEW"]
 }

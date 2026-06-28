@@ -16,6 +16,8 @@ export function AccountMenu({ user }: AccountMenuProps) {
   const logoutMutation = useLogoutMutation();
   const ref = useRef<HTMLDivElement | null>(null);
   const displayName = formatAccountDisplayName(user);
+  const employee = user.employee;
+  const profileSummary = employee ? `${employee.departmentName} · ${employee.positionTitle}` : user.roles.map((role) => getRoleMeta(role).label).join(", ");
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -39,7 +41,7 @@ export function AccountMenu({ user }: AccountMenuProps) {
         <span className="hidden min-w-0 flex-1 md:block">
           <span className="block text-[15px] font-bold leading-5 text-axis-ink">{displayName}</span>
           <span className="block truncate text-[13px] font-medium leading-4 text-[#424245]">
-            {user.roles.map((role) => getRoleMeta(role).label).join(", ")}
+            {profileSummary}
           </span>
         </span>
         <ChevronDown className={open ? "shrink-0 rotate-180 text-axis-ink transition" : "shrink-0 text-axis-ink transition"} size={17} strokeWidth={2.4} />
@@ -49,7 +51,16 @@ export function AccountMenu({ user }: AccountMenuProps) {
         <div className="absolute right-0 top-14 z-30 w-80 overflow-hidden rounded-xl border border-axis-border-strong bg-white">
           <div className="border-b border-axis-border px-5 py-5">
             <p className="text-[15px] font-bold leading-5 text-axis-ink">{displayName}</p>
-            <p className="mt-1 text-[13px] font-medium leading-5 text-[#424245]">현재 로그인된 사용자입니다.</p>
+            <p className="mt-1 text-[13px] font-medium leading-5 text-[#424245]">
+              {employee ? `${employee.departmentName} 소속 ${employee.positionTitle}` : "직원 정보가 연결되지 않은 계정입니다."}
+            </p>
+            <div className="mt-4 grid gap-2">
+              <AccountInfoRow label="아이디" value={user.username} />
+              <AccountInfoRow label="부서" value={employee?.departmentName ?? "미연결"} />
+              <AccountInfoRow label="직책" value={employee?.positionTitle ?? "미연결"} />
+              <AccountInfoRow label="이메일" value={employee?.email ?? "미연결"} />
+              <AccountInfoRow label="직원 번호" value={employee?.employeeNo ?? "미연결"} />
+            </div>
             <div className="mt-4 flex flex-wrap gap-1.5">
               {user.roles.map((role) => (
                 <span key={role} className="rounded-full bg-axis-bg px-2.5 py-1 text-xs font-bold text-[#424245]">
@@ -78,6 +89,15 @@ export function AccountMenu({ user }: AccountMenuProps) {
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function AccountInfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg bg-axis-bg px-3 py-2">
+      <span className="shrink-0 text-xs font-bold text-axis-muted">{label}</span>
+      <span className="truncate text-xs font-bold text-axis-ink">{value}</span>
     </div>
   );
 }
