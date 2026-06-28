@@ -19,6 +19,7 @@ export type UserAccount = {
     id: number;
     employeeNo: string;
     displayName: string;
+    departmentId: number;
     departmentName: string;
     positionTitle: string;
   } | null;
@@ -66,6 +67,7 @@ export type UserAccountUpdatePayload = {
   password?: string;
   roles: RoleCode[];
   active?: boolean;
+  departmentId?: number;
 };
 
 export type UserAccountsQueryParams = {

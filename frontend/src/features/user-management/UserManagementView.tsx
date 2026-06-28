@@ -53,6 +53,7 @@ const initialLinkForm = {
 const initialEditForm = {
   password: "",
   passwordConfirm: "",
+  departmentId: 0,
   roles: ["EMPLOYEE"] as RoleCode[],
   active: true
 };
@@ -160,6 +161,7 @@ export function UserManagementView({
     linkForm.password.length >= 4 &&
     linkForm.roles.length > 0;
   const editingOwnAccount = editingAccount?.username === currentUsername;
+  const editDepartmentReady = !editingAccount?.employee || editForm.departmentId > 0;
   const editPassword = editForm.password.trim();
   const editPasswordConfirm = editForm.passwordConfirm.trim();
   const editPasswordChanging = editPassword.length > 0 || editPasswordConfirm.length > 0;
@@ -230,7 +232,13 @@ export function UserManagementView({
 
   const openEditModal = (account: UserAccount) => {
     setEditingAccount(account);
-    setEditForm({ password: "", passwordConfirm: "", roles: account.roles, active: account.active });
+    setEditForm({
+      password: "",
+      passwordConfirm: "",
+      departmentId: account.employee?.departmentId ?? 0,
+      roles: account.roles,
+      active: account.active
+    });
   };
 
   const closeEditModal = () => {
@@ -250,7 +258,7 @@ export function UserManagementView({
 
   const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0 || !editPasswordMatches) return;
+    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0 || !editDepartmentReady || !editPasswordMatches) return;
 
     updateUserAccount.mutate(
       {
@@ -258,6 +266,7 @@ export function UserManagementView({
         payload: {
           roles: editForm.roles,
           active: editForm.active,
+          ...(editingAccount.employee && editForm.departmentId > 0 ? { departmentId: editForm.departmentId } : {}),
           ...(editPassword.length > 0 ? { password: editPassword } : {})
         }
       },
@@ -625,7 +634,13 @@ export function UserManagementView({
               취소
             </Button>
             <Button
-              disabled={!canUpdateRoles || editForm.roles.length === 0 || !editPasswordMatches || updateUserAccount.isPending}
+              disabled={
+                !canUpdateRoles ||
+                editForm.roles.length === 0 ||
+                !editDepartmentReady ||
+                !editPasswordMatches ||
+                updateUserAccount.isPending
+              }
               type="submit"
               form="user-account-edit-form"
             >
@@ -640,9 +655,21 @@ export function UserManagementView({
             <div className="grid gap-3 md:grid-cols-2">
               <InfoItem label="사용자" value={formatAccountDisplayName(editingAccount)} />
               <InfoItem label="로그인 ID" value={editingAccount.username} />
-              <InfoItem label="소속" value={editingAccount.employee?.departmentName ?? "미연결"} />
               <InfoItem label="직책" value={editingAccount.employee?.positionTitle ?? "직원 정보 없음"} />
             </div>
+
+            {editingAccount.employee ? (
+              <SelectField
+                label="소속"
+                value={editForm.departmentId}
+                options={departmentOptions}
+                placeholder={departmentsLoading ? "부서 불러오는 중" : "부서 선택"}
+                disabled={departmentsLoading || departments.length === 0}
+                onChange={(departmentId) => setEditForm((current) => ({ ...current, departmentId }))}
+              />
+            ) : (
+              <InfoItem label="소속" value="미연결" />
+            )}
 
             <label className="flex items-center justify-between gap-4 rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
               <span>

@@ -29,6 +29,7 @@ public record UserAccountResponse(
             Long id,
             String employeeNo,
             String displayName,
+            Long departmentId,
             String departmentName,
             String positionTitle
     ) {
@@ -40,6 +41,7 @@ public record UserAccountResponse(
                     employee.getId(),
                     employee.getEmployeeNo(),
                     employee.getDisplayName(),
+                    employee.getDepartment().getId(),
                     employee.getDepartment().getName(),
                     employee.getPositionTitle()
             );

@@ -185,6 +185,21 @@ public class UserAccountController {
         Set<Role> nextRoles = orderedRoles(request.roles());
         validateSelfRoleChange(currentUser, account, nextRoles);
         account.updateRoles(nextRoles);
+        if (request.departmentId() != null) {
+            EmployeeEntity employee = account.getEmployee();
+            if (employee == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "직원 정보가 연결된 계정만 소속을 변경할 수 있습니다.");
+            }
+            DepartmentEntity department = departmentRepository.findById(request.departmentId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "부서를 찾을 수 없습니다."));
+            employee.update(
+                    employee.getDisplayName(),
+                    employee.getEmail(),
+                    employee.getPositionTitle(),
+                    employee.getStatus(),
+                    department
+            );
+        }
         if (request.active() != null) {
             if (currentUser.username().equals(account.getUsername()) && !request.active()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "현재 로그인한 계정은 비활성화할 수 없습니다.");
