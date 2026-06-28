@@ -68,11 +68,11 @@ export function App() {
     <div className="min-h-screen bg-axis-bg text-axis-ink">
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-20 border-r border-axis-border bg-white transition-all",
+          "fixed inset-y-0 left-0 z-20 border-r border-axis-border-strong bg-white transition-all",
           sidebarCollapsed ? "w-[84px]" : "w-[280px]"
         ].join(" ")}
       >
-        <div className="flex h-16 items-center justify-between border-b border-axis-border px-5">
+        <div className="flex h-16 items-center justify-between border-b border-axis-border-strong px-5">
           <div className={sidebarCollapsed ? "sr-only" : "flex items-center gap-3"}>
             <AxisLogo compact />
           </div>
@@ -114,7 +114,7 @@ export function App() {
       </aside>
 
       <main className={["min-h-screen transition-all", sidebarCollapsed ? "pl-[84px]" : "pl-[280px]"].join(" ")}>
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-axis-border bg-axis-bg px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-axis-border-strong bg-white px-8">
           <div>
             <p className="text-sm font-medium text-axis-muted">Axis ERP</p>
             <h1 className="text-xl font-semibold text-axis-ink">{title}</h1>
