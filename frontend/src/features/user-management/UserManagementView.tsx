@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { KeyRound, PencilLine, Plus, Search, UserRoundPlus, UsersRound } from "lucide-react";
+import { KeyRound, LockKeyhole, PencilLine, Plus, Search, UserRoundPlus, UsersRound } from "lucide-react";
 
 import {
   useAvailableEmployeesQuery,
@@ -639,24 +639,39 @@ export function UserManagementView({
         title="사용자 계정 수정"
         description="계정 정보를 수정합니다."
         footer={
-          <>
-            <Button type="button" variant="secondary" onClick={closeEditModal}>
-              취소
-            </Button>
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
-              disabled={
-                !canUpdateRoles ||
-                editForm.roles.length === 0 ||
-                !editPasswordMatches ||
-                !hasEditChanges ||
-                updateUserAccount.isPending
-              }
-              type="submit"
-              form="user-account-edit-form"
+              className={[
+                "gap-2",
+                editForm.active ? "border-rose-200 text-rose-700 hover:border-rose-300" : "border-axis-border-strong"
+              ].join(" ")}
+              disabled={!canUpdateRoles || editingOwnAccount || updateUserAccount.isPending}
+              type="button"
+              variant="secondary"
+              onClick={() => setEditForm((current) => ({ ...current, active: !current.active }))}
             >
-              {updateUserAccount.isPending ? "저장 중" : "저장"}
+              <LockKeyhole size={16} strokeWidth={2.2} />
+              {editForm.active ? "계정 잠금" : "잠금 해제"}
             </Button>
-          </>
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={closeEditModal}>
+                취소
+              </Button>
+              <Button
+                disabled={
+                  !canUpdateRoles ||
+                  editForm.roles.length === 0 ||
+                  !editPasswordMatches ||
+                  !hasEditChanges ||
+                  updateUserAccount.isPending
+                }
+                type="submit"
+                form="user-account-edit-form"
+              >
+                {updateUserAccount.isPending ? "저장 중" : "저장"}
+              </Button>
+            </div>
+          </div>
         }
         onClose={closeEditModal}
       >
@@ -666,6 +681,7 @@ export function UserManagementView({
               <InfoItem label="사용자" value={formatAccountDisplayName(editingAccount)} />
               <InfoItem label="로그인 ID" value={editingAccount.username} />
               <InfoItem label="직책" value={editingAccount.employee?.positionTitle ?? "직원 정보 없음"} />
+              <InfoItem label="계정 상태" value={editForm.active ? "사용 가능" : "잠김"} />
             </div>
 
             {editingAccount.employee ? (
@@ -689,24 +705,6 @@ export function UserManagementView({
             ) : (
               <InfoItem label="소속" value="미연결" />
             )}
-
-            <label className="flex items-center justify-between gap-4 rounded-lg border border-axis-border bg-axis-bg px-4 py-3">
-              <span>
-                <span className="block text-sm font-bold text-axis-ink">계정 사용</span>
-                <span className="mt-1 block text-xs font-medium text-axis-muted">
-                  {editingOwnAccount
-                    ? "현재 로그인한 계정은 비활성화할 수 없습니다."
-                    : "비활성화하면 해당 계정은 로그인할 수 없습니다."}
-                </span>
-              </span>
-              <input
-                checked={editForm.active}
-                className="h-5 w-5 accent-axis-ink"
-                disabled={editingOwnAccount}
-                type="checkbox"
-                onChange={(event) => setEditForm((current) => ({ ...current, active: event.target.checked }))}
-              />
-            </label>
 
             <TextField
               label="새 비밀번호"
