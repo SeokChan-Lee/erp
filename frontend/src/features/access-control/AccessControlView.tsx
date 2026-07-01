@@ -81,6 +81,9 @@ const permissionActionIcon = (permission: PermissionCode): LucideIcon => {
   return LockKeyhole;
 };
 
+const samePermissionSet = (left: PermissionCode[], right: PermissionCode[]) =>
+  left.length === right.length && left.every((permission) => right.includes(permission));
+
 export function AccessControlView({ permissions = [] }: { permissions?: string[] }) {
   const { data: roles = [], error, isLoading } = useRolePermissionsQuery();
   const updateRolePermissions = useUpdateRolePermissionsMutation();
@@ -110,6 +113,8 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
   }, [role?.role]);
 
   const selectedCount = draftPermissions.length;
+  const hasSavedPermissionChanges = role ? !samePermissionSet(draftPermissions, role.permissions) : false;
+  const hasInitialPermissionChanges = role ? !samePermissionSet(draftPermissions, initialPermissions) : false;
 
   const togglePermission = (permission: PermissionCode) => {
     if (!editable) return;
@@ -207,7 +212,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
             <div className="flex flex-wrap gap-2">
               <Button
                 className="h-9 gap-2"
-                disabled={!editable || updateRolePermissions.isPending || selectedCount === 0}
+                disabled={!editable || updateRolePermissions.isPending || selectedCount === 0 || !hasSavedPermissionChanges}
                 onClick={handleSave}
               >
                 <Save size={16} strokeWidth={2.2} />
@@ -215,7 +220,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
               </Button>
               <Button
                 className="h-9 gap-2"
-                disabled={!editable || selectedCount === 0 || updateRolePermissions.isPending}
+                disabled={!editable || selectedCount === 0 || !hasInitialPermissionChanges || updateRolePermissions.isPending}
                 type="button"
                 variant="secondary"
                 onClick={handleSetInitialPermissions}
@@ -225,7 +230,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
               </Button>
               <Button
                 className="h-9 gap-2"
-                disabled={!role || updateRolePermissions.isPending}
+                disabled={!role || !hasInitialPermissionChanges || updateRolePermissions.isPending}
                 type="button"
                 variant="secondary"
                 onClick={handleResetToInitialPermissions}
