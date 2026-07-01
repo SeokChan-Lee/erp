@@ -171,6 +171,17 @@ export function UserManagementView({
       : editPasswordChanging && !editPasswordMatches
         ? "새 비밀번호가 서로 다릅니다."
         : undefined;
+  const departmentChanged =
+    Boolean(editingAccount?.employee) &&
+    editForm.departmentId > 0 &&
+    editForm.departmentId !== editingAccount?.employee?.departmentId;
+  const rolesChanged =
+    editingAccount !== null &&
+    (editForm.roles.length !== editingAccount.roles.length ||
+      editForm.roles.some((role) => !editingAccount.roles.includes(role)));
+  const activeChanged = editingAccount !== null && editForm.active !== editingAccount.active;
+  const passwordChanged = editPassword.length > 0 && editPasswordMatches;
+  const hasEditChanges = departmentChanged || rolesChanged || activeChanged || passwordChanged;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -257,12 +268,8 @@ export function UserManagementView({
 
   const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0 || !editPasswordMatches) return;
+    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0 || !editPasswordMatches || !hasEditChanges) return;
 
-    const departmentChanged =
-      editingAccount.employee &&
-      editForm.departmentId > 0 &&
-      editForm.departmentId !== editingAccount.employee.departmentId;
     updateUserAccount.mutate(
       {
         userId: editingAccount.id,
@@ -641,6 +648,7 @@ export function UserManagementView({
                 !canUpdateRoles ||
                 editForm.roles.length === 0 ||
                 !editPasswordMatches ||
+                !hasEditChanges ||
                 updateUserAccount.isPending
               }
               type="submit"
