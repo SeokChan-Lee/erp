@@ -1,5 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
-import { Save, ShieldCheck } from "lucide-react";
+import {
+  BarChart3,
+  Building2,
+  CheckCheck,
+  CheckCircle2,
+  Clock3,
+  Eye,
+  FileCheck2,
+  LockKeyhole,
+  Package,
+  PencilLine,
+  Plus,
+  ReceiptText,
+  RotateCcw,
+  Save,
+  Settings,
+  ShieldCheck,
+  ShoppingCart,
+  Trash2,
+  Truck,
+  UserCog,
+  UserRound,
+  Users,
+  Warehouse
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import {
   useRolePermissionsQuery,
@@ -15,6 +40,33 @@ import { Panel } from "../../shared/ui/Panel";
 type PermissionGroupSection = {
   group: PermissionGroup;
   permissions: PermissionCode[];
+};
+
+const permissionGroupIcons: Record<PermissionGroup, LucideIcon> = {
+  dashboard: BarChart3,
+  user: UserCog,
+  role: ShieldCheck,
+  employee: Users,
+  attendance: Clock3,
+  customer: Building2,
+  supplier: Truck,
+  item: Package,
+  inventory: Warehouse,
+  purchase: ShoppingCart,
+  sales: ReceiptText,
+  approval: FileCheck2,
+  statistics: BarChart3
+};
+
+const permissionActionIcon = (permission: PermissionCode): LucideIcon => {
+  if (permission.includes("READ") || permission.includes("VIEW")) return Eye;
+  if (permission.includes("CREATE")) return Plus;
+  if (permission.includes("SETTINGS")) return Settings;
+  if (permission.includes("UPDATE") || permission.includes("ADJUST") || permission.includes("MOVE")) return PencilLine;
+  if (permission.includes("DELETE")) return Trash2;
+  if (permission.includes("APPROVE") || permission.includes("PROCESS")) return CheckCheck;
+  if (permission.includes("CHECK_IN") || permission.includes("CHECK_OUT")) return CheckCircle2;
+  return LockKeyhole;
 };
 
 export function AccessControlView({ permissions = [] }: { permissions?: string[] }) {
@@ -78,6 +130,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
             {roles.map((item) => {
               const meta = getRoleMeta(item.role);
               const active = role?.role === item.role;
+              const RoleIcon = item.role === "SUPER_ADMIN" ? ShieldCheck : item.role === "EMPLOYEE" ? UserRound : UserCog;
 
               return (
                 <button
@@ -89,8 +142,15 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
                   type="button"
                   onClick={() => setSelectedRole(item.role)}
                 >
-                  <p className={active ? "text-sm font-semibold text-white/65" : "text-sm font-semibold text-axis-blue"}>{meta.scope}</p>
-                  <h3 className="mt-2 text-lg font-semibold">{meta.label}</h3>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className={active ? "text-sm font-semibold text-white/65" : "text-sm font-semibold text-axis-blue"}>{meta.scope}</p>
+                      <h3 className="mt-2 text-lg font-semibold">{meta.label}</h3>
+                    </div>
+                    <span className={active ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/12 text-white" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-axis-ink"}>
+                      <RoleIcon size={18} strokeWidth={2.2} />
+                    </span>
+                  </div>
                   <p className={active ? "mt-2 text-sm leading-6 text-white/70" : "mt-2 text-sm leading-6 text-axis-muted"}>{meta.description}</p>
                   <div className={active ? "mt-4 text-xs font-bold text-white/75" : "mt-4 text-xs font-bold text-[#424245]"}>
                     {item.role === "SUPER_ADMIN" ? "모든 권한 고정" : `${item.permissions.length}개 권한`}
@@ -107,65 +167,81 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
           title={`${getRoleMeta(role.role).label} 권한 편집`}
           description={isSuperAdmin ? "최고 관리자는 모든 권한으로 고정되어 수정할 수 없습니다." : "업무 그룹별 권한을 선택한 뒤 저장합니다."}
         >
-          <div className="mb-5 flex flex-col justify-between gap-3 rounded-lg border border-axis-border bg-axis-bg px-4 py-3 md:flex-row md:items-center">
+          <div className="mb-4 flex flex-col justify-between gap-3 rounded-lg border border-axis-border bg-axis-bg px-3 py-3 md:flex-row md:items-center">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-axis-ink">
-                <ShieldCheck size={18} strokeWidth={2.2} />
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-axis-ink">
+                <ShieldCheck size={17} strokeWidth={2.2} />
               </span>
               <div>
                 <p className="text-sm font-bold text-axis-ink">{getRoleMeta(role.role).label}</p>
-                <p className="mt-1 text-sm font-medium text-axis-muted">선택된 권한 {selectedCount}개</p>
+                <p className="mt-0.5 text-xs font-medium text-axis-muted">선택된 권한 {selectedCount}개</p>
               </div>
             </div>
             <div className="flex gap-2">
               <Button
-                className="h-10 gap-2"
+                className="h-9 gap-2"
                 disabled={!editable || updateRolePermissions.isPending || selectedCount === 0}
                 onClick={handleSave}
               >
                 <Save size={16} strokeWidth={2.2} />
                 {updateRolePermissions.isPending ? "저장 중" : "저장"}
               </Button>
-              <Button className="h-10" type="button" variant="secondary" onClick={() => setDraftPermissions(role.permissions)}>
+              <Button className="h-9 gap-2" type="button" variant="secondary" onClick={() => setDraftPermissions(role.permissions)}>
+                <RotateCcw size={15} strokeWidth={2.2} />
                 되돌리기
               </Button>
             </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-3 xl:grid-cols-3">
             {permissionGroups.map(({ group, permissions: groupPermissions }) => {
               const groupMeta = permissionGroupMeta[group];
+              const GroupIcon = permissionGroupIcons[group];
 
               return (
-                <section key={group} className="rounded-lg border border-axis-border bg-white p-4">
-                  <div className="mb-4">
-                    <h3 className="text-sm font-bold text-axis-ink">{groupMeta.label}</h3>
-                    <p className="mt-1 text-sm leading-6 text-axis-muted">{groupMeta.description}</p>
+                <section key={group} className="rounded-lg border border-axis-border bg-white p-3">
+                  <div className="mb-3 flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-axis-bg text-axis-ink">
+                      <GroupIcon size={16} strokeWidth={2.2} />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-axis-ink">{groupMeta.label}</h3>
+                      <p className="mt-0.5 truncate text-xs font-medium text-axis-muted">{groupMeta.description}</p>
+                    </div>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="grid gap-1.5">
                     {groupPermissions.map((permission) => {
                       const meta = getPermissionMeta(permission);
                       const checked = draftPermissions.includes(permission);
+                      const PermissionIcon = permissionActionIcon(permission);
 
                       return (
                         <label
                           key={permission}
                           className={[
-                            "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition",
+                            "flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 transition",
                             checked ? "border-axis-ink bg-axis-bg" : "border-axis-border bg-white hover:border-axis-border-strong",
                             editable ? "" : "cursor-not-allowed opacity-75"
                           ].join(" ")}
                         >
                           <input
                             checked={checked}
-                            className="mt-1 h-4 w-4 accent-axis-ink"
+                            className="sr-only"
                             disabled={!editable}
                             type="checkbox"
                             onChange={() => togglePermission(permission)}
                           />
-                          <span>
-                            <span className="block text-sm font-bold text-axis-ink">{meta.label}</span>
-                            <span className="mt-1 block text-xs font-medium leading-5 text-axis-muted">{meta.description}</span>
+                          <span
+                            className={[
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                              checked ? "bg-axis-ink text-white" : "bg-axis-bg text-axis-muted"
+                            ].join(" ")}
+                          >
+                            <PermissionIcon size={14} strokeWidth={2.2} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-bold text-axis-ink">{meta.label}</span>
+                            <span className="mt-0.5 block truncate text-xs font-medium text-axis-muted">{meta.description}</span>
                           </span>
                         </label>
                       );
