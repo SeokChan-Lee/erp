@@ -42,6 +42,18 @@ type PermissionGroupSection = {
   permissions: PermissionCode[];
 };
 
+const roleIcons: Record<RoleCode, LucideIcon> = {
+  SUPER_ADMIN: ShieldCheck,
+  ADMIN: Settings,
+  HR_MANAGER: Users,
+  SALES_MANAGER: ReceiptText,
+  PURCHASE_MANAGER: ShoppingCart,
+  INVENTORY_MANAGER: Warehouse,
+  APPROVER: FileCheck2,
+  EMPLOYEE: UserRound,
+  VIEWER: Eye
+};
+
 const permissionGroupIcons: Record<PermissionGroup, LucideIcon> = {
   dashboard: BarChart3,
   user: UserCog,
@@ -74,11 +86,13 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
   const updateRolePermissions = useUpdateRolePermissionsMutation();
   const [selectedRole, setSelectedRole] = useState<RoleCode | null>(null);
   const [draftPermissions, setDraftPermissions] = useState<PermissionCode[]>([]);
+  const [initialPermissionsByRole, setInitialPermissionsByRole] = useState<Partial<Record<RoleCode, PermissionCode[]>>>({});
   const canUpdateRoles = permissions.includes("ROLE_UPDATE");
 
   const role = roles.find((item) => item.role === selectedRole) ?? roles[0] ?? null;
   const isSuperAdmin = role?.role === "SUPER_ADMIN";
   const editable = Boolean(role && canUpdateRoles && !isSuperAdmin);
+  const initialPermissions = role ? initialPermissionsByRole[role.role] ?? role.permissions : [];
   const permissionGroups = useMemo<PermissionGroupSection[]>(
     () =>
       Object.keys(permissionGroupMeta).map((group) => ({
@@ -92,8 +106,8 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
   useEffect(() => {
     if (!role) return;
     setSelectedRole(role.role);
-    setDraftPermissions(role.permissions);
-  }, [role?.role, role?.permissions]);
+    setDraftPermissions(initialPermissionsByRole[role.role] ?? role.permissions);
+  }, [role?.role]);
 
   const selectedCount = draftPermissions.length;
 
@@ -114,6 +128,19 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
     });
   };
 
+  const handleSetInitialPermissions = () => {
+    if (!role) return;
+    setInitialPermissionsByRole((current) => ({
+      ...current,
+      [role.role]: draftPermissions
+    }));
+  };
+
+  const handleResetToInitialPermissions = () => {
+    if (!role) return;
+    setDraftPermissions(initialPermissions);
+  };
+
   return (
     <div className="space-y-6">
       {pageError ? (
@@ -130,7 +157,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
             {roles.map((item) => {
               const meta = getRoleMeta(item.role);
               const active = role?.role === item.role;
-              const RoleIcon = item.role === "SUPER_ADMIN" ? ShieldCheck : item.role === "EMPLOYEE" ? UserRound : UserCog;
+              const RoleIcon = roleIcons[item.role];
 
               return (
                 <button
@@ -177,7 +204,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
                 <p className="mt-0.5 text-xs font-medium text-axis-muted">선택된 권한 {selectedCount}개</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 className="h-9 gap-2"
                 disabled={!editable || updateRolePermissions.isPending || selectedCount === 0}
@@ -186,9 +213,25 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
                 <Save size={16} strokeWidth={2.2} />
                 {updateRolePermissions.isPending ? "저장 중" : "저장"}
               </Button>
-              <Button className="h-9 gap-2" type="button" variant="secondary" onClick={() => setDraftPermissions(role.permissions)}>
+              <Button
+                className="h-9 gap-2"
+                disabled={!editable || selectedCount === 0 || updateRolePermissions.isPending}
+                type="button"
+                variant="secondary"
+                onClick={handleSetInitialPermissions}
+              >
+                <CheckCircle2 size={15} strokeWidth={2.2} />
+                초기값 지정
+              </Button>
+              <Button
+                className="h-9 gap-2"
+                disabled={!role || updateRolePermissions.isPending}
+                type="button"
+                variant="secondary"
+                onClick={handleResetToInitialPermissions}
+              >
                 <RotateCcw size={15} strokeWidth={2.2} />
-                되돌리기
+                초기값으로 되돌리기
               </Button>
             </div>
           </div>
@@ -220,29 +263,31 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
                           key={permission}
                           className={[
                             "flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 transition",
-                            checked ? "border-axis-ink bg-axis-bg" : "border-axis-border bg-white hover:border-axis-border-strong",
+                            checked
+                              ? "border-axis-ink bg-[#f0f6ff]"
+                              : "border-axis-border bg-white hover:border-axis-border-strong",
                             editable ? "" : "cursor-not-allowed opacity-75"
                           ].join(" ")}
                         >
-                          <input
-                            checked={checked}
-                            className="sr-only"
-                            disabled={!editable}
-                            type="checkbox"
-                            onChange={() => togglePermission(permission)}
-                          />
                           <span
                             className={[
                               "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
-                              checked ? "bg-axis-ink text-white" : "bg-axis-bg text-axis-muted"
+                              checked ? "bg-axis-blue text-white" : "bg-axis-bg text-axis-muted"
                             ].join(" ")}
                           >
                             <PermissionIcon size={14} strokeWidth={2.2} />
                           </span>
-                          <span className="min-w-0">
+                          <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-bold text-axis-ink">{meta.label}</span>
                             <span className="mt-0.5 block truncate text-xs font-medium text-axis-muted">{meta.description}</span>
                           </span>
+                          <input
+                            checked={checked}
+                            className="h-4 w-4 shrink-0 accent-axis-ink"
+                            disabled={!editable}
+                            type="checkbox"
+                            onChange={() => togglePermission(permission)}
+                          />
                         </label>
                       );
                     })}
