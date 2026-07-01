@@ -87,7 +87,7 @@ export function AuditLogView() {
         </p>
       ) : null}
 
-      <Panel title="로그인 이력" description="사용자의 로그인과 로그아웃 기록을 따로 확인합니다.">
+      <Panel title="로그인 이력" description="사용자의 로그인과 로그아웃 기록을 확인합니다.">
         {loginLoading ? (
           <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
             로그인 이력을 불러오는 중입니다.
