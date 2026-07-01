@@ -1,30 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  BarChart3,
-  Building2,
-  CheckCheck,
-  CheckCircle2,
-  Clock3,
-  Eye,
-  FileCheck2,
-  LockKeyhole,
-  Package,
-  PencilLine,
-  Plus,
-  ReceiptText,
-  RotateCcw,
-  Save,
-  Settings,
-  ShieldCheck,
-  ShoppingCart,
-  Trash2,
-  Truck,
-  UserCog,
-  UserRound,
-  Users,
-  Warehouse
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { CheckCircle2, RotateCcw, Save, ShieldCheck } from "lucide-react";
 
 import {
   useRolePermissionsQuery,
@@ -32,6 +7,7 @@ import {
 } from "./api/accessControlApi";
 import type { PermissionCode, RoleCode } from "./api/dto";
 import { getErrorMessage } from "../../shared/api/http";
+import { getPermissionActionIcon, permissionGroupIcons, roleIcons } from "../../shared/config/accessControlIcons";
 import { getPermissionMeta, getRoleMeta, permissionGroupMeta, permissionMeta } from "../../shared/config/accessControlMeta";
 import type { PermissionGroup } from "../../shared/config/accessControlMeta";
 import { Button } from "../../shared/ui/Button";
@@ -40,45 +16,6 @@ import { Panel } from "../../shared/ui/Panel";
 type PermissionGroupSection = {
   group: PermissionGroup;
   permissions: PermissionCode[];
-};
-
-const roleIcons: Record<RoleCode, LucideIcon> = {
-  SUPER_ADMIN: ShieldCheck,
-  ADMIN: Settings,
-  HR_MANAGER: Users,
-  SALES_MANAGER: ReceiptText,
-  PURCHASE_MANAGER: ShoppingCart,
-  INVENTORY_MANAGER: Warehouse,
-  APPROVER: FileCheck2,
-  EMPLOYEE: UserRound,
-  VIEWER: Eye
-};
-
-const permissionGroupIcons: Record<PermissionGroup, LucideIcon> = {
-  dashboard: BarChart3,
-  user: UserCog,
-  role: ShieldCheck,
-  employee: Users,
-  attendance: Clock3,
-  customer: Building2,
-  supplier: Truck,
-  item: Package,
-  inventory: Warehouse,
-  purchase: ShoppingCart,
-  sales: ReceiptText,
-  approval: FileCheck2,
-  statistics: BarChart3
-};
-
-const permissionActionIcon = (permission: PermissionCode): LucideIcon => {
-  if (permission.includes("READ") || permission.includes("VIEW")) return Eye;
-  if (permission.includes("CREATE")) return Plus;
-  if (permission.includes("SETTINGS")) return Settings;
-  if (permission.includes("UPDATE") || permission.includes("ADJUST") || permission.includes("MOVE")) return PencilLine;
-  if (permission.includes("DELETE")) return Trash2;
-  if (permission.includes("APPROVE") || permission.includes("PROCESS")) return CheckCheck;
-  if (permission.includes("CHECK_IN") || permission.includes("CHECK_OUT")) return CheckCircle2;
-  return LockKeyhole;
 };
 
 const samePermissionSet = (left: PermissionCode[], right: PermissionCode[]) =>
@@ -261,7 +198,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
                     {groupPermissions.map((permission) => {
                       const meta = getPermissionMeta(permission);
                       const checked = draftPermissions.includes(permission);
-                      const PermissionIcon = permissionActionIcon(permission);
+                      const PermissionIcon = getPermissionActionIcon(permission);
 
                       return (
                         <label
