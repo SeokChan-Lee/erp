@@ -161,7 +161,6 @@ export function UserManagementView({
     linkForm.password.length >= 4 &&
     linkForm.roles.length > 0;
   const editingOwnAccount = editingAccount?.username === currentUsername;
-  const editDepartmentReady = !editingAccount?.employee || editForm.departmentId > 0;
   const editPassword = editForm.password.trim();
   const editPasswordConfirm = editForm.passwordConfirm.trim();
   const editPasswordChanging = editPassword.length > 0 || editPasswordConfirm.length > 0;
@@ -258,15 +257,19 @@ export function UserManagementView({
 
   const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0 || !editDepartmentReady || !editPasswordMatches) return;
+    if (!editingAccount || !canUpdateRoles || editForm.roles.length === 0 || !editPasswordMatches) return;
 
+    const departmentChanged =
+      editingAccount.employee &&
+      editForm.departmentId > 0 &&
+      editForm.departmentId !== editingAccount.employee.departmentId;
     updateUserAccount.mutate(
       {
         userId: editingAccount.id,
         payload: {
           roles: editForm.roles,
           active: editForm.active,
-          ...(editingAccount.employee && editForm.departmentId > 0 ? { departmentId: editForm.departmentId } : {}),
+          ...(departmentChanged ? { departmentId: editForm.departmentId } : {}),
           ...(editPassword.length > 0 ? { password: editPassword } : {})
         }
       },
@@ -637,7 +640,6 @@ export function UserManagementView({
               disabled={
                 !canUpdateRoles ||
                 editForm.roles.length === 0 ||
-                !editDepartmentReady ||
                 !editPasswordMatches ||
                 updateUserAccount.isPending
               }
@@ -663,14 +665,17 @@ export function UserManagementView({
                 <p className="text-sm font-semibold text-axis-ink">부서 변경</p>
                 <div className="grid gap-3 md:grid-cols-2">
                   <InfoItem label="기존 부서" value={editingAccount.employee.departmentName} />
-                  <SelectField
-                    label="변경할 부서"
-                    value={editForm.departmentId}
-                    options={departmentOptions}
-                    placeholder={departmentsLoading ? "부서 불러오는 중" : "변경할 부서 선택"}
-                    disabled={departmentsLoading || departments.length === 0}
-                    onChange={(departmentId) => setEditForm((current) => ({ ...current, departmentId }))}
-                  />
+                  <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
+                    <SelectField
+                      className="[&>button]:mt-2 [&>span:first-child]:text-xs [&>span:first-child]:font-bold [&>span:first-child]:text-axis-muted"
+                      label="변경할 부서"
+                      value={editForm.departmentId}
+                      options={departmentOptions}
+                      placeholder={departmentsLoading ? "부서 불러오는 중" : "변경할 부서 선택"}
+                      disabled={departmentsLoading || departments.length === 0}
+                      onChange={(departmentId) => setEditForm((current) => ({ ...current, departmentId }))}
+                    />
+                  </div>
                 </div>
               </div>
             ) : (
