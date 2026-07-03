@@ -1,22 +1,16 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, Eye, PencilLine, Plus, Search, ShoppingCart, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
 import type { ItemQueryParams } from "../inventory/api/dto";
 import { getErrorMessage } from "../../shared/api/http";
-import { Button } from "../../shared/ui/Button";
-import { Pagination } from "../../shared/ui/Pagination";
-import { Panel } from "../../shared/ui/Panel";
-import { ResetButton } from "../../shared/ui/ResetButton";
-import { SelectField } from "../../shared/ui/SelectField";
-import { TableFrame } from "../../shared/ui/TableFrame";
-import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
+import { CustomerListPanel } from "./components/CustomerListPanel";
 import { PurchaseModals } from "./components/PurchaseModals";
 import { PurchaseOrderListPanel } from "./components/PurchaseOrderListPanel";
 import { PurchaseRequestCreatePanel } from "./components/PurchaseRequestCreatePanel";
-import { formatCurrency, formatDateTime, PurchaseStatusBadge, StatusBadge } from "./components/purchaseDisplay";
+import { PurchaseRequestListPanel } from "./components/PurchaseRequestListPanel";
+import { SupplierListPanel } from "./components/SupplierListPanel";
 import {
   useApprovePurchaseRequestMutation,
   useCancelReceivePurchaseOrderMutation,
@@ -541,200 +535,58 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
       <Toast open={toastMessage.length > 0} message={toastMessage} variant="success" onClose={() => setToastMessage("")} />
 
       {canReadCustomer ? (
-        <Panel
-          title="고객사 목록"
-          description="판매 업무에서 사용할 고객 거래처 기준 정보를 관리합니다."
-          action={
-            canCreateCustomer ? (
-              <Button className="gap-2" type="button" onClick={() => setCustomerCreateOpen(true)}>
-                <Plus size={17} strokeWidth={2.2} />
-                고객사 등록
-              </Button>
-            ) : null
-          }
-        >
-          <div className="mb-4 grid min-w-0 items-end gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
-            <TextField
-              label="검색"
-              placeholder="코드, 고객사명, 사업자번호, 담당자"
-              value={customerSearchInput}
-              leftIcon={<Search size={17} strokeWidth={2.2} />}
-              onChange={(event) => setCustomerSearchInput(event.target.value)}
-              onEnter={() => {
-                setCustomerSearch(customerSearchInput.trim());
-                setCustomerPage(1);
-              }}
-            />
-            <SelectField
-              label="상태"
-              value={customerStatus}
-              options={customerStatusOptions}
-              onChange={(status) => {
-                setCustomerStatus(status);
-                setCustomerPage(1);
-              }}
-            />
-            <Button
-              className="h-11"
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setCustomerSearch(customerSearchInput.trim());
-                setCustomerPage(1);
-              }}
-            >
-              검색 적용
-            </Button>
-            <ResetButton onClick={resetCustomerFilters} />
-          </div>
-
-          {customersLoading ? (
-            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">고객사 목록을 불러오는 중입니다.</p>
-          ) : (
-            <TableFrame>
-              <table className="w-full min-w-[1080px] border-collapse text-left">
-                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                  <tr>
-                    <th className="px-4 py-3">고객사</th>
-                    <th className="px-4 py-3">사업자등록번호</th>
-                    <th className="px-4 py-3">담당자</th>
-                    <th className="px-4 py-3">연락처</th>
-                    <th className="px-4 py-3">상태</th>
-                    <th className="px-4 py-3">관리</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-axis-border bg-white">
-                  {customers.map((customer) => (
-                    <tr key={customer.id} className={customer.active ? "" : "bg-axis-bg/60"}>
-                      <td className="px-4 py-4">
-                        <p className="text-sm font-bold text-axis-ink">{customer.name}</p>
-                        <p className="mt-1 text-xs font-semibold text-axis-muted">{customer.code} · {customer.email}</p>
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{customer.businessNumber}</td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{customer.contactName}</td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{customer.phone}</td>
-                      <td className="px-4 py-4"><StatusBadge active={customer.active} /></td>
-                      <td className="px-4 py-4">
-                        {canUpdateCustomer ? (
-                          <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => handleEditCustomer(customer)}>
-                            <PencilLine size={14} strokeWidth={2.2} />
-                            수정
-                          </Button>
-                        ) : (
-                          <span className="text-xs font-semibold text-axis-muted">조회 전용</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {customers.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={6}>조건에 맞는 고객사가 없습니다.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-              <Pagination page={customerPage} pageSize={PAGE_SIZE} totalItems={totalCustomers} onPageChange={setCustomerPage} />
-            </TableFrame>
-          )}
-        </Panel>
+        <CustomerListPanel
+          customers={customers}
+          totalCustomers={totalCustomers}
+          page={customerPage}
+          pageSize={PAGE_SIZE}
+          searchInput={customerSearchInput}
+          status={customerStatus}
+          statusOptions={customerStatusOptions}
+          loading={customersLoading}
+          canCreate={canCreateCustomer}
+          canUpdate={canUpdateCustomer}
+          onCreateClick={() => setCustomerCreateOpen(true)}
+          onSearchInputChange={setCustomerSearchInput}
+          onApplySearch={() => {
+            setCustomerSearch(customerSearchInput.trim());
+            setCustomerPage(1);
+          }}
+          onStatusChange={(status) => {
+            setCustomerStatus(status);
+            setCustomerPage(1);
+          }}
+          onResetFilters={resetCustomerFilters}
+          onPageChange={setCustomerPage}
+          onEdit={handleEditCustomer}
+        />
       ) : null}
 
-      <Panel
-        title="공급사 목록"
-        description="구매 업무에서 사용할 공급 거래처를 관리합니다."
-        action={
-          canCreateSupplier ? (
-            <Button className="gap-2" type="button" onClick={() => setSupplierCreateOpen(true)}>
-              <Plus size={17} strokeWidth={2.2} />
-              공급사 등록
-            </Button>
-          ) : null
-        }
-      >
-        <div className="mb-4 grid min-w-0 items-end gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
-          <TextField
-            label="검색"
-            placeholder="코드, 공급사명, 사업자번호, 담당자"
-            value={supplierSearchInput}
-            leftIcon={<Search size={17} strokeWidth={2.2} />}
-            onChange={(event) => setSupplierSearchInput(event.target.value)}
-            onEnter={() => {
-              setSupplierSearch(supplierSearchInput.trim());
-              setSupplierPage(1);
-            }}
-          />
-          <SelectField
-            label="상태"
-            value={supplierStatus}
-            options={supplierStatusOptions}
-            onChange={(status) => {
-              setSupplierStatus(status);
-              setSupplierPage(1);
-            }}
-          />
-          <Button
-            className="h-11"
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setSupplierSearch(supplierSearchInput.trim());
-              setSupplierPage(1);
-            }}
-          >
-            검색 적용
-          </Button>
-          <ResetButton onClick={resetSupplierFilters} />
-        </div>
-
-        {suppliersLoading ? (
-          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">공급사 목록을 불러오는 중입니다.</p>
-        ) : (
-          <TableFrame>
-            <table className="w-full min-w-[1080px] border-collapse text-left">
-              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                <tr>
-                  <th className="px-4 py-3">공급사</th>
-                  <th className="px-4 py-3">사업자등록번호</th>
-                  <th className="px-4 py-3">담당자</th>
-                  <th className="px-4 py-3">연락처</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-axis-border bg-white">
-                {suppliers.map((supplier) => (
-                  <tr key={supplier.id} className={supplier.active ? "" : "bg-axis-bg/60"}>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-bold text-axis-ink">{supplier.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{supplier.code} · {supplier.email}</p>
-                    </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{supplier.businessNumber}</td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{supplier.contactName}</td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{supplier.phone}</td>
-                    <td className="px-4 py-4"><StatusBadge active={supplier.active} /></td>
-                    <td className="px-4 py-4">
-                      {canUpdateSupplier ? (
-                        <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => handleEditSupplier(supplier)}>
-                          <PencilLine size={14} strokeWidth={2.2} />
-                          수정
-                        </Button>
-                      ) : (
-                        <span className="text-xs font-semibold text-axis-muted">조회 전용</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {suppliers.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={6}>조건에 맞는 공급사가 없습니다.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-            <Pagination page={supplierPage} pageSize={PAGE_SIZE} totalItems={totalSuppliers} onPageChange={setSupplierPage} />
-          </TableFrame>
-        )}
-      </Panel>
+      <SupplierListPanel
+        suppliers={suppliers}
+        totalSuppliers={totalSuppliers}
+        page={supplierPage}
+        pageSize={PAGE_SIZE}
+        searchInput={supplierSearchInput}
+        status={supplierStatus}
+        statusOptions={supplierStatusOptions}
+        loading={suppliersLoading}
+        canCreate={canCreateSupplier}
+        canUpdate={canUpdateSupplier}
+        onCreateClick={() => setSupplierCreateOpen(true)}
+        onSearchInputChange={setSupplierSearchInput}
+        onApplySearch={() => {
+          setSupplierSearch(supplierSearchInput.trim());
+          setSupplierPage(1);
+        }}
+        onStatusChange={(status) => {
+          setSupplierStatus(status);
+          setSupplierPage(1);
+        }}
+        onResetFilters={resetSupplierFilters}
+        onPageChange={setSupplierPage}
+        onEdit={handleEditSupplier}
+      />
 
       <div className="grid min-w-0 gap-6">
         {canCreatePurchase ? (
@@ -751,139 +603,36 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           />
         ) : null}
 
-        <Panel title="구매 요청 목록" description="등록된 구매 요청과 공급사, 품목, 금액을 확인합니다.">
-          <div className="mb-4 grid min-w-0 items-end gap-3 lg:grid-cols-[1fr_180px_auto_auto]">
-            <TextField
-              label="검색"
-              placeholder="요청번호, 공급사, 품목, 메모"
-              value={requestSearchInput}
-              leftIcon={<Search size={17} strokeWidth={2.2} />}
-              onChange={(event) => setRequestSearchInput(event.target.value)}
-              onEnter={() => {
-                setRequestSearch(requestSearchInput.trim());
-                setRequestPage(1);
-              }}
-            />
-            <SelectField
-              label="상태"
-              value={requestStatus}
-              options={requestStatusOptions}
-              onChange={(status) => {
-                setRequestStatus(status);
-                setRequestPage(1);
-              }}
-            />
-            <Button
-              className="h-11"
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setRequestSearch(requestSearchInput.trim());
-                setRequestPage(1);
-              }}
-            >
-              검색 적용
-            </Button>
-            <ResetButton onClick={resetRequestFilters} />
-          </div>
-
-          {requestsLoading ? (
-            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">구매 요청을 불러오는 중입니다.</p>
-          ) : (
-            <TableFrame>
-              <table className="w-full min-w-[980px] border-collapse text-left">
-                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                  <tr>
-                    <th className="px-4 py-3">요청</th>
-                    <th className="px-4 py-3">공급사</th>
-                    <th className="px-4 py-3">품목</th>
-                    <th className="px-4 py-3">수량</th>
-                    <th className="px-4 py-3">금액</th>
-                    <th className="px-4 py-3">상태</th>
-                    <th className="px-4 py-3">관리</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-axis-border bg-white">
-                  {requests.map((request) => (
-                    <tr key={request.id}>
-                      <td className="px-4 py-4">
-                        <p className="text-sm font-bold text-axis-ink">{request.requestNo}</p>
-                        <p className="mt-1 text-xs font-semibold text-axis-muted">{formatDateTime(request.requestedAt)} · {request.requestedBy}</p>
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{request.supplier.name}</td>
-                      <td className="px-4 py-4">
-                        <p className="text-sm font-bold text-axis-ink">{request.item.name}</p>
-                        <p className="mt-1 text-xs font-semibold text-axis-muted">{request.item.sku}</p>
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{request.quantity.toLocaleString("ko-KR")} {request.item.unit}</td>
-                      <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(request.totalAmount)}</td>
-                      <td className="px-4 py-4"><PurchaseStatusBadge status={request.status} /></td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            className="h-8 gap-1.5 px-3 text-xs"
-                            type="button"
-                            variant="secondary"
-                            onClick={() => setSelectedRequest(request)}
-                          >
-                            <Eye size={14} strokeWidth={2.2} />
-                            상세
-                          </Button>
-                          {request.status === "REQUESTED" && (canApprovePurchase || canCancelPurchase) ? (
-                            <>
-                              {canApprovePurchase ? (
-                                <Button
-                                  className="h-8 gap-1.5 px-3 text-xs"
-                                  disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
-                                  type="button"
-                                  variant="secondary"
-                                  onClick={() => handleApprovePurchase(request.id)}
-                                >
-                                  <Check size={14} strokeWidth={2.2} />
-                                  승인
-                                </Button>
-                              ) : null}
-                              {canCancelPurchase ? (
-                                <Button
-                                  className="h-8 gap-1.5 px-3 text-xs text-rose-700"
-                                  disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
-                                  type="button"
-                                  variant="secondary"
-                                  onClick={() => openCancelRequestModal(request)}
-                                >
-                                  <X size={14} strokeWidth={2.2} />
-                                  반려
-                                </Button>
-                              ) : null}
-                            </>
-                          ) : null}
-                          {request.status === "APPROVED" && canCancelPurchase ? (
-                            <Button
-                              className="h-8 gap-1.5 px-3 text-xs"
-                              disabled={approveRequest.isPending || cancelRequest.isPending || createOrder.isPending}
-                              type="button"
-                              variant="secondary"
-                              onClick={() => handleCreateOrder(request.id)}
-                            >
-                              <ShoppingCart size={14} strokeWidth={2.2} />
-                              발주 전환
-                            </Button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {requests.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={7}>등록된 구매 요청이 없습니다.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-              <Pagination page={requestPage} pageSize={PAGE_SIZE} totalItems={totalRequests} onPageChange={setRequestPage} />
-            </TableFrame>
-          )}
-        </Panel>
+        <PurchaseRequestListPanel
+          requests={requests}
+          totalRequests={totalRequests}
+          page={requestPage}
+          pageSize={PAGE_SIZE}
+          searchInput={requestSearchInput}
+          status={requestStatus}
+          statusOptions={requestStatusOptions}
+          loading={requestsLoading}
+          canApprove={canApprovePurchase}
+          canUpdate={canCancelPurchase}
+          approvePending={approveRequest.isPending}
+          cancelPending={cancelRequest.isPending}
+          createOrderPending={createOrder.isPending}
+          onSearchInputChange={setRequestSearchInput}
+          onApplySearch={() => {
+            setRequestSearch(requestSearchInput.trim());
+            setRequestPage(1);
+          }}
+          onStatusChange={(status) => {
+            setRequestStatus(status);
+            setRequestPage(1);
+          }}
+          onResetFilters={resetRequestFilters}
+          onPageChange={setRequestPage}
+          onSelectRequest={setSelectedRequest}
+          onApprove={handleApprovePurchase}
+          onCancel={openCancelRequestModal}
+          onCreateOrder={handleCreateOrder}
+        />
 
         <PurchaseOrderListPanel
           orders={orders}
@@ -911,50 +660,57 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
       </div>
 
       <PurchaseModals
-        selectedRequest={selectedRequest}
-        setSelectedRequest={setSelectedRequest}
-        cancelingRequest={cancelingRequest}
-        setCancelingRequest={setCancelingRequest}
-        cancelReason={cancelReason}
-        setCancelReason={setCancelReason}
-        cancelReasonReady={cancelReasonReady}
-        cancelRequestPending={cancelRequest.isPending}
-        onCancelPurchase={handleCancelPurchase}
-        selectedOrderId={selectedOrderId}
-        setSelectedOrderId={setSelectedOrderId}
-        selectedOrder={selectedOrder}
-        selectedOrderError={selectedOrderError}
-        selectedOrderLoading={selectedOrderLoading}
-        receivingOrder={receivingOrder}
-        setReceivingOrder={setReceivingOrder}
-        receiveWarehouseId={receiveWarehouseId}
-        setReceiveWarehouseId={setReceiveWarehouseId}
-        selectedReceiveWarehouseId={selectedReceiveWarehouseId}
-        warehouseOptions={warehouseOptions}
-        receiveOrderPending={receiveOrder.isPending}
-        onReceiveOrder={handleReceiveOrder}
-        customerCreateOpen={customerCreateOpen}
-        onCloseCustomerCreate={handleCloseCustomerCreate}
-        customerForm={customerForm}
-        setCustomerForm={setCustomerForm}
-        customerFormReady={customerFormReady}
-        createCustomerPending={createCustomer.isPending}
-        onCreateCustomer={handleCreateCustomer}
-        supplierCreateOpen={supplierCreateOpen}
-        onCloseSupplierCreate={handleCloseSupplierCreate}
-        supplierForm={supplierForm}
-        setSupplierForm={setSupplierForm}
-        supplierFormReady={supplierFormReady}
-        createSupplierPending={createSupplier.isPending}
-        onCreateSupplier={handleCreateSupplier}
-        editingCustomer={editingCustomer}
-        setEditingCustomer={setEditingCustomer}
-        updateCustomerPending={updateCustomer.isPending}
-        onUpdateCustomer={handleUpdateCustomer}
-        editingSupplier={editingSupplier}
-        setEditingSupplier={setEditingSupplier}
-        updateSupplierPending={updateSupplier.isPending}
-        onUpdateSupplier={handleUpdateSupplier}
+        request={{
+          selectedRequest,
+          setSelectedRequest,
+          cancelingRequest,
+          setCancelingRequest,
+          cancelReason,
+          setCancelReason,
+          cancelReasonReady,
+          cancelRequestPending: cancelRequest.isPending,
+          onCancelPurchase: handleCancelPurchase
+        }}
+        order={{
+          selectedOrderId,
+          setSelectedOrderId,
+          selectedOrder,
+          selectedOrderError,
+          selectedOrderLoading,
+          receivingOrder,
+          setReceivingOrder,
+          setReceiveWarehouseId,
+          selectedReceiveWarehouseId,
+          warehouseOptions,
+          receiveOrderPending: receiveOrder.isPending,
+          onReceiveOrder: handleReceiveOrder
+        }}
+        customer={{
+          customerCreateOpen,
+          onCloseCustomerCreate: handleCloseCustomerCreate,
+          customerForm,
+          setCustomerForm,
+          customerFormReady,
+          createCustomerPending: createCustomer.isPending,
+          onCreateCustomer: handleCreateCustomer,
+          editingCustomer,
+          setEditingCustomer,
+          updateCustomerPending: updateCustomer.isPending,
+          onUpdateCustomer: handleUpdateCustomer
+        }}
+        supplier={{
+          supplierCreateOpen,
+          onCloseSupplierCreate: handleCloseSupplierCreate,
+          supplierForm,
+          setSupplierForm,
+          supplierFormReady,
+          createSupplierPending: createSupplier.isPending,
+          onCreateSupplier: handleCreateSupplier,
+          editingSupplier,
+          setEditingSupplier,
+          updateSupplierPending: updateSupplier.isPending,
+          onUpdateSupplier: handleUpdateSupplier
+        }}
       />
     </div>
   );

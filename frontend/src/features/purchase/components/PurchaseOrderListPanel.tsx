@@ -123,42 +123,47 @@ export function PurchaseOrderListPanel({
                   <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(order.totalAmount)}</td>
                   <td className="whitespace-nowrap px-4 py-4"><ReceiveStatusBadge received={order.receivedAt !== null} /></td>
                   <td className="whitespace-nowrap px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <Button className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs" type="button" variant="secondary" onClick={() => onSelectOrder(order.id)}>
-                        <Eye size={14} strokeWidth={2.2} />
-                        상세
-                      </Button>
-                      {order.receivedAt ? (
-                        <div className="whitespace-nowrap text-xs font-semibold text-axis-muted">
-                          <p>{order.receivedWarehouse?.name ?? "입고 창고"}</p>
-                          <p className="mt-1">{formatDateTime(order.receivedAt)} · {order.receivedBy}</p>
-                        </div>
-                      ) : canManageOrder ? (
-                        <Button
-                          className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs"
-                          disabled={receivePending || cancelReceivePending || warehouseCount === 0}
-                          type="button"
-                          variant="secondary"
-                          onClick={() => onOpenReceive(order)}
-                        >
-                          <PackageCheck size={14} strokeWidth={2.2} />
-                          입고 처리
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 flex-col text-xs font-semibold text-axis-muted">
+                        {order.receivedAt ? (
+                          <>
+                            <span className="truncate text-axis-ink">{order.receivedWarehouse?.name ?? "입고 창고"}</span>
+                            <span className="mt-1 truncate">{formatDateTime(order.receivedAt)} · {order.receivedBy}</span>
+                          </>
+                        ) : (
+                          <span>입고 대기</span>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs" type="button" variant="secondary" onClick={() => onSelectOrder(order.id)}>
+                          <Eye size={14} strokeWidth={2.2} />
+                          상세
                         </Button>
-                      ) : (
-                        <span className="text-xs font-semibold text-axis-muted">입고 대기</span>
-                      )}
-                      {order.receivedAt && canManageOrder ? (
-                        <Button
-                          className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs text-rose-700"
-                          disabled={cancelReceivePending}
-                          type="button"
-                          variant="secondary"
-                          onClick={() => onCancelReceive(order.id)}
-                        >
-                          <RotateCcw size={14} strokeWidth={2.2} />
-                          입고 취소
-                        </Button>
-                      ) : null}
+                        {!order.receivedAt && canManageOrder ? (
+                          <Button
+                            className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs"
+                            disabled={receivePending || cancelReceivePending || warehouseCount === 0}
+                            type="button"
+                            variant="secondary"
+                            onClick={() => onOpenReceive(order)}
+                          >
+                            <PackageCheck size={14} strokeWidth={2.2} />
+                            입고 처리
+                          </Button>
+                        ) : null}
+                        {order.receivedAt && canManageOrder ? (
+                          <Button
+                            className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs text-rose-700"
+                            disabled={cancelReceivePending}
+                            type="button"
+                            variant="secondary"
+                            onClick={() => onCancelReceive(order.id)}
+                          >
+                            <RotateCcw size={14} strokeWidth={2.2} />
+                            입고 취소
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
                   </td>
                 </tr>

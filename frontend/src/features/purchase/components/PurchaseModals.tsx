@@ -14,7 +14,7 @@ type SelectOption = {
   label: string;
 };
 
-type PurchaseModalsProps = {
+type PurchaseRequestModalGroup = {
   selectedRequest: PurchaseRequest | null;
   setSelectedRequest: Dispatch<SetStateAction<PurchaseRequest | null>>;
   cancelingRequest: PurchaseRequest | null;
@@ -24,6 +24,9 @@ type PurchaseModalsProps = {
   cancelReasonReady: boolean;
   cancelRequestPending: boolean;
   onCancelPurchase: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+type PurchaseOrderModalGroup = {
   selectedOrderId: number | null;
   setSelectedOrderId: Dispatch<SetStateAction<number | null>>;
   selectedOrder: PurchaseOrder | undefined;
@@ -31,12 +34,14 @@ type PurchaseModalsProps = {
   selectedOrderLoading: boolean;
   receivingOrder: PurchaseOrder | null;
   setReceivingOrder: Dispatch<SetStateAction<PurchaseOrder | null>>;
-  receiveWarehouseId: number;
   setReceiveWarehouseId: Dispatch<SetStateAction<number>>;
   selectedReceiveWarehouseId: number;
   warehouseOptions: SelectOption[];
   receiveOrderPending: boolean;
   onReceiveOrder: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+type CustomerModalGroup = {
   customerCreateOpen: boolean;
   onCloseCustomerCreate: () => void;
   customerForm: CustomerCreatePayload;
@@ -44,6 +49,13 @@ type PurchaseModalsProps = {
   customerFormReady: boolean;
   createCustomerPending: boolean;
   onCreateCustomer: (event: FormEvent<HTMLFormElement>) => void;
+  editingCustomer: CustomerEditForm | null;
+  setEditingCustomer: Dispatch<SetStateAction<CustomerEditForm | null>>;
+  updateCustomerPending: boolean;
+  onUpdateCustomer: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+type SupplierModalGroup = {
   supplierCreateOpen: boolean;
   onCloseSupplierCreate: () => void;
   supplierForm: SupplierCreatePayload;
@@ -51,17 +63,21 @@ type PurchaseModalsProps = {
   supplierFormReady: boolean;
   createSupplierPending: boolean;
   onCreateSupplier: (event: FormEvent<HTMLFormElement>) => void;
-  editingCustomer: CustomerEditForm | null;
-  setEditingCustomer: Dispatch<SetStateAction<CustomerEditForm | null>>;
-  updateCustomerPending: boolean;
-  onUpdateCustomer: (event: FormEvent<HTMLFormElement>) => void;
   editingSupplier: SupplierEditForm | null;
   setEditingSupplier: Dispatch<SetStateAction<SupplierEditForm | null>>;
   updateSupplierPending: boolean;
   onUpdateSupplier: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-export function PurchaseModals({
+type PurchaseModalsProps = {
+  request: PurchaseRequestModalGroup;
+  order: PurchaseOrderModalGroup;
+  customer: CustomerModalGroup;
+  supplier: SupplierModalGroup;
+};
+
+export function PurchaseModals({ request, order, customer, supplier }: PurchaseModalsProps) {
+  const {
   selectedRequest,
   setSelectedRequest,
   cancelingRequest,
@@ -70,7 +86,9 @@ export function PurchaseModals({
   setCancelReason,
   cancelReasonReady,
   cancelRequestPending,
-  onCancelPurchase,
+  onCancelPurchase
+  } = request;
+  const {
   selectedOrderId,
   setSelectedOrderId,
   selectedOrder,
@@ -82,7 +100,9 @@ export function PurchaseModals({
   selectedReceiveWarehouseId,
   warehouseOptions,
   receiveOrderPending,
-  onReceiveOrder,
+  onReceiveOrder
+  } = order;
+  const {
   customerCreateOpen,
   onCloseCustomerCreate,
   customerForm,
@@ -90,6 +110,12 @@ export function PurchaseModals({
   customerFormReady,
   createCustomerPending,
   onCreateCustomer,
+  editingCustomer,
+  setEditingCustomer,
+  updateCustomerPending,
+  onUpdateCustomer
+  } = customer;
+  const {
   supplierCreateOpen,
   onCloseSupplierCreate,
   supplierForm,
@@ -97,15 +123,12 @@ export function PurchaseModals({
   supplierFormReady,
   createSupplierPending,
   onCreateSupplier,
-  editingCustomer,
-  setEditingCustomer,
-  updateCustomerPending,
-  onUpdateCustomer,
   editingSupplier,
   setEditingSupplier,
   updateSupplierPending,
   onUpdateSupplier
-}: PurchaseModalsProps) {
+  } = supplier;
+
   return (
     <>
       <Modal
