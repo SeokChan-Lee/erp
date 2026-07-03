@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Building2, PackagePlus, PencilLine, Plus, Search, Warehouse } from "lucide-react";
+import { Warehouse } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import {
@@ -18,42 +18,32 @@ import type {
   InventoryStock,
   InventoryMovementQueryParams,
   Item,
-  ItemCreatePayload,
   ItemQueryParams,
   ItemStatusFilter,
-  ItemUpdatePayload
 } from "./api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
-import { DateField } from "../../shared/ui/DateField";
-import { MetricCard } from "../../shared/ui/MetricCard";
 import { Modal } from "../../shared/ui/Modal";
-import { Pagination } from "../../shared/ui/Pagination";
-import { Panel } from "../../shared/ui/Panel";
-import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
-import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
+import { CurrentStockPanel } from "./components/CurrentStockPanel";
 import {
   findInventoryStock,
   formatDateTime,
   formatMovementSource,
   formatProcessorName,
   formatSignedQuantity,
-  InfoItem,
-  ItemStatusBadge,
-  MovementQuantityBadge,
-  MovementSourceInfo,
-  StockBadge,
-  WarehouseStat
+  InfoItem
 } from "./components/inventoryDisplay";
+import { InventoryMovementListPanel } from "./components/InventoryMovementListPanel";
+import { InventorySummaryCards } from "./components/InventorySummaryCards";
+import { ItemCreatePanel } from "./components/ItemCreatePanel";
+import { ItemListPanel } from "./components/ItemListPanel";
+import { WarehouseOverviewPanel } from "./components/WarehouseOverviewPanel";
+import type { InventoryAdjustmentForm, ItemCreateForm, ItemEditForm } from "./types";
 
 const PAGE_SIZE = 20;
-
-type ItemCreateForm = Omit<ItemCreatePayload, "safetyStock"> & {
-  safetyStock: string;
-};
 
 const initialItemForm: ItemCreateForm = {
   sku: "",
@@ -68,22 +58,11 @@ const initialWarehouseForm = {
   name: ""
 };
 
-type InventoryAdjustmentForm = {
-  itemId: number;
-  warehouseId: number;
-  targetQuantity: number;
-  reason: string;
-};
-
 const initialAdjustmentForm: InventoryAdjustmentForm = {
   itemId: 0,
   warehouseId: 0,
   targetQuantity: 0,
   reason: ""
-};
-
-type ItemEditForm = ItemUpdatePayload & {
-  id: number;
 };
 
 export function InventoryView({ permissions = [] }: { permissions?: string[] }) {
@@ -380,405 +359,91 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
 
       <Toast open={toastMessage.length > 0} message={toastMessage} variant="success" onClose={() => setToastMessage("")} />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="전체 품목" value={`${overview?.totalItems ?? 0}개`} />
-        <MetricCard label="사용 품목" value={`${overview?.activeItems ?? activeItems}개`} change="거래 가능" />
-        <MetricCard label="안전재고 미달" value={`${overview?.belowSafetyStocks ?? 0}건`} change="확인 필요" />
-        <MetricCard label="창고" value={`${overview?.warehouses ?? warehouses.length}개`} change="재고 위치" />
-      </div>
+      <InventorySummaryCards overview={overview} activeItems={activeItems} warehouses={warehouses} />
 
       {canCreateItem ? (
-        <Panel title="품목 등록" description="구매, 판매, 재고 처리에서 사용할 품목 기준 정보를 등록합니다.">
-          <form className="grid items-end gap-4 xl:grid-cols-[1fr_1.3fr_1fr_0.7fr_0.8fr_auto]" onSubmit={handleCreateItem}>
-            <TextField
-              label="품목 코드"
-              value={itemForm.sku}
-              onChange={(event) => setItemForm((current) => ({ ...current, sku: event.target.value }))}
-              placeholder="AX-ITM-004"
-              required
-            />
-            <TextField
-              label="품목명"
-              value={itemForm.name}
-              onChange={(event) => setItemForm((current) => ({ ...current, name: event.target.value }))}
-              placeholder="무선 키보드"
-              required
-            />
-            <TextField
-              label="분류"
-              value={itemForm.category}
-              onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))}
-              placeholder="IT 장비"
-              required
-            />
-            <TextField
-              label="단위"
-              value={itemForm.unit}
-              onChange={(event) => setItemForm((current) => ({ ...current, unit: event.target.value }))}
-              placeholder="개"
-              required
-            />
-            <TextField
-              label="안전재고"
-              min={0}
-              type="number"
-              placeholder="안전재고 입력"
-              value={itemForm.safetyStock}
-              onChange={(event) => setItemForm((current) => ({ ...current, safetyStock: event.target.value }))}
-              required
-            />
-            <Button className="h-11 gap-2" disabled={!itemFormReady || createItem.isPending}>
-              <Plus size={17} strokeWidth={2.2} />
-              {createItem.isPending ? "등록 중" : "등록"}
-            </Button>
-          </form>
-        </Panel>
+        <ItemCreatePanel form={itemForm} setForm={setItemForm} formReady={itemFormReady} createPending={createItem.isPending} onSubmit={handleCreateItem} />
       ) : null}
 
-      <Panel title="품목 목록" description="ERP에서 사용하는 품목 기준과 사용 상태를 관리합니다.">
-        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_220px_auto]">
-          <TextField
-            label="검색"
-            placeholder="품목 코드, 품목명, 분류"
-            value={itemSearchInput}
-            leftIcon={<Search size={17} strokeWidth={2.2} />}
-            onChange={(event) => setItemSearchInput(event.target.value)}
-            onEnter={() => {
-              setItemSearch(itemSearchInput.trim());
-              setItemPage(1);
-            }}
-          />
-          <SelectField
-            label="상태"
-            value={itemStatus}
-            options={statusOptions}
-            onChange={(status) => {
-              setItemStatus(status);
-              setItemPage(1);
-            }}
-          />
-          <ResetButton onClick={resetItemFilters} />
-        </div>
+      <ItemListPanel
+        items={items}
+        totalItems={totalItems}
+        page={itemPage}
+        pageSize={PAGE_SIZE}
+        searchInput={itemSearchInput}
+        status={itemStatus}
+        statusOptions={statusOptions}
+        loading={itemsLoading}
+        canUpdate={canUpdateItem}
+        onSearchInputChange={setItemSearchInput}
+        onApplySearch={() => {
+          setItemSearch(itemSearchInput.trim());
+          setItemPage(1);
+        }}
+        onStatusChange={(status) => {
+          setItemStatus(status);
+          setItemPage(1);
+        }}
+        onResetFilters={resetItemFilters}
+        onPageChange={setItemPage}
+        onEdit={handleEditStart}
+      />
 
-        {itemsLoading ? (
-          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-            품목 목록을 불러오는 중입니다.
-          </p>
-        ) : (
-          <TableFrame>
-            <table className="w-full min-w-[980px] border-collapse text-left">
-              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                <tr>
-                  <th className="px-4 py-3">품목</th>
-                  <th className="px-4 py-3">분류</th>
-                  <th className="px-4 py-3">단위</th>
-                  <th className="px-4 py-3">안전재고</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-axis-border bg-white">
-                {items.map((item) => (
-                  <tr key={item.id} className={item.active ? "" : "bg-axis-bg/60"}>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-bold text-axis-ink">{item.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{item.sku}</p>
-                    </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{item.category}</td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{item.unit}</td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{item.safetyStock.toLocaleString("ko-KR")}</td>
-                    <td className="px-4 py-4">
-                      <ItemStatusBadge active={item.active} />
-                    </td>
-                    <td className="px-4 py-4">
-                      {canUpdateItem ? (
-                        <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => handleEditStart(item)}>
-                          <PencilLine size={14} strokeWidth={2.2} />
-                          수정
-                        </Button>
-                      ) : (
-                        <span className="text-xs font-semibold text-axis-muted">조회 전용</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {items.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={6}>
-                      조건에 맞는 품목이 없습니다.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-            <Pagination page={itemPage} pageSize={PAGE_SIZE} totalItems={totalItems} onPageChange={setItemPage} />
-          </TableFrame>
-        )}
-      </Panel>
+      <WarehouseOverviewPanel
+        warehouses={warehouses}
+        stocks={adjustmentStocks}
+        canCreate={canCreateWarehouse}
+        onCreateClick={() => setWarehouseCreateOpen(true)}
+        onViewWarehouseStock={handleViewWarehouseStock}
+      />
 
-      <Panel
-        title="창고 현황"
-        description="등록된 창고와 창고별 재고 구성을 확인합니다."
-        action={
-          canCreateWarehouse ? (
-            <Button className="gap-2" type="button" onClick={() => setWarehouseCreateOpen(true)}>
-              <Plus size={17} strokeWidth={2.2} />
-              창고 등록
-            </Button>
-          ) : null
-        }
-      >
-        {warehouses.length === 0 ? (
-          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-            등록된 창고가 없습니다.
-          </p>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {warehouses.map((warehouse) => {
-              const warehouseStocks = adjustmentStocks.filter((stock) => stock.warehouse.id === warehouse.id);
-              const totalQuantity = warehouseStocks.reduce((sum, stock) => sum + stock.quantity, 0);
-              const belowSafetyCount = warehouseStocks.filter((stock) => stock.belowSafetyStock).length;
+      <CurrentStockPanel
+        stocks={stocks}
+        loading={stocksLoading}
+        searchInput={stockSearchInput}
+        warehouseId={stockWarehouseId}
+        warehouseOptions={stockWarehouseOptions}
+        canAdjust={canAdjustInventory}
+        onSearchInputChange={setStockSearchInput}
+        onApplySearch={() => setStockSearch(stockSearchInput.trim())}
+        onWarehouseChange={setStockWarehouseId}
+        onResetFilters={resetStockFilters}
+        onOpenAdjustment={openAdjustmentModal}
+      />
 
-              return (
-                <div key={warehouse.id} className="rounded-lg border border-axis-border bg-white p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-axis-bg text-axis-ink">
-                        <Building2 size={18} strokeWidth={2.2} />
-                      </span>
-                      <div>
-                        <p className="text-sm font-bold text-axis-ink">{warehouse.name}</p>
-                        <p className="mt-1 text-xs font-semibold text-axis-muted">{warehouse.code}</p>
-                      </div>
-                    </div>
-                    <Button
-                      className="h-8 px-3 text-xs"
-                      type="button"
-                      variant="secondary"
-                      onClick={() => handleViewWarehouseStock(warehouse.id)}
-                    >
-                      재고 보기
-                    </Button>
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <WarehouseStat label="품목" value={`${warehouseStocks.length.toLocaleString("ko-KR")}개`} />
-                    <WarehouseStat label="총 재고" value={totalQuantity.toLocaleString("ko-KR")} />
-                    <WarehouseStat label="확인 필요" value={`${belowSafetyCount.toLocaleString("ko-KR")}건`} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Panel>
-
-      <Panel title="현재 재고" description="창고별 품목 수량과 안전재고 미달 여부를 확인합니다.">
-        <div className={["mb-4 grid items-end gap-3", canAdjustInventory ? "md:grid-cols-[1fr_220px_auto_auto]" : "md:grid-cols-[1fr_220px_auto]"].join(" ")}>
-          <TextField
-            label="검색"
-            placeholder="품목, 분류, 창고"
-            value={stockSearchInput}
-            leftIcon={<Search size={17} strokeWidth={2.2} />}
-            onChange={(event) => setStockSearchInput(event.target.value)}
-            onEnter={() => setStockSearch(stockSearchInput.trim())}
-          />
-          <SelectField label="창고" value={stockWarehouseId} options={stockWarehouseOptions} onChange={setStockWarehouseId} />
-          <ResetButton onClick={resetStockFilters} />
-          {canAdjustInventory ? (
-            <Button className="h-11 gap-2" type="button" onClick={() => openAdjustmentModal()}>
-              <PackagePlus size={17} strokeWidth={2.2} />
-              재고 조정
-            </Button>
-          ) : null}
-        </div>
-
-        {stocksLoading ? (
-          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-            현재 재고를 불러오는 중입니다.
-          </p>
-        ) : (
-          <TableFrame>
-            <table className="w-full min-w-[940px] border-collapse text-left">
-              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                <tr>
-                  <th className="px-4 py-3">품목</th>
-                  <th className="px-4 py-3">창고</th>
-                  <th className="px-4 py-3">현재고</th>
-                  <th className="px-4 py-3">안전재고</th>
-                  <th className="px-4 py-3">상태</th>
-                  {canAdjustInventory ? <th className="px-4 py-3">관리</th> : null}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-axis-border bg-white">
-                {stocks.map((stock) => (
-                  <tr key={stock.id}>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-bold text-axis-ink">{stock.item.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{stock.item.sku}</p>
-                    </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">{stock.warehouse.name}</td>
-                    <td className="px-4 py-4 text-sm font-bold text-axis-ink">
-                      {stock.quantity.toLocaleString("ko-KR")} {stock.item.unit}
-                    </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-muted">
-                      {stock.safetyStock.toLocaleString("ko-KR")} {stock.item.unit}
-                    </td>
-                    <td className="px-4 py-4">
-                      <StockBadge belowSafetyStock={stock.belowSafetyStock} />
-                    </td>
-                    {canAdjustInventory ? (
-                      <td className="px-4 py-4">
-                        <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => openAdjustmentModal(stock)}>
-                          <PackagePlus size={14} strokeWidth={2.2} />
-                          조정
-                        </Button>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-                {stocks.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={canAdjustInventory ? 6 : 5}>
-                      조건에 맞는 재고가 없습니다.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </TableFrame>
-        )}
-      </Panel>
-
-      <Panel title="재고 이동 이력" description="구매 입고, 판매 출고, 수동 조정으로 발생한 재고 수량 변경 내역을 확인합니다.">
-        <div className="mb-4 grid items-end gap-3 xl:grid-cols-[1fr_190px_190px_190px_auto_auto]">
-          <TextField
-            label="검색"
-            placeholder="품목, 창고, 사유, 처리자"
-            value={movementSearchInput}
-            leftIcon={<Search size={17} strokeWidth={2.2} />}
-            onChange={(event) => setMovementSearchInput(event.target.value)}
-            onEnter={() => {
-              setMovementSearch(movementSearchInput.trim());
-              setMovementPage(1);
-            }}
-          />
-          <Button
-            className="h-11"
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setMovementSearch(movementSearchInput.trim());
-              setMovementPage(1);
-            }}
-          >
-            검색 적용
-          </Button>
-          <DateField
-            label="시작일"
-            value={movementStartDate}
-            onChange={(value) => {
-              setMovementStartDate(value);
-              setMovementPage(1);
-            }}
-          />
-          <DateField
-            label="종료일"
-            value={movementEndDate}
-            onChange={(value) => {
-              setMovementEndDate(value);
-              setMovementPage(1);
-            }}
-          />
-          <SelectField
-            label="창고"
-            value={movementWarehouseId}
-            options={stockWarehouseOptions}
-            onChange={(warehouseId) => {
-              setMovementWarehouseId(warehouseId);
-              setMovementPage(1);
-            }}
-          />
-          <ResetButton onClick={resetMovementFilters} />
-        </div>
-
-        <div className="mb-4 min-h-8">
-          {movementFilterLabels.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {movementFilterLabels.map((label) => (
-                <span key={label} className="inline-flex h-8 items-center rounded-full border border-axis-border bg-axis-bg px-3 text-xs font-bold text-axis-ink">
-                  {label}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs font-semibold text-axis-muted">필터가 적용되지 않았습니다.</p>
-          )}
-        </div>
-
-        {movementsLoading ? (
-          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-            재고 이동 이력을 불러오는 중입니다.
-          </p>
-        ) : (
-          <TableFrame>
-            <table className="w-full min-w-[1280px] border-collapse text-left">
-              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                <tr>
-                  <th className="w-[150px] whitespace-nowrap px-4 py-3">처리 일시</th>
-                  <th className="px-4 py-3">품목</th>
-                  <th className="w-[120px] whitespace-nowrap px-4 py-3">창고</th>
-                  <th className="w-[110px] whitespace-nowrap px-4 py-3">이동 수량</th>
-                  <th className="w-[220px] whitespace-nowrap px-4 py-3">출처</th>
-                  <th className="w-[120px] whitespace-nowrap px-4 py-3">처리자</th>
-                  <th className="px-4 py-3">사유</th>
-                  <th className="w-[90px] whitespace-nowrap px-4 py-3 text-right">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-axis-border bg-white">
-                {movements.map((movement) => (
-                  <tr key={movement.id}>
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-muted">{formatDateTime(movement.processedAt)}</td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-bold text-axis-ink">{movement.item.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{movement.item.sku}</p>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-muted">{movement.warehouse.name}</td>
-                    <td className="px-4 py-4">
-                      <MovementQuantityBadge quantityDelta={movement.quantityDelta} unit={movement.item.unit} />
-                    </td>
-                    <td className="px-4 py-4">
-                      <MovementSourceInfo
-                        sourceType={movement.sourceType}
-                        sourceLabel={movement.sourceLabel}
-                        sourceReferenceNo={movement.sourceReferenceNo}
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-axis-ink">{formatProcessorName(movement.processedBy)}</td>
-                    <td className="max-w-[320px] px-4 py-4 text-sm font-medium text-axis-muted">
-                      <span className="block truncate" title={movement.reason}>
-                        {movement.reason}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <Button className="h-8 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedMovement(movement)}>
-                        상세
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {movements.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={8}>
-                      조건에 맞는 이동 이력이 없습니다.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-            <Pagination page={movementPage} pageSize={PAGE_SIZE} totalItems={totalMovements} onPageChange={setMovementPage} />
-          </TableFrame>
-        )}
-      </Panel>
+      <InventoryMovementListPanel
+        movements={movements}
+        totalMovements={totalMovements}
+        page={movementPage}
+        pageSize={PAGE_SIZE}
+        loading={movementsLoading}
+        searchInput={movementSearchInput}
+        startDate={movementStartDate}
+        endDate={movementEndDate}
+        warehouseId={movementWarehouseId}
+        warehouseOptions={stockWarehouseOptions}
+        filterLabels={movementFilterLabels}
+        onSearchInputChange={setMovementSearchInput}
+        onApplySearch={() => {
+          setMovementSearch(movementSearchInput.trim());
+          setMovementPage(1);
+        }}
+        onStartDateChange={(value) => {
+          setMovementStartDate(value);
+          setMovementPage(1);
+        }}
+        onEndDateChange={(value) => {
+          setMovementEndDate(value);
+          setMovementPage(1);
+        }}
+        onWarehouseChange={(warehouseId) => {
+          setMovementWarehouseId(warehouseId);
+          setMovementPage(1);
+        }}
+        onResetFilters={resetMovementFilters}
+        onPageChange={setMovementPage}
+        onSelectMovement={setSelectedMovement}
+      />
 
       <Modal
         open={warehouseCreateOpen}
