@@ -29,6 +29,7 @@ import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 import { TimeField } from "../../shared/ui/TimeField";
 
@@ -362,7 +363,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
               승인 대기 중인 근태 수정 요청이 없습니다.
             </p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-axis-border">
+            <TableFrame>
               <table className="w-full min-w-[980px] border-collapse text-left">
                 <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                   <tr>
@@ -428,7 +429,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                   </Button>
                 </div>
               </div>
-            </div>
+            </TableFrame>
           )}
         </Panel>
       ) : null}
@@ -483,7 +484,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                   조건에 맞는 근태 수정 이력이 없습니다.
                 </p>
               ) : (
-                <div className="overflow-hidden rounded-lg border border-axis-border">
+                <TableFrame>
                   <table className="w-full min-w-[1080px] border-collapse text-left">
                     <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                       <tr>
@@ -520,7 +521,7 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
                     totalItems={totalHistoryItems}
                     onPageChange={setHistoryPage}
                   />
-                </div>
+                </TableFrame>
               )}
             </div>
           )}

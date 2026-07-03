@@ -16,6 +16,7 @@ import { MetricCard } from "../../shared/ui/MetricCard";
 import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 
 const PAGE_SIZE = 20;
@@ -352,7 +353,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
             {getErrorMessage(updateEmployee.error)}
           </p>
         ) : null}
-        <div className="overflow-hidden rounded-lg border border-axis-border">
+        <TableFrame>
           <table className="w-full min-w-[920px] border-collapse text-left">
             <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
               <tr>
@@ -441,7 +442,7 @@ export function OrganizationView({ permissions = [] }: { permissions?: string[] 
             totalItems={employees.length}
             onPageChange={setEmployeePage}
           />
-        </div>
+        </TableFrame>
       </Panel>
     </div>
   );

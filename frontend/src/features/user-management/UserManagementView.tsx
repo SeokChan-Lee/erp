@@ -27,6 +27,7 @@ import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 
 const PAGE_SIZE = 20;
@@ -559,7 +560,7 @@ export function UserManagementView({
               <ResetButton onClick={resetAccountFilters} />
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-axis-border">
+            <TableFrame>
               <table className="w-full min-w-[1080px] border-collapse text-left">
                 <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                   <tr>
@@ -629,7 +630,7 @@ export function UserManagementView({
                 totalItems={totalAccounts}
                 onPageChange={setAccountPage}
               />
-            </div>
+            </TableFrame>
           </div>
         )}
       </Panel>

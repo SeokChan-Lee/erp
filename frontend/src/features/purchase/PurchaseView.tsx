@@ -13,6 +13,7 @@ import { Panel } from "../../shared/ui/Panel";
 import { ResetButton } from "../../shared/ui/ResetButton";
 import { SearchableSelectField } from "../../shared/ui/SearchableSelectField";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
 import {
@@ -601,7 +602,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           {customersLoading ? (
             <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">고객사 목록을 불러오는 중입니다.</p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-axis-border">
+            <TableFrame>
               <table className="w-full min-w-[1080px] border-collapse text-left">
                 <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                   <tr>
@@ -644,7 +645,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                 </tbody>
               </table>
               <Pagination page={customerPage} pageSize={PAGE_SIZE} totalItems={totalCustomers} onPageChange={setCustomerPage} />
-            </div>
+            </TableFrame>
           )}
         </Panel>
       ) : null}
@@ -699,7 +700,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         {suppliersLoading ? (
           <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">공급사 목록을 불러오는 중입니다.</p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
+          <TableFrame>
             <table className="w-full min-w-[1080px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
@@ -742,7 +743,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
               </tbody>
             </table>
             <Pagination page={supplierPage} pageSize={PAGE_SIZE} totalItems={totalSuppliers} onPageChange={setSupplierPage} />
-          </div>
+          </TableFrame>
         )}
       </Panel>
 
@@ -844,7 +845,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           {requestsLoading ? (
             <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">구매 요청을 불러오는 중입니다.</p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-axis-border">
+            <TableFrame>
               <table className="w-full min-w-[980px] border-collapse text-left">
                 <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                   <tr>
@@ -935,7 +936,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                 </tbody>
               </table>
               <Pagination page={requestPage} pageSize={PAGE_SIZE} totalItems={totalRequests} onPageChange={setRequestPage} />
-            </div>
+            </TableFrame>
           )}
         </Panel>
 
@@ -960,7 +961,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           {ordersLoading ? (
             <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">구매 발주를 불러오는 중입니다.</p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-axis-border">
+            <TableFrame>
               <table className="w-full min-w-[1080px] border-collapse text-left">
                 <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                   <tr>
@@ -1042,7 +1043,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
                 </tbody>
               </table>
               <Pagination page={orderPage} pageSize={PAGE_SIZE} totalItems={totalOrders} onPageChange={setOrderPage} />
-            </div>
+            </TableFrame>
           )}
         </Panel>
       </div>

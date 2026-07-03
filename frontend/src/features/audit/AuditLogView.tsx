@@ -10,6 +10,7 @@ import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 import { useAuditLogsQuery } from "./api/auditApi";
 import type { AuditLog, AuditLogDomainFilter, AuditLogQueryParams } from "./api/dto";
@@ -93,7 +94,7 @@ export function AuditLogView() {
             로그인 이력을 불러오는 중입니다.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
+          <TableFrame>
             <table className="w-full min-w-[760px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
@@ -129,7 +130,7 @@ export function AuditLogView() {
               </tbody>
             </table>
             <Pagination page={loginPage} pageSize={PAGE_SIZE} totalItems={totalLoginLogs} onPageChange={setLoginPage} />
-          </div>
+          </TableFrame>
         )}
       </Panel>
 
@@ -179,7 +180,7 @@ export function AuditLogView() {
             업무 이력을 불러오는 중입니다.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
+          <TableFrame>
             <table className="w-full min-w-[1040px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
@@ -235,7 +236,7 @@ export function AuditLogView() {
               </tbody>
             </table>
             <Pagination page={workPage} pageSize={PAGE_SIZE} totalItems={totalWorkLogs} onPageChange={setWorkPage} />
-          </div>
+          </TableFrame>
         )}
       </Panel>
 

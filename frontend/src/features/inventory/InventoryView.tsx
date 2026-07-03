@@ -32,6 +32,7 @@ import { Pagination } from "../../shared/ui/Pagination";
 import { Panel } from "../../shared/ui/Panel";
 import { ResetButton } from "../../shared/ui/ResetButton";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
 
@@ -451,7 +452,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             품목 목록을 불러오는 중입니다.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
+          <TableFrame>
             <table className="w-full min-w-[980px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
@@ -498,7 +499,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               </tbody>
             </table>
             <Pagination page={itemPage} pageSize={PAGE_SIZE} totalItems={totalItems} onPageChange={setItemPage} />
-          </div>
+          </TableFrame>
         )}
       </Panel>
 
@@ -583,7 +584,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             현재 재고를 불러오는 중입니다.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
+          <TableFrame>
             <table className="w-full min-w-[940px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
@@ -631,7 +632,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
                 ) : null}
               </tbody>
             </table>
-          </div>
+          </TableFrame>
         )}
       </Panel>
 
@@ -706,7 +707,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
             재고 이동 이력을 불러오는 중입니다.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
+          <TableFrame>
             <table className="w-full min-w-[1280px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
@@ -762,7 +763,7 @@ export function InventoryView({ permissions = [] }: { permissions?: string[] }) 
               </tbody>
             </table>
             <Pagination page={movementPage} pageSize={PAGE_SIZE} totalItems={totalMovements} onPageChange={setMovementPage} />
-          </div>
+          </TableFrame>
         )}
       </Panel>
 

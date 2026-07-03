@@ -12,6 +12,7 @@ import { Panel } from "../../shared/ui/Panel";
 import { ResetButton } from "../../shared/ui/ResetButton";
 import { SearchableSelectField } from "../../shared/ui/SearchableSelectField";
 import { SelectField } from "../../shared/ui/SelectField";
+import { TableFrame } from "../../shared/ui/TableFrame";
 import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
 import {
@@ -288,7 +289,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
         {ordersLoading ? (
           <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">판매 수주를 불러오는 중입니다.</p>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-axis-border">
+          <TableFrame>
             <table className="w-full min-w-[1080px] border-collapse text-left">
               <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
                 <tr>
@@ -375,7 +376,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
               </tbody>
             </table>
             <Pagination page={orderPage} pageSize={PAGE_SIZE} totalItems={totalOrders} onPageChange={setOrderPage} />
-          </div>
+          </TableFrame>
         )}
       </Panel>
 
