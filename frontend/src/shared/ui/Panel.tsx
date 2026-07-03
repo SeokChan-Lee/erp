@@ -9,9 +9,9 @@ type PanelProps = {
 
 export function Panel({ title, description, action, children }: PanelProps) {
   return (
-    <section className="rounded-lg border border-axis-border bg-white p-5">
+    <section className="min-w-0 rounded-lg border border-axis-border bg-white p-5">
       <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-axis-ink">{title}</h2>
           {description ? <p className="mt-1 text-sm text-axis-muted">{description}</p> : null}
         </div>
