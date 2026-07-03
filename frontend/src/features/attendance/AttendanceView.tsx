@@ -19,18 +19,17 @@ import type {
   AttendanceSettings,
   AttendanceChangeRequestStatus
 } from "./api/dto";
-import { AttendanceCalendar } from "./components/AttendanceCalendar";
+import { AttendanceRequestHistoryPanel } from "./components/AttendanceRequestHistoryPanel";
+import { AttendanceSettingsPanel } from "./components/AttendanceSettingsPanel";
+import { formatDateInputValue, InfoItem, normalizeTimeInputValue } from "./components/attendanceDisplay";
+import { MonthlyAttendancePanel } from "./components/MonthlyAttendancePanel";
+import { PendingAttendanceRequestsPanel } from "./components/PendingAttendanceRequestsPanel";
+import { TodayAttendancePanel } from "./components/TodayAttendancePanel";
 import { attendanceStatusMeta } from "./config/attendanceMeta";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
 import { DateField } from "../../shared/ui/DateField";
 import { Modal } from "../../shared/ui/Modal";
-import { Pagination } from "../../shared/ui/Pagination";
-import { Panel } from "../../shared/ui/Panel";
-import { ResetButton } from "../../shared/ui/ResetButton";
-import { SelectField } from "../../shared/ui/SelectField";
-import { TableFrame } from "../../shared/ui/TableFrame";
-import { TextField } from "../../shared/ui/TextField";
 import { TimeField } from "../../shared/ui/TimeField";
 
 const HISTORY_PAGE_SIZE = 20;
@@ -253,34 +252,17 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
 
   return (
     <div className="space-y-6">
-      <Panel title="오늘 근태" description="현재 로그인한 사용자의 출퇴근 기록을 처리합니다.">
-        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-          <div>
-            <p className="text-sm font-medium text-axis-muted">현재 상태</p>
-            <p className="mt-2 text-3xl font-semibold text-axis-ink">{status}</p>
-            <p className="mt-2 text-sm text-axis-muted">
-              출근 {formatTime(today?.checkInAt)} / 퇴근 {formatTime(today?.checkOutAt)}
-            </p>
-            {attendanceSettings ? (
-              <p className="mt-2 text-xs font-semibold text-axis-muted">
-                기준 {normalizeTimeInputValue(attendanceSettings.standardCheckInAt)} - {normalizeTimeInputValue(attendanceSettings.standardCheckOutAt)} · 지각 기준{" "}
-                {normalizeTimeInputValue(attendanceSettings.lateAfterAt)}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex gap-3">
-            <Button disabled={checkInDisabled} onClick={() => checkInMutation.mutate()}>
-              출근하기
-            </Button>
-            <Button disabled={checkOutDisabled} variant="secondary" onClick={() => checkOutMutation.mutate()}>
-              퇴근하기
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setRequestOpen(true)}>
-              {canUpdateAttendance ? "근태 수정" : "근태 수정 요청"}
-            </Button>
-          </div>
-        </div>
-      </Panel>
+      <TodayAttendancePanel
+        today={today}
+        status={status}
+        settings={attendanceSettings}
+        checkInDisabled={checkInDisabled}
+        checkOutDisabled={checkOutDisabled}
+        canUpdateAttendance={canUpdateAttendance}
+        onCheckIn={() => checkInMutation.mutate()}
+        onCheckOut={() => checkOutMutation.mutate()}
+        onOpenRequest={() => setRequestOpen(true)}
+      />
 
       {error ||
       monthlyError ||
@@ -313,219 +295,66 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
       ) : null}
 
       {canUpdateAttendanceSettings ? (
-        <Panel title="출퇴근 기준 시간" description="근태 상태 계산에 사용할 출근, 퇴근, 지각 기준 시간을 설정합니다.">
-          <form className="grid items-end gap-4 md:grid-cols-[1fr_1fr_1fr_auto]" onSubmit={handleSettingsSubmit}>
-            <TimeField
-              label="출근 기준"
-              value={settingsForm.standardCheckInAt}
-              onChange={(standardCheckInAt) => setSettingsForm((current) => ({ ...current, standardCheckInAt }))}
-              required
-            />
-            <TimeField
-              label="퇴근 기준"
-              value={settingsForm.standardCheckOutAt}
-              onChange={(standardCheckOutAt) => setSettingsForm((current) => ({ ...current, standardCheckOutAt }))}
-              required
-            />
-            <TimeField
-              label="지각 기준"
-              value={settingsForm.lateAfterAt}
-              onChange={(lateAfterAt) => setSettingsForm((current) => ({ ...current, lateAfterAt }))}
-              required
-            />
-            <Button className="h-11" disabled={!settingsFormReady || updateAttendanceSettings.isPending}>
-              {updateAttendanceSettings.isPending ? "저장 중" : "기준 저장"}
-            </Button>
-          </form>
-        </Panel>
+        <AttendanceSettingsPanel
+          form={settingsForm}
+          setForm={setSettingsForm}
+          formReady={settingsFormReady}
+          updatePending={updateAttendanceSettings.isPending}
+          onSubmit={handleSettingsSubmit}
+        />
       ) : null}
 
-      <Panel title="월간 근태 캘린더" description="일자별 출근, 퇴근, 근태 상태를 캘린더로 확인합니다.">
-        {monthlyLoading ? (
-          <p className="rounded-lg border border-axis-border bg-white px-4 py-5 text-sm font-semibold text-axis-muted">
-            월간 근태 기록을 불러오는 중입니다.
-          </p>
-        ) : (
-          <AttendanceCalendar
-            monthDate={visibleMonth}
-            records={monthlyRecords}
-            onMonthChange={setVisibleMonth}
-          />
-        )}
-      </Panel>
+      <MonthlyAttendancePanel visibleMonth={visibleMonth} records={monthlyRecords} loading={monthlyLoading} onMonthChange={setVisibleMonth} />
 
       {canApproveAttendance ? (
-        <Panel title="근태 수정 승인" description="직원이 요청한 근태 수정 건을 확인하고 선택한 요청을 승인합니다.">
-          {pendingRequestsLoading ? (
-            <p className="text-sm font-semibold text-axis-muted">근태 수정 요청을 불러오는 중입니다.</p>
-          ) : pendingRequests.length === 0 ? (
-            <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-              승인 대기 중인 근태 수정 요청이 없습니다.
-            </p>
-          ) : (
-            <TableFrame>
-              <table className="w-full min-w-[980px] border-collapse text-left">
-                <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                  <tr>
-                    <th className="px-4 py-3">
-                      <input
-                        checked={allSelected}
-                        className="h-4 w-4 accent-axis-ink"
-                        type="checkbox"
-                        onChange={toggleAllRequests}
-                      />
-                    </th>
-                    <th className="px-4 py-3">직원</th>
-                    <th className="px-4 py-3">수정 일자</th>
-                    <th className="px-4 py-3">요청 시간</th>
-                    <th className="px-4 py-3">사유</th>
-                    <th className="px-4 py-3">관리</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-axis-border bg-white">
-                  {pendingRequests.map((request) => (
-                    <tr key={request.id}>
-                      <td className="px-4 py-4">
-                        <input
-                          checked={selectedRequestSet.has(request.id)}
-                          className="h-4 w-4 accent-axis-ink"
-                          type="checkbox"
-                          onChange={() => toggleRequest(request.id)}
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-sm font-bold text-axis-ink">{request.requesterName}</td>
-                      <td className="px-4 py-4 text-sm font-medium text-axis-muted">{request.workDate}</td>
-                      <td className="px-4 py-4 text-sm font-medium text-axis-ink">
-                        {request.requestedCheckInAt.slice(0, 5)} - {request.requestedCheckOutAt.slice(0, 5)}
-                      </td>
-                      <td className="max-w-[280px] px-4 py-4 text-sm font-medium text-axis-muted">
-                        <span className="block truncate">{request.reason}</span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Button className="h-8 px-3 text-xs" type="button" variant="secondary" onClick={() => setDetailRequest(request)}>
-                          상세보기
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="flex justify-end border-t border-axis-border bg-white px-4 py-3">
-                <div className="flex gap-2">
-                  <Button
-                    disabled={selectedRequestIds.length === 0 || rejectChangeRequests.isPending}
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setRejectOpen(true)}
-                  >
-                    선택 {selectedRequestIds.length}건 반려
-                  </Button>
-                  <Button
-                    disabled={selectedRequestIds.length === 0 || approveChangeRequests.isPending}
-                    type="button"
-                    onClick={handleApproveSelected}
-                  >
-                    {approveChangeRequests.isPending ? "승인 중" : `선택 ${selectedRequestIds.length}건 승인`}
-                  </Button>
-                </div>
-              </div>
-            </TableFrame>
-          )}
-        </Panel>
+        <PendingAttendanceRequestsPanel
+          requests={pendingRequests}
+          selectedIds={selectedRequestIds}
+          selectedSet={selectedRequestSet}
+          allSelected={allSelected}
+          loading={pendingRequestsLoading}
+          approvePending={approveChangeRequests.isPending}
+          rejectPending={rejectChangeRequests.isPending}
+          onToggleAll={toggleAllRequests}
+          onToggleRequest={toggleRequest}
+          onDetail={setDetailRequest}
+          onOpenReject={() => setRejectOpen(true)}
+          onApproveSelected={handleApproveSelected}
+        />
       ) : null}
 
       {canApproveAttendance ? (
-        <Panel title="근태 수정 처리 이력" description="근태 수정 요청의 승인, 반려 처리 결과를 확인합니다.">
-          {requestHistoryLoading ? (
-            <p className="text-sm font-semibold text-axis-muted">처리 이력을 불러오는 중입니다.</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid items-end gap-3 xl:grid-cols-[1.25fr_0.75fr_0.75fr_0.75fr_auto]">
-                <TextField
-                  label="검색"
-                  placeholder="직원, 일자, 사유, 처리자"
-                  value={historySearchInput}
-                  onChange={(event) => setHistorySearchInput(event.target.value)}
-                  onEnter={() => {
-                    setHistorySearch(historySearchInput.trim());
-                    setHistoryPage(1);
-                  }}
-                />
-                <SelectField
-                  label="처리 상태"
-                  value={historyStatusFilter}
-                  options={historyStatusOptions}
-                  onChange={(status) => {
-                    setHistoryStatusFilter(status);
-                    setHistoryPage(1);
-                  }}
-                />
-                <DateField
-                  label="시작일"
-                  value={historyStartDate}
-                  onChange={(startDate) => {
-                    setHistoryStartDate(startDate);
-                    setHistoryPage(1);
-                  }}
-                />
-                <DateField
-                  label="종료일"
-                  value={historyEndDate}
-                  onChange={(endDate) => {
-                    setHistoryEndDate(endDate);
-                    setHistoryPage(1);
-                  }}
-                />
-                <ResetButton className="w-full" onClick={resetHistoryFilters} />
-              </div>
-
-              {requestHistory.length === 0 ? (
-                <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">
-                  조건에 맞는 근태 수정 이력이 없습니다.
-                </p>
-              ) : (
-                <TableFrame>
-                  <table className="w-full min-w-[1080px] border-collapse text-left">
-                    <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                      <tr>
-                        <th className="px-4 py-3">직원</th>
-                        <th className="px-4 py-3">수정 일자</th>
-                        <th className="px-4 py-3">요청 시간</th>
-                        <th className="px-4 py-3">상태</th>
-                        <th className="px-4 py-3">처리자</th>
-                        <th className="px-4 py-3">사유</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-axis-border bg-white">
-                      {requestHistory.map((request) => (
-                        <tr key={request.id}>
-                          <td className="px-4 py-4 text-sm font-bold text-axis-ink">{request.requesterName}</td>
-                          <td className="px-4 py-4 text-sm font-medium text-axis-muted">{request.workDate}</td>
-                          <td className="px-4 py-4 text-sm font-medium text-axis-ink">
-                            {request.requestedCheckInAt.slice(0, 5)} - {request.requestedCheckOutAt.slice(0, 5)}
-                          </td>
-                          <td className="px-4 py-4">
-                            <StatusBadge status={request.status} />
-                          </td>
-                          <td className="px-4 py-4 text-sm font-medium text-axis-muted">{request.processedBy ?? "-"}</td>
-                          <td className="max-w-[320px] px-4 py-4 text-sm font-medium text-axis-muted">
-                            <span className="block truncate">{request.status === "REJECTED" ? request.rejectReason : request.reason}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <Pagination
-                    page={historyPage}
-                    pageSize={HISTORY_PAGE_SIZE}
-                    totalItems={totalHistoryItems}
-                    onPageChange={setHistoryPage}
-                  />
-                </TableFrame>
-              )}
-            </div>
-          )}
-        </Panel>
+        <AttendanceRequestHistoryPanel
+          requests={requestHistory}
+          totalItems={totalHistoryItems}
+          page={historyPage}
+          pageSize={HISTORY_PAGE_SIZE}
+          loading={requestHistoryLoading}
+          searchInput={historySearchInput}
+          statusFilter={historyStatusFilter}
+          statusOptions={historyStatusOptions}
+          startDate={historyStartDate}
+          endDate={historyEndDate}
+          onSearchInputChange={setHistorySearchInput}
+          onApplySearch={() => {
+            setHistorySearch(historySearchInput.trim());
+            setHistoryPage(1);
+          }}
+          onStatusChange={(status) => {
+            setHistoryStatusFilter(status);
+            setHistoryPage(1);
+          }}
+          onStartDateChange={(startDate) => {
+            setHistoryStartDate(startDate);
+            setHistoryPage(1);
+          }}
+          onEndDateChange={(endDate) => {
+            setHistoryEndDate(endDate);
+            setHistoryPage(1);
+          }}
+          onResetFilters={resetHistoryFilters}
+          onPageChange={setHistoryPage}
+        />
       ) : null}
 
       <Modal
@@ -655,48 +484,5 @@ export function AttendanceView({ permissions = [] }: { permissions?: string[] })
         </form>
       </Modal>
     </div>
-  );
-}
-
-function formatTime(value: string | null | undefined) {
-  if (!value) return "-";
-  return new Date(value).toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-}
-
-function formatDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function normalizeTimeInputValue(value?: string) {
-  return value ? value.slice(0, 5) : "";
-}
-
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-axis-border bg-axis-bg p-4">
-      <p className="text-xs font-bold text-axis-muted">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-axis-ink">{value}</p>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: AttendanceChangeRequestStatus }) {
-  const meta = {
-    PENDING: { label: "대기", className: "bg-axis-bg text-axis-muted" },
-    APPROVED: { label: "승인", className: "bg-emerald-50 text-emerald-700" },
-    REJECTED: { label: "반려", className: "bg-rose-50 text-rose-700" }
-  }[status];
-
-  return (
-    <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", meta.className].join(" ")}>
-      {meta.label}
-    </span>
   );
 }
