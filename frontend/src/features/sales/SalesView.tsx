@@ -1,5 +1,4 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Eye, PackageCheck, RotateCcw, Search, Send, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { useItemsQuery, useWarehousesQuery } from "../inventory/api/inventoryApi";
@@ -7,14 +6,11 @@ import type { ItemQueryParams } from "../inventory/api/dto";
 import { getErrorMessage } from "../../shared/api/http";
 import { Button } from "../../shared/ui/Button";
 import { Modal } from "../../shared/ui/Modal";
-import { Pagination } from "../../shared/ui/Pagination";
-import { Panel } from "../../shared/ui/Panel";
-import { ResetButton } from "../../shared/ui/ResetButton";
-import { SearchableSelectField } from "../../shared/ui/SearchableSelectField";
 import { SelectField } from "../../shared/ui/SelectField";
-import { TableFrame } from "../../shared/ui/TableFrame";
-import { TextField } from "../../shared/ui/TextField";
 import { Toast } from "../../shared/ui/Toast";
+import { SalesOrderCreatePanel } from "./components/SalesOrderCreatePanel";
+import { SalesOrderListPanel } from "./components/SalesOrderListPanel";
+import { DetailItem, formatCurrency, formatDateTime, SalesStatusBadge } from "./components/salesDisplay";
 import {
   useActiveSalesCustomersQuery,
   useCancelSalesOrderMutation,
@@ -26,17 +22,12 @@ import {
 } from "./api/salesApi";
 import type {
   SalesOrder,
-  SalesOrderCreatePayload,
   SalesOrderQueryParams,
   SalesOrderStatusFilter
 } from "./api/dto";
+import type { SalesOrderForm } from "./types";
 
 const PAGE_SIZE = 20;
-
-type SalesOrderForm = Omit<SalesOrderCreatePayload, "quantity" | "unitPrice"> & {
-  quantity: string;
-  unitPrice: string;
-};
 
 const initialSalesForm: SalesOrderForm = {
   customerId: 0,
@@ -204,181 +195,46 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
       <Toast open={toastMessage.length > 0} message={toastMessage} variant="success" onClose={() => setToastMessage("")} />
 
       {canCreateSales ? (
-        <Panel title="판매 수주 등록" description="고객사와 품목을 선택해 판매 수주를 등록합니다.">
-          <form className="space-y-4" onSubmit={handleCreateOrder}>
-            <SearchableSelectField
-              label="고객사"
-              value={selectedCustomerId}
-              options={customerOptions}
-              placeholder="고객사 선택"
-              searchPlaceholder="고객사 코드 또는 이름 검색"
-              disabled={customerOptions.length === 0}
-              onChange={(customerId) => setSalesForm((current) => ({ ...current, customerId }))}
-            />
-            <SearchableSelectField
-              label="품목"
-              value={selectedItemId}
-              options={itemOptions}
-              placeholder="품목 선택"
-              searchPlaceholder="품목 코드 또는 이름 검색"
-              disabled={itemOptions.length === 0}
-              onChange={(itemId) => setSalesForm((current) => ({ ...current, itemId }))}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label="수량"
-                min={1}
-                type="number"
-                placeholder="수량 입력"
-                value={salesForm.quantity}
-                onChange={(event) => setSalesForm((current) => ({ ...current, quantity: event.target.value }))}
-                required
-              />
-              <TextField
-                label="단가"
-                min={1}
-                type="number"
-                placeholder="단가 입력"
-                value={salesForm.unitPrice}
-                onChange={(event) => setSalesForm((current) => ({ ...current, unitPrice: event.target.value }))}
-                required
-              />
-            </div>
-            <label className="block">
-              <span className="text-sm font-semibold text-axis-ink">수주 메모</span>
-              <textarea
-                className="mt-2 min-h-28 w-full resize-none rounded-lg border border-axis-border bg-white px-3 py-3 text-sm font-semibold text-axis-ink outline-none transition focus:border-axis-muted"
-                value={salesForm.memo}
-                onChange={(event) => setSalesForm((current) => ({ ...current, memo: event.target.value }))}
-                placeholder="예: 7월 납품 예정"
-              />
-            </label>
-            <Button className="h-11 w-full gap-2" disabled={!salesFormReady || createOrder.isPending}>
-              <Send size={17} strokeWidth={2.2} />
-              {createOrder.isPending ? "등록 중" : "판매 수주 등록"}
-            </Button>
-          </form>
-        </Panel>
+        <SalesOrderCreatePanel
+          form={salesForm}
+          setForm={setSalesForm}
+          selectedCustomerId={selectedCustomerId}
+          selectedItemId={selectedItemId}
+          customerOptions={customerOptions}
+          itemOptions={itemOptions}
+          formReady={salesFormReady}
+          createPending={createOrder.isPending}
+          onSubmit={handleCreateOrder}
+        />
       ) : null}
 
-      <Panel title="판매 수주 목록" description="등록된 판매 수주와 고객사, 품목, 금액을 확인합니다.">
-        <div className="mb-4 grid items-end gap-3 md:grid-cols-[1fr_180px_auto_auto]">
-          <TextField
-            label="검색"
-            placeholder="수주번호, 고객사, 품목, 메모"
-            value={orderSearchInput}
-            leftIcon={<Search size={17} strokeWidth={2.2} />}
-            onChange={(event) => setOrderSearchInput(event.target.value)}
-            onEnter={handleApplySearch}
-          />
-          <SelectField
-            label="상태"
-            value={orderStatus}
-            options={statusOptions}
-            onChange={(status) => {
-              setOrderStatus(status);
-              setOrderPage(1);
-            }}
-          />
-          <Button className="h-11" type="button" variant="secondary" onClick={handleApplySearch}>
-            검색 적용
-          </Button>
-          <ResetButton onClick={resetOrderFilters} />
-        </div>
-
-        {ordersLoading ? (
-          <p className="rounded-lg border border-axis-border bg-axis-bg px-4 py-5 text-sm font-semibold text-axis-muted">판매 수주를 불러오는 중입니다.</p>
-        ) : (
-          <TableFrame>
-            <table className="w-full min-w-[1080px] border-collapse text-left">
-              <thead className="bg-axis-bg text-xs font-semibold text-axis-muted">
-                <tr>
-                  <th className="px-4 py-3">수주</th>
-                  <th className="px-4 py-3">고객사</th>
-                  <th className="px-4 py-3">품목</th>
-                  <th className="px-4 py-3">수량</th>
-                  <th className="px-4 py-3">금액</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3">출고</th>
-                  <th className="px-4 py-3">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-axis-border bg-white">
-                {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-bold text-axis-ink">{order.orderNo}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{formatDateTime(order.orderedAt)} · {order.orderedBy}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-bold text-axis-ink">{order.customer.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{order.customer.code}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-bold text-axis-ink">{order.item.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-axis-muted">{order.item.sku}</p>
-                    </td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{order.quantity.toLocaleString("ko-KR")} {order.item.unit}</td>
-                    <td className="px-4 py-4 text-sm font-semibold text-axis-ink">{formatCurrency(order.totalAmount)}</td>
-                    <td className="px-4 py-4"><SalesStatusBadge status={order.status} /></td>
-                    <td className="px-4 py-4"><ShipStatusBadge shipped={order.shippedAt !== null} /></td>
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => setSelectedOrderId(order.id)}>
-                          <Eye size={14} strokeWidth={2.2} />
-                          상세
-                        </Button>
-                        {order.status === "REGISTERED" && !order.shippedAt && canUpdateSales ? (
-                          <Button
-                            className="h-8 gap-1.5 px-3 text-xs"
-                            disabled={shipOrder.isPending || cancelShipOrder.isPending || warehouses.length === 0}
-                            type="button"
-                            variant="secondary"
-                            onClick={() => openShipModal(order)}
-                          >
-                            <PackageCheck size={14} strokeWidth={2.2} />
-                            출고 처리
-                          </Button>
-                        ) : null}
-                        {order.status === "REGISTERED" && order.shippedAt && canUpdateSales ? (
-                          <Button
-                            className="h-8 gap-1.5 px-3 text-xs text-rose-700"
-                            disabled={cancelShipOrder.isPending}
-                            type="button"
-                            variant="secondary"
-                            onClick={() => handleCancelShipOrder(order.id)}
-                          >
-                            <RotateCcw size={14} strokeWidth={2.2} />
-                            출고 취소
-                          </Button>
-                        ) : null}
-                        {order.status === "REGISTERED" && !order.shippedAt && canUpdateSales ? (
-                          <Button
-                            className="h-8 gap-1.5 px-3 text-xs text-rose-700"
-                            disabled={cancelOrder.isPending || shipOrder.isPending || cancelShipOrder.isPending}
-                            type="button"
-                            variant="secondary"
-                            onClick={() => handleCancelOrder(order.id)}
-                          >
-                            <X size={14} strokeWidth={2.2} />
-                            취소
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {orders.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-sm font-semibold text-axis-muted" colSpan={8}>등록된 판매 수주가 없습니다.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-            <Pagination page={orderPage} pageSize={PAGE_SIZE} totalItems={totalOrders} onPageChange={setOrderPage} />
-          </TableFrame>
-        )}
-      </Panel>
+      <SalesOrderListPanel
+        orders={orders}
+        totalOrders={totalOrders}
+        page={orderPage}
+        pageSize={PAGE_SIZE}
+        searchInput={orderSearchInput}
+        status={orderStatus}
+        statusOptions={statusOptions}
+        loading={ordersLoading}
+        canUpdate={canUpdateSales}
+        shipPending={shipOrder.isPending}
+        cancelShipPending={cancelShipOrder.isPending}
+        cancelPending={cancelOrder.isPending}
+        warehouseCount={warehouses.length}
+        onSearchInputChange={setOrderSearchInput}
+        onApplySearch={handleApplySearch}
+        onStatusChange={(status) => {
+          setOrderStatus(status);
+          setOrderPage(1);
+        }}
+        onResetFilters={resetOrderFilters}
+        onPageChange={setOrderPage}
+        onSelectOrder={setSelectedOrderId}
+        onOpenShip={openShipModal}
+        onCancelShip={handleCancelShipOrder}
+        onCancelOrder={handleCancelOrder}
+      />
 
       <Modal
         open={shippingOrder !== null}
@@ -471,44 +327,4 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
       </Modal>
     </div>
   );
-}
-
-function SalesStatusBadge({ status }: { status: string }) {
-  const canceled = status === "CANCELED";
-  return (
-    <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", canceled ? "bg-axis-bg text-axis-muted" : "bg-emerald-50 text-emerald-700"].join(" ")}>
-      {canceled ? "취소" : "등록"}
-    </span>
-  );
-}
-
-function ShipStatusBadge({ shipped }: { shipped: boolean }) {
-  return (
-    <span className={["inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold", shipped ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"].join(" ")}>
-      {shipped ? "출고 완료" : "출고 대기"}
-    </span>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-axis-border px-4 py-3">
-      <p className="text-xs font-bold text-axis-muted">{label}</p>
-      <p className="mt-1 text-sm font-bold text-axis-ink">{value}</p>
-    </div>
-  );
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
 }
