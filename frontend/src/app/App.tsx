@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Building2, Clock3, FileClock, Handshake, LayoutDashboard, PackageSearch, ReceiptText, ShieldCheck, UserCog, UserRound } from "lucide-react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
@@ -36,6 +37,10 @@ export function App() {
   const toggleSidebar = useAppStore((state) => state.toggleSidebar);
   const location = useLocation();
   const { data: user, isLoading } = useMeQuery();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname]);
 
   if (isLoading) {
     return (
