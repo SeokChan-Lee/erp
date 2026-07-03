@@ -95,7 +95,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
         {isLoading ? (
           <p className="text-sm font-semibold text-axis-muted">역할 권한을 불러오는 중입니다.</p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2.5 md:grid-cols-3 xl:grid-cols-4">
             {roles.map((item) => {
               const meta = getRoleMeta(item.role);
               const active = role?.role === item.role;
@@ -105,23 +105,22 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
                 <button
                   key={item.role}
                   className={[
-                    "rounded-lg border p-4 text-left transition",
+                    "rounded-lg border px-3 py-2.5 text-left transition",
                     active ? "border-axis-ink bg-axis-ink text-white" : "border-axis-border bg-axis-bg text-axis-ink hover:border-axis-ink"
                   ].join(" ")}
                   type="button"
                   onClick={() => setSelectedRole(item.role)}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className={active ? "text-sm font-semibold text-white/65" : "text-sm font-semibold text-axis-blue"}>{meta.scope}</p>
-                      <h3 className="mt-2 text-lg font-semibold">{meta.label}</h3>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-bold">{meta.label}</h3>
+                      <p className={active ? "mt-1 truncate text-xs font-semibold text-white/65" : "mt-1 truncate text-xs font-semibold text-axis-blue"}>{meta.scope}</p>
                     </div>
-                    <span className={active ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/12 text-white" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-axis-ink"}>
-                      <RoleIcon size={18} strokeWidth={2.2} />
+                    <span className={active ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/12 text-white" : "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-axis-ink"}>
+                      <RoleIcon size={16} strokeWidth={2.2} />
                     </span>
                   </div>
-                  <p className={active ? "mt-2 text-sm leading-6 text-white/70" : "mt-2 text-sm leading-6 text-axis-muted"}>{meta.description}</p>
-                  <div className={active ? "mt-4 text-xs font-bold text-white/75" : "mt-4 text-xs font-bold text-[#424245]"}>
+                  <div className={active ? "mt-2 text-xs font-bold text-white/75" : "mt-2 text-xs font-bold text-[#424245]"}>
                     {item.role === "SUPER_ADMIN" ? "모든 권한 고정" : `${item.permissions.length}개 권한`}
                   </div>
                 </button>
