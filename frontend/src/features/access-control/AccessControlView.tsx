@@ -44,9 +44,27 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
   const pageError = error || updateRolePermissions.error;
 
   useEffect(() => {
+    if (roles.length === 0) return;
+
+    setInitialPermissionsByRole((current) => {
+      let changed = false;
+      const next = { ...current };
+
+      roles.forEach((item) => {
+        if (!next[item.role]) {
+          next[item.role] = [...item.permissions];
+          changed = true;
+        }
+      });
+
+      return changed ? next : current;
+    });
+  }, [roles]);
+
+  useEffect(() => {
     if (!role) return;
     setSelectedRole(role.role);
-    setDraftPermissions(initialPermissionsByRole[role.role] ?? role.permissions);
+    setDraftPermissions(role.permissions);
   }, [role?.role]);
 
   const selectedCount = draftPermissions.length;
