@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,10 +23,22 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuditLogService auditLogService;
+    private final boolean secureCookie;
+    private final String sameSite;
+    private final Duration sessionDuration;
 
-    public AuthController(AuthService authService, AuditLogService auditLogService) {
+    public AuthController(
+            AuthService authService,
+            AuditLogService auditLogService,
+            @Value("${axis.auth.cookie-secure:false}") boolean secureCookie,
+            @Value("${axis.auth.cookie-same-site:Lax}") String sameSite,
+            @Value("${axis.auth.session-duration:PT12H}") Duration sessionDuration
+    ) {
         this.authService = authService;
         this.auditLogService = auditLogService;
+        this.secureCookie = secureCookie;
+        this.sameSite = sameSite;
+        this.sessionDuration = sessionDuration;
     }
 
     @PostMapping("/login")
@@ -34,9 +47,10 @@ public class AuthController {
         auditLogService.record("AUTH", "AUTH_LOGIN", result.user().username(), "로그인", "로그인했습니다.", result.user().displayName());
         ResponseCookie cookie = ResponseCookie.from(AuthService.COOKIE_NAME, result.sessionId())
                 .httpOnly(true)
-                .sameSite("Lax")
+                .secure(secureCookie)
+                .sameSite(sameSite)
                 .path("/")
-                .maxAge(Duration.ofHours(12))
+                .maxAge(sessionDuration)
                 .build();
 
         return ResponseEntity.ok()
@@ -55,7 +69,8 @@ public class AuthController {
 
         ResponseCookie cookie = ResponseCookie.from(AuthService.COOKIE_NAME, "")
                 .httpOnly(true)
-                .sameSite("Lax")
+                .secure(secureCookie)
+                .sameSite(sameSite)
                 .path("/")
                 .maxAge(Duration.ZERO)
                 .build();

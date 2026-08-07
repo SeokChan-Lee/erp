@@ -10,6 +10,7 @@ import com.axiserp.user.Role;
 import com.axiserp.user.UserAccountEntity;
 import com.axiserp.user.UserAccountRepository;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -30,26 +33,32 @@ public class AuthService {
 
     public static final String COOKIE_NAME = "axis_session";
 
-    private final Map<String, String> sessions = new ConcurrentHashMap<>();
+    private final Map<String, Session> sessions = new ConcurrentHashMap<>();
     private final Map<Role, Set<Permission>> rolePermissions = new EnumMap<>(Role.class);
     private final UserAccountRepository userAccountRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordService passwordService;
+    private final Duration sessionDuration;
 
     public AuthService(
             UserAccountRepository userAccountRepository,
             RolePermissionRepository rolePermissionRepository,
-            PasswordService passwordService
+            PasswordService passwordService,
+            @Value("${axis.auth.session-duration:PT12H}") Duration sessionDuration
     ) {
         this.userAccountRepository = userAccountRepository;
         this.rolePermissionRepository = rolePermissionRepository;
         this.passwordService = passwordService;
+        this.sessionDuration = sessionDuration;
     }
 
     @PostConstruct
     void initialize() {
         Map<Role, Set<Permission>> defaults = defaultRolePermissions();
-        if (rolePermissionRepository.count() == 0) {
+        // Early migrations add a small set of permissions before application seeding.
+        // Treat that migration-only state like an empty installation.
+        if (rolePermissionRepository.count() <= 15) {
+            rolePermissionRepository.deleteAllInBatch();
             defaults.forEach((role, permissions) -> rolePermissionRepository.saveAll(
                     permissions.stream()
                             .map((permission) -> new RolePermissionEntity(role, permission))
@@ -74,7 +83,7 @@ public class AuthService {
         }
 
         String sessionId = UUID.randomUUID().toString();
-        sessions.put(sessionId, account.getUsername());
+        sessions.put(sessionId, new Session(account.getUsername(), Instant.now().plus(sessionDuration)));
         return new LoginResult(sessionId, toAuthUser(account));
     }
 
@@ -87,7 +96,7 @@ public class AuthService {
         if (sessionId == null || sessionId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
-        String username = sessions.get(sessionId);
+        String username = sessionUsername(sessionId);
         if (username == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
@@ -105,7 +114,7 @@ public class AuthService {
         if (sessionId == null || sessionId.isBlank()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(sessions.get(sessionId))
+        return Optional.ofNullable(sessionUsername(sessionId))
                 .flatMap(userAccountRepository::findByUsername)
                 .filter(UserAccountEntity::isActive)
                 .map(this::toAuthUser);
@@ -174,6 +183,24 @@ public class AuthService {
     public record LoginResult(String sessionId, AuthUserResponse user) {
     }
 
+    private String sessionUsername(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return null;
+        }
+        Session session = sessions.get(sessionId);
+        if (session == null) {
+            return null;
+        }
+        if (session.expiresAt().isBefore(Instant.now())) {
+            sessions.remove(sessionId, session);
+            return null;
+        }
+        return session.username();
+    }
+
+    private record Session(String username, Instant expiresAt) {
+    }
+
     private void refreshRolePermissions(Map<Role, Set<Permission>> defaults) {
         rolePermissions.clear();
         for (Role role : Role.values()) {
@@ -200,6 +227,7 @@ public class AuthService {
                 Permission.DEPARTMENT_CREATE,
                 Permission.EMPLOYEE_CREATE,
                 Permission.EMPLOYEE_UPDATE,
+                Permission.ATTENDANCE_READ_SELF,
                 Permission.ATTENDANCE_READ_ALL,
                 Permission.ATTENDANCE_SETTINGS_UPDATE
         )));
@@ -209,6 +237,7 @@ public class AuthService {
                 Permission.DEPARTMENT_CREATE,
                 Permission.EMPLOYEE_CREATE,
                 Permission.EMPLOYEE_UPDATE,
+                Permission.ATTENDANCE_READ_SELF,
                 Permission.ATTENDANCE_READ_ALL,
                 Permission.ATTENDANCE_UPDATE,
                 Permission.ATTENDANCE_APPROVE,

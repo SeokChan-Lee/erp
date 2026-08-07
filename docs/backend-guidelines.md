@@ -11,7 +11,7 @@
 - Role and permission authorization
 - Relational database
 
-The exact backend dependencies should be confirmed before project setup.
+새 라이브러리가 필요한 경우 프로젝트 규칙에 따라 추가 전에 확인한다.
 
 ## Authentication
 
@@ -24,6 +24,13 @@ Recommended defaults:
 - SameSite=Lax
 - CSRF protection for state-changing requests
 - Logout invalidates the server-side session or token state
+
+Current implementation:
+
+- `axis_session` is an HttpOnly session cookie.
+- The backend restores Spring Security authentication from the session cookie on every request.
+- State-changing requests require the `X-XSRF-TOKEN` header issued through the `XSRF-TOKEN` cookie.
+- Cookie security, SameSite policy, and session lifetime are environment properties.
 
 ## Authorization
 
@@ -58,19 +65,35 @@ The current local development database is H2 file mode:
 
 - JDBC URL: `jdbc:h2:file:./data/axis-erp`
 - H2 console: `/h2-console`
-- Schema strategy: `hibernate.ddl-auto=update`
+- Schema strategy: Flyway migrations with `hibernate.ddl-auto=none`
+- Active profile: `local` by default
 
 This keeps local development simple while preserving a JPA model that can move to PostgreSQL.
 
-Current persisted models:
+Development seed accounts and the H2 console are enabled only in the `local` profile.
+
+## Production Profile
+
+Run production with the `prod` profile and provide the following environment variables:
+
+- `DB_URL`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `CORS_ALLOWED_ORIGINS`
+- `COOKIE_SAME_SITE` when a value other than `Lax` is required
+
+The production profile uses PostgreSQL, disables the H2 console, and sends the session cookie with the Secure attribute. Schema changes must be added as ordered Flyway migrations under `db/migration`; do not enable Hibernate schema mutation.
+
+Current persisted domains include:
 
 - Departments
 - Employees
 - User accounts
 - User roles
 - Attendance records
-
-The next persistence step should replace development defaults with migrations before the schema becomes stable.
+- Items, warehouses, and inventory movements
+- Customers, suppliers, purchases, and sales
+- Role permissions and audit records
 
 ## API Direction
 

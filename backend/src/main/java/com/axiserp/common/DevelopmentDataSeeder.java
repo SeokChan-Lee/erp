@@ -11,12 +11,14 @@ import com.axiserp.user.UserAccountEntity;
 import com.axiserp.user.UserAccountRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
 @Component
+@Profile("local")
 public class DevelopmentDataSeeder implements ApplicationRunner {
 
     private final DepartmentRepository departmentRepository;
