@@ -229,3 +229,9 @@
 - Split the operations history screen into login history and business operation history.
 - Added `WAREHOUSE_CREATE` permission and a warehouse creation API.
 - Added an inventory warehouse status section with warehouse registration and warehouse-specific stock viewing.
+
+### Persisted Role Permission Defaults
+
+- Added separate persisted default permissions for every role.
+- Added `PATCH /api/roles/{role}/default-permissions` without changing the role's current permissions.
+- Changed the access-control reset action to compare against and restore the server-managed default after reloads and restarts.

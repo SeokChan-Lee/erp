@@ -29,7 +29,7 @@ public class RolePermissionController {
     public List<RolePermissionResponse> roles(@CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId) {
         authService.requirePermission(sessionId, Permission.ROLE_READ);
         return Arrays.stream(Role.values())
-                .map((role) -> new RolePermissionResponse(role, authService.permissionsFor(role)))
+                .map(this::response)
                 .toList();
     }
 
@@ -40,6 +40,26 @@ public class RolePermissionController {
             @Valid @RequestBody RolePermissionUpdateRequest request
     ) {
         authService.requirePermission(sessionId, Permission.ROLE_UPDATE);
-        return new RolePermissionResponse(role, authService.updateRolePermissions(role, request.permissions()));
+        authService.updateRolePermissions(role, request.permissions());
+        return response(role);
+    }
+
+    @PatchMapping("/{role}/default-permissions")
+    public RolePermissionResponse updateDefault(
+            @CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId,
+            @PathVariable Role role,
+            @Valid @RequestBody RolePermissionUpdateRequest request
+    ) {
+        authService.requirePermission(sessionId, Permission.ROLE_UPDATE);
+        authService.updateRoleDefaultPermissions(role, request.permissions());
+        return response(role);
+    }
+
+    private RolePermissionResponse response(Role role) {
+        return new RolePermissionResponse(
+                role,
+                authService.permissionsFor(role),
+                authService.defaultPermissionsFor(role)
+        );
     }
 }

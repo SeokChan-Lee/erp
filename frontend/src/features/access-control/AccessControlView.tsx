@@ -3,6 +3,7 @@ import { CheckCircle2, RotateCcw, Save, ShieldCheck } from "lucide-react";
 
 import {
   useRolePermissionsQuery,
+  useUpdateRoleDefaultPermissionsMutation,
   useUpdateRolePermissionsMutation
 } from "./api/accessControlApi";
 import type { PermissionCode, RoleCode } from "./api/dto";
@@ -24,15 +25,15 @@ const samePermissionSet = (left: PermissionCode[], right: PermissionCode[]) =>
 export function AccessControlView({ permissions = [] }: { permissions?: string[] }) {
   const { data: roles = [], error, isLoading } = useRolePermissionsQuery();
   const updateRolePermissions = useUpdateRolePermissionsMutation();
+  const updateRoleDefaultPermissions = useUpdateRoleDefaultPermissionsMutation();
   const [selectedRole, setSelectedRole] = useState<RoleCode | null>(null);
   const [draftPermissions, setDraftPermissions] = useState<PermissionCode[]>([]);
-  const [initialPermissionsByRole, setInitialPermissionsByRole] = useState<Partial<Record<RoleCode, PermissionCode[]>>>({});
   const canUpdateRoles = permissions.includes("ROLE_UPDATE");
 
   const role = roles.find((item) => item.role === selectedRole) ?? roles[0] ?? null;
   const isSuperAdmin = role?.role === "SUPER_ADMIN";
   const editable = Boolean(role && canUpdateRoles && !isSuperAdmin);
-  const initialPermissions = role ? initialPermissionsByRole[role.role] ?? role.permissions : [];
+  const initialPermissions = role?.defaultPermissions ?? [];
   const permissionGroups = useMemo<PermissionGroupSection[]>(
     () =>
       Object.keys(permissionGroupMeta).map((group) => ({
@@ -41,25 +42,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
       })),
     []
   );
-  const pageError = error || updateRolePermissions.error;
-
-  useEffect(() => {
-    if (roles.length === 0) return;
-
-    setInitialPermissionsByRole((current) => {
-      let changed = false;
-      const next = { ...current };
-
-      roles.forEach((item) => {
-        if (!next[item.role]) {
-          next[item.role] = [...item.permissions];
-          changed = true;
-        }
-      });
-
-      return changed ? next : current;
-    });
-  }, [roles]);
+  const pageError = error || updateRolePermissions.error || updateRoleDefaultPermissions.error;
 
   useEffect(() => {
     if (!role) return;
@@ -89,11 +72,11 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
   };
 
   const handleSetInitialPermissions = () => {
-    if (!role) return;
-    setInitialPermissionsByRole((current) => ({
-      ...current,
-      [role.role]: draftPermissions
-    }));
+    if (!role || !editable) return;
+    updateRoleDefaultPermissions.mutate({
+      role: role.role,
+      payload: { permissions: draftPermissions }
+    });
   };
 
   const handleResetToInitialPermissions = () => {
@@ -166,7 +149,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
             <div className="flex flex-wrap gap-2">
               <Button
                 className="h-9 gap-2"
-                disabled={!editable || updateRolePermissions.isPending || selectedCount === 0 || !hasSavedPermissionChanges}
+                disabled={!editable || updateRolePermissions.isPending || updateRoleDefaultPermissions.isPending || selectedCount === 0 || !hasSavedPermissionChanges}
                 onClick={handleSave}
               >
                 <Save size={16} strokeWidth={2.2} />
@@ -174,7 +157,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
               </Button>
               <Button
                 className="h-9 gap-2"
-                disabled={!editable || selectedCount === 0 || !hasInitialPermissionChanges || updateRolePermissions.isPending}
+                disabled={!editable || selectedCount === 0 || !hasInitialPermissionChanges || updateRolePermissions.isPending || updateRoleDefaultPermissions.isPending}
                 type="button"
                 variant="secondary"
                 onClick={handleSetInitialPermissions}
@@ -184,7 +167,7 @@ export function AccessControlView({ permissions = [] }: { permissions?: string[]
               </Button>
               <Button
                 className="h-9 gap-2"
-                disabled={!role || !hasInitialPermissionChanges || updateRolePermissions.isPending}
+                disabled={!role || !hasInitialPermissionChanges || updateRolePermissions.isPending || updateRoleDefaultPermissions.isPending}
                 type="button"
                 variant="secondary"
                 onClick={handleResetToInitialPermissions}

@@ -5,6 +5,8 @@ import com.axiserp.auth.api.LoginRequest;
 import com.axiserp.employee.EmployeeEntity;
 import com.axiserp.permission.Permission;
 import com.axiserp.permission.RolePermissionEntity;
+import com.axiserp.permission.RolePermissionDefaultEntity;
+import com.axiserp.permission.RolePermissionDefaultRepository;
 import com.axiserp.permission.RolePermissionRepository;
 import com.axiserp.user.Role;
 import com.axiserp.user.UserAccountEntity;
@@ -35,19 +37,23 @@ public class AuthService {
 
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
     private final Map<Role, Set<Permission>> rolePermissions = new EnumMap<>(Role.class);
+    private final Map<Role, Set<Permission>> roleDefaultPermissions = new EnumMap<>(Role.class);
     private final UserAccountRepository userAccountRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final RolePermissionDefaultRepository rolePermissionDefaultRepository;
     private final PasswordService passwordService;
     private final Duration sessionDuration;
 
     public AuthService(
             UserAccountRepository userAccountRepository,
             RolePermissionRepository rolePermissionRepository,
+            RolePermissionDefaultRepository rolePermissionDefaultRepository,
             PasswordService passwordService,
             @Value("${axis.auth.session-duration:PT12H}") Duration sessionDuration
     ) {
         this.userAccountRepository = userAccountRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.rolePermissionDefaultRepository = rolePermissionDefaultRepository;
         this.passwordService = passwordService;
         this.sessionDuration = sessionDuration;
     }
@@ -57,7 +63,7 @@ public class AuthService {
         Map<Role, Set<Permission>> defaults = defaultRolePermissions();
         // Early migrations add a small set of permissions before application seeding.
         // Treat that migration-only state like an empty installation.
-        if (rolePermissionRepository.count() <= 15) {
+        if (userAccountRepository.count() == 0 && rolePermissionRepository.count() <= 15) {
             rolePermissionRepository.deleteAllInBatch();
             defaults.forEach((role, permissions) -> rolePermissionRepository.saveAll(
                     permissions.stream()
@@ -66,6 +72,14 @@ public class AuthService {
             ));
         }
         refreshRolePermissions(defaults);
+        if (rolePermissionDefaultRepository.count() == 0) {
+            rolePermissions.forEach((role, permissions) -> rolePermissionDefaultRepository.saveAll(
+                    permissions.stream()
+                            .map((permission) -> new RolePermissionDefaultEntity(role, permission))
+                            .toList()
+            ));
+        }
+        refreshRoleDefaultPermissions();
     }
 
     @Transactional
@@ -133,6 +147,10 @@ public class AuthService {
         return rolePermissions.getOrDefault(role, Set.of());
     }
 
+    public Set<Permission> defaultPermissionsFor(Role role) {
+        return roleDefaultPermissions.getOrDefault(role, Set.of());
+    }
+
     @Transactional
     public Set<Permission> updateRolePermissions(Role role, Set<Permission> permissions) {
         if (role == Role.SUPER_ADMIN) {
@@ -151,6 +169,27 @@ public class AuthService {
                         .toList()
         );
         rolePermissions.put(role, orderedPermissions);
+        return orderedPermissions;
+    }
+
+    @Transactional
+    public Set<Permission> updateRoleDefaultPermissions(Role role, Set<Permission> permissions) {
+        if (role == Role.SUPER_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "최고 관리자 권한은 모든 권한으로 고정됩니다.");
+        }
+        if (permissions == null || permissions.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "역할 초기값에는 최소 1개 이상의 권한이 필요합니다.");
+        }
+
+        Set<Permission> orderedPermissions = orderedPermissions(permissions);
+        rolePermissionDefaultRepository.deleteByRole(role);
+        rolePermissionDefaultRepository.flush();
+        rolePermissionDefaultRepository.saveAll(
+                orderedPermissions.stream()
+                        .map((permission) -> new RolePermissionDefaultEntity(role, permission))
+                        .toList()
+        );
+        roleDefaultPermissions.put(role, orderedPermissions);
         return orderedPermissions;
     }
 
@@ -210,6 +249,16 @@ public class AuthService {
             rolePermissions.put(role, savedPermissions.isEmpty()
                     ? defaults.getOrDefault(role, Set.of())
                     : orderedPermissions(savedPermissions));
+        }
+    }
+
+    private void refreshRoleDefaultPermissions() {
+        roleDefaultPermissions.clear();
+        for (Role role : Role.values()) {
+            Set<Permission> persisted = rolePermissionDefaultRepository.findByRole(role).stream()
+                    .map(RolePermissionDefaultEntity::getPermission)
+                    .collect(Collectors.toCollection(() -> EnumSet.noneOf(Permission.class)));
+            roleDefaultPermissions.put(role, orderedPermissions(persisted));
         }
     }
 

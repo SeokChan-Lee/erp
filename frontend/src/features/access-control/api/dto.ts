@@ -14,6 +14,7 @@ export type PermissionCode = string;
 export type RolePermission = {
   role: RoleCode;
   permissions: PermissionCode[];
+  defaultPermissions: PermissionCode[];
 };
 
 export type RolePermissionUpdatePayload = {

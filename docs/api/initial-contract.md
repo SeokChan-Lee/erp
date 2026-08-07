@@ -609,7 +609,8 @@ Returns role permission settings.
 [
   {
     "role": "ADMIN",
-    "permissions": ["DASHBOARD_VIEW", "USER_READ", "ROLE_READ"]
+    "permissions": ["DASHBOARD_VIEW", "USER_READ", "ROLE_READ"],
+    "defaultPermissions": ["DASHBOARD_VIEW", "USER_READ", "ROLE_READ"]
   }
 ]
 ```
@@ -630,7 +631,13 @@ Request:
 
 Response:
 
-Returns the updated role permission setting.
+Returns the updated role permission setting together with its saved default permissions.
+
+### `PATCH /api/roles/{role}/default-permissions`
+
+Requires `ROLE_UPDATE`.
+
+Persists the permission set used by the UI's reset-to-default action. Updating the default does not change the role's current permissions. The request body matches the role permission update request, and the response includes both `permissions` and `defaultPermissions`.
 
 ## Users
 

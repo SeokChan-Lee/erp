@@ -29,3 +29,18 @@ export function useUpdateRolePermissionsMutation() {
     }
   });
 }
+
+export function useUpdateRoleDefaultPermissionsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ role, payload }: { role: RoleCode; payload: RolePermissionUpdatePayload }) =>
+      http<RolePermission>(`/roles/${role}/default-permissions`, {
+        method: "PATCH",
+        json: payload
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accessControlKeys.roles });
+    }
+  });
+}
