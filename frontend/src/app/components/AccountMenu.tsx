@@ -32,7 +32,7 @@ export function AccountMenu({ user }: AccountMenuProps) {
   return (
     <div className="relative" ref={ref}>
       <button
-        className="flex h-12 min-w-[188px] items-center gap-3 rounded-lg border border-axis-border-strong bg-white px-3 text-left transition hover:border-axis-ink focus:outline-none focus-visible:outline-none"
+        className="flex h-11 min-w-0 items-center gap-2 rounded-lg border border-axis-border-strong bg-white px-2 text-left transition hover:border-axis-ink focus:outline-none focus-visible:outline-none sm:h-12 sm:min-w-[188px] sm:gap-3 sm:px-3"
         onClick={() => setOpen((value) => !value)}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-axis-ink text-white">
@@ -48,7 +48,7 @@ export function AccountMenu({ user }: AccountMenuProps) {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-14 z-30 w-80 overflow-hidden rounded-xl border border-axis-border-strong bg-white">
+        <div className="absolute right-0 top-14 z-30 w-[calc(100vw-2rem)] max-w-80 overflow-hidden rounded-xl border border-axis-border-strong bg-white">
           <div className="border-b border-axis-border px-5 py-5">
             <p className="text-[15px] font-bold leading-5 text-axis-ink">{displayName}</p>
             <p className="mt-1 text-[13px] font-medium leading-5 text-[#424245]">

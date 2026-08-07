@@ -62,9 +62,9 @@ export function DashboardView({ permissions = [] }: { permissions?: string[] }) 
               출퇴근, 권한, 재고 경고, 승인 업무를 먼저 안정화하고 구매와 판매 업무로 확장합니다.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {workSignals.map((item) => (
-              <div key={item.label} className="min-w-[128px] rounded-lg bg-white px-4 py-3 text-axis-ink">
+              <div key={item.label} className="rounded-lg bg-white px-4 py-3 text-axis-ink sm:min-w-[128px]">
                 <p className="text-xs font-medium text-axis-muted">{item.label}</p>
                 <strong className={`mt-2 block text-2xl font-semibold ${item.tone}`}>{item.value}</strong>
               </div>

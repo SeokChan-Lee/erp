@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Building2, Clock3, FileClock, Handshake, LayoutDashboard, PackageSearch, ReceiptText, ShieldCheck, UserCog, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Building2, Clock3, FileClock, Handshake, LayoutDashboard, Menu, PackageSearch, PanelLeftClose, PanelLeftOpen, ReceiptText, ShieldCheck, UserCog, UserRound, X } from "lucide-react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import { AccountMenu } from "./components/AccountMenu";
@@ -36,12 +36,23 @@ const navItems = [
 export function App() {
   const sidebarCollapsed = useAppStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useAppStore((state) => state.toggleSidebar);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
   const { data: user, error: authError, isFetching, isLoading, refetch } = useMeQuery();
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    setMobileSidebarOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileSidebarOpen]);
 
   if (isLoading) {
     return (
@@ -86,18 +97,30 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-axis-bg text-axis-ink">
+      {mobileSidebarOpen ? (
+        <button
+          aria-label="메뉴 바깥 영역 닫기"
+          className="fixed inset-0 z-20 bg-black/30 lg:hidden"
+          type="button"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      ) : null}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-20 border-r border-axis-border-strong bg-white transition-all",
-          sidebarCollapsed ? "w-[84px]" : "w-[280px]"
+          "fixed inset-y-0 left-0 z-30 w-[280px] border-r border-axis-border-strong bg-white transition-transform lg:translate-x-0 lg:transition-all",
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          sidebarCollapsed ? "lg:w-[84px]" : "lg:w-[280px]"
         ].join(" ")}
       >
         <div className="flex h-16 items-center justify-between border-b border-axis-border-strong px-5">
-          <div className={sidebarCollapsed ? "sr-only" : "flex items-center gap-3"}>
+          <div className={sidebarCollapsed ? "flex items-center gap-3 lg:sr-only" : "flex items-center gap-3"}>
             <AxisLogo compact />
           </div>
-          <Button variant="ghost" className="h-9 w-9 px-0" onClick={toggleSidebar} aria-label="사이드바 접기">
-            {sidebarCollapsed ? ">" : "<"}
+          <Button variant="ghost" className="h-9 w-9 px-0 lg:hidden" onClick={() => setMobileSidebarOpen(false)} aria-label="사이드바 닫기">
+            <X size={18} strokeWidth={2.2} />
+          </Button>
+          <Button variant="ghost" className="hidden h-9 w-9 px-0 lg:inline-flex" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}>
+            {sidebarCollapsed ? <PanelLeftOpen size={18} strokeWidth={2.2} /> : <PanelLeftClose size={18} strokeWidth={2.2} />}
           </Button>
         </div>
 
@@ -108,6 +131,7 @@ export function App() {
               <NavLink
                 key={item.to}
                 to={item.to}
+                onClick={() => setMobileSidebarOpen(false)}
                 className={[
                   "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition",
                   location.pathname === item.to ? "bg-axis-ink text-white" : "text-axis-ink hover:bg-axis-bg"
@@ -121,7 +145,7 @@ export function App() {
                 >
                   <Icon size={18} strokeWidth={2.2} />
                 </span>
-                <span className={sidebarCollapsed ? "sr-only" : "min-w-0"}>
+                <span className={sidebarCollapsed ? "min-w-0 lg:sr-only" : "min-w-0"}>
                   <span className="block text-sm font-semibold">{item.label}</span>
                   <span className={location.pathname === item.to ? "block text-xs text-white/70" : "block text-xs text-axis-muted"}>
                     {item.description}
@@ -133,16 +157,21 @@ export function App() {
         </nav>
       </aside>
 
-      <main className={["min-h-screen transition-all", sidebarCollapsed ? "pl-[84px]" : "pl-[280px]"].join(" ")}>
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-axis-border-strong bg-white px-8">
-          <div>
-            <p className="text-sm font-medium text-axis-muted">Axis ERP</p>
-            <h1 className="text-xl font-semibold text-axis-ink">{title}</h1>
+      <main className={["min-h-screen transition-all", sidebarCollapsed ? "lg:pl-[84px]" : "lg:pl-[280px]"].join(" ")}>
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-3 border-b border-axis-border-strong bg-white px-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2">
+            <Button variant="ghost" className="h-10 w-10 shrink-0 px-0 lg:hidden" onClick={() => setMobileSidebarOpen(true)} aria-label="사이드바 열기">
+              <Menu size={20} strokeWidth={2.2} />
+            </Button>
+            <div className="min-w-0">
+              <p className="hidden text-sm font-medium text-axis-muted sm:block">Axis ERP</p>
+              <h1 className="truncate text-lg font-semibold text-axis-ink sm:text-xl">{title}</h1>
+            </div>
           </div>
           <AccountMenu user={user} />
         </header>
 
-        <div className="mx-auto max-w-7xl px-8 pb-[420px] pt-8">
+        <div className="mx-auto max-w-7xl px-4 pb-[420px] pt-5 sm:px-6 lg:px-8 lg:pt-8">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardView permissions={user.permissions} />} />
