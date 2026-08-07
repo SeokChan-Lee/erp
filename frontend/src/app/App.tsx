@@ -1,24 +1,25 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Building2, Clock3, FileClock, Handshake, LayoutDashboard, Menu, PackageSearch, PanelLeftClose, PanelLeftOpen, ReceiptText, ShieldCheck, UserCog, UserRound, X } from "lucide-react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import { AccountMenu } from "./components/AccountMenu";
-import { AccessControlView } from "../features/access-control/AccessControlView";
-import { AuditLogView } from "../features/audit/AuditLogView";
-import { AttendanceView } from "../features/attendance/AttendanceView";
 import { LoginView } from "../features/auth/LoginView";
 import { useMeQuery } from "../features/auth/api/authApi";
-import { DashboardView } from "../features/dashboard/DashboardView";
-import { InventoryView } from "../features/inventory/InventoryView";
-import { MyPageView } from "../features/my-page/MyPageView";
-import { OrganizationView } from "../features/organization/OrganizationView";
-import { PurchaseView } from "../features/purchase/PurchaseView";
-import { SalesView } from "../features/sales/SalesView";
-import { UserManagementView } from "../features/user-management/UserManagementView";
 import { useAppStore } from "../shared/store/appStore";
 import { ApiError, getErrorMessage } from "../shared/api/http";
 import { AxisLogo } from "../shared/ui/AxisLogo";
 import { Button } from "../shared/ui/Button";
+
+const AccessControlView = lazy(() => import("../features/access-control/AccessControlView").then((module) => ({ default: module.AccessControlView })));
+const AuditLogView = lazy(() => import("../features/audit/AuditLogView").then((module) => ({ default: module.AuditLogView })));
+const AttendanceView = lazy(() => import("../features/attendance/AttendanceView").then((module) => ({ default: module.AttendanceView })));
+const DashboardView = lazy(() => import("../features/dashboard/DashboardView").then((module) => ({ default: module.DashboardView })));
+const InventoryView = lazy(() => import("../features/inventory/InventoryView").then((module) => ({ default: module.InventoryView })));
+const MyPageView = lazy(() => import("../features/my-page/MyPageView").then((module) => ({ default: module.MyPageView })));
+const OrganizationView = lazy(() => import("../features/organization/OrganizationView").then((module) => ({ default: module.OrganizationView })));
+const PurchaseView = lazy(() => import("../features/purchase/PurchaseView").then((module) => ({ default: module.PurchaseView })));
+const SalesView = lazy(() => import("../features/sales/SalesView").then((module) => ({ default: module.SalesView })));
+const UserManagementView = lazy(() => import("../features/user-management/UserManagementView").then((module) => ({ default: module.UserManagementView })));
 
 const navItems = [
   { to: "/dashboard", label: "대시보드", description: "오늘의 운영 현황", icon: LayoutDashboard, permission: "DASHBOARD_VIEW" },
@@ -172,25 +173,35 @@ export function App() {
         </header>
 
         <div className="mx-auto max-w-7xl px-4 pb-[420px] pt-5 sm:px-6 lg:px-8 lg:pt-8">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardView permissions={user.permissions} />} />
-            <Route path="/organization" element={canReadEmployees ? <OrganizationView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
-            <Route
-              path="/users"
-              element={canReadUsers ? <UserManagementView currentUsername={user.username} permissions={user.permissions} /> : <Navigate to="/dashboard" replace />}
-            />
-            <Route path="/attendance" element={canReadAttendance ? <AttendanceView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/inventory" element={canReadInventory ? <InventoryView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/purchase" element={canReadPurchase ? <PurchaseView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/sales" element={canReadSales ? <SalesView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/audit" element={canReadAudit ? <AuditLogView /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/access" element={canReadRoles ? <AccessControlView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/my-page" element={<MyPageView />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+          <Suspense fallback={<RouteLoading />}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardView permissions={user.permissions} />} />
+              <Route path="/organization" element={canReadEmployees ? <OrganizationView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+              <Route
+                path="/users"
+                element={canReadUsers ? <UserManagementView currentUsername={user.username} permissions={user.permissions} /> : <Navigate to="/dashboard" replace />}
+              />
+              <Route path="/attendance" element={canReadAttendance ? <AttendanceView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/inventory" element={canReadInventory ? <InventoryView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/purchase" element={canReadPurchase ? <PurchaseView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/sales" element={canReadSales ? <SalesView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/audit" element={canReadAudit ? <AuditLogView /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/access" element={canReadRoles ? <AccessControlView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
+              <Route path="/my-page" element={<MyPageView />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
+    </div>
+  );
+}
+
+function RouteLoading() {
+  return (
+    <div className="flex min-h-40 items-center justify-center rounded-lg border border-axis-border bg-white text-sm font-semibold text-axis-muted">
+      화면을 불러오는 중입니다.
     </div>
   );
 }

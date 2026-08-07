@@ -241,3 +241,9 @@
 - Added optimistic-lock versions to inventory stock, purchase orders, and sales orders.
 - Added a managed `409 Conflict` response for concurrent updates.
 - Added a persistence test proving that a stale stock update cannot overwrite a newer quantity.
+
+### Responsive Shell and Route Loading
+
+- Changed the fixed desktop sidebar into a mobile overlay menu while preserving desktop collapse behavior.
+- Kept the account menu and dashboard summary within narrow viewports without page-level horizontal scrolling.
+- Split business views by route so the initial production JavaScript bundle loads only the application shell and the active page.
