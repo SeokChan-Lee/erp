@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import com.axiserp.inventory.WarehouseEntity;
 
@@ -44,6 +45,10 @@ public class PurchaseOrderEntity {
     private String receivedBy;
 
     private LocalDateTime receivedAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected PurchaseOrderEntity() {
     }

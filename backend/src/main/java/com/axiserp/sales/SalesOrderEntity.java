@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -69,6 +70,10 @@ public class SalesOrderEntity {
     private String shippedBy;
 
     private LocalDateTime shippedAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected SalesOrderEntity() {
     }

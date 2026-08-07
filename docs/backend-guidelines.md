@@ -142,3 +142,9 @@ ERP actions should be audit-friendly. Important actions should eventually record
 - Before and after values when appropriate
 - Timestamp
 - Request metadata when useful
+
+## Concurrent Updates
+
+- Inventory stock, purchase receipt state, and sales shipment state use JPA optimistic locking.
+- A stale update must return `409 Conflict` with a backend-managed retry message.
+- Inventory movements and audit logs are written in the same transaction as the protected stock or order update so a lock conflict rolls back the entire operation.

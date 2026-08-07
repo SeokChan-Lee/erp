@@ -235,3 +235,9 @@
 - Added separate persisted default permissions for every role.
 - Added `PATCH /api/roles/{role}/default-permissions` without changing the role's current permissions.
 - Changed the access-control reset action to compare against and restore the server-managed default after reloads and restarts.
+
+### Inventory and Order Concurrency
+
+- Added optimistic-lock versions to inventory stock, purchase orders, and sales orders.
+- Added a managed `409 Conflict` response for concurrent updates.
+- Added a persistence test proving that a stale stock update cannot overwrite a newer quantity.

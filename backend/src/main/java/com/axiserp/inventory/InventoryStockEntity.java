@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(
@@ -32,6 +33,10 @@ public class InventoryStockEntity {
 
     @Column(nullable = false)
     private int quantity;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected InventoryStockEntity() {
     }
