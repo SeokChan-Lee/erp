@@ -20,6 +20,7 @@ type SalesOrderListPanelProps = {
   statusOptions: Array<{ value: SalesOrderStatusFilter; label: string }>;
   loading: boolean;
   canUpdate: boolean;
+  canShip: boolean;
   shipPending: boolean;
   cancelShipPending: boolean;
   cancelPending: boolean;
@@ -45,6 +46,7 @@ export function SalesOrderListPanel({
   statusOptions,
   loading,
   canUpdate,
+  canShip,
   shipPending,
   cancelShipPending,
   cancelPending,
@@ -98,10 +100,10 @@ export function SalesOrderListPanel({
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap gap-2">
                       <Button className="h-8 gap-1.5 px-3 text-xs" type="button" variant="secondary" onClick={() => onSelectOrder(order.id)}><Eye size={14} strokeWidth={2.2} />상세</Button>
-                      {order.status === "REGISTERED" && !order.shippedAt && canUpdate ? (
+                      {order.status === "REGISTERED" && !order.shippedAt && canShip ? (
                         <Button className="h-8 gap-1.5 px-3 text-xs" disabled={shipPending || cancelShipPending || warehouseCount === 0} type="button" variant="secondary" onClick={() => onOpenShip(order)}><PackageCheck size={14} strokeWidth={2.2} />출고 처리</Button>
                       ) : null}
-                      {order.status === "REGISTERED" && order.shippedAt && canUpdate ? (
+                      {order.status === "REGISTERED" && order.shippedAt && canShip ? (
                         <Button className="h-8 gap-1.5 px-3 text-xs text-rose-700" disabled={cancelShipPending} type="button" variant="secondary" onClick={() => onCancelShip(order.id)}><RotateCcw size={14} strokeWidth={2.2} />출고 취소</Button>
                       ) : null}
                       {order.status === "REGISTERED" && !order.shippedAt && canUpdate ? (

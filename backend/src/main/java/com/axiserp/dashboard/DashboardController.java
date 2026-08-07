@@ -1,6 +1,7 @@
 package com.axiserp.dashboard;
 
 import com.axiserp.auth.AuthService;
+import com.axiserp.auth.api.AuthUserResponse;
 import com.axiserp.attendance.AttendanceChangeRequestRepository;
 import com.axiserp.attendance.AttendanceChangeRequestStatus;
 import com.axiserp.attendance.AttendanceService;
@@ -27,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 @RestController
@@ -65,43 +67,69 @@ public class DashboardController {
     @GetMapping("/summary")
     @Transactional(readOnly = true)
     public DashboardSummaryResponse summary(@CookieValue(name = AuthService.COOKIE_NAME, required = false) String sessionId) {
-        authService.requirePermission(sessionId, Permission.DASHBOARD_VIEW);
+        AuthUserResponse user = authService.requirePermission(sessionId, Permission.DASHBOARD_VIEW);
+        Set<Permission> permissions = user.permissions();
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         LocalDateTime tomorrowStart = todayStart.plusDays(1);
-        long pendingPurchaseRequests = purchaseRequestRepository.countByStatus(PurchaseRequestStatus.REQUESTED);
-        long pendingPurchaseReceipts = purchaseOrderRepository.countByReceivedAtIsNull();
-        long registeredSalesOrders = salesOrderRepository.countByStatus(SalesOrderStatus.REGISTERED);
-        long pendingSalesShipments = salesOrderRepository.countByStatusAndShippedAtIsNull(SalesOrderStatus.REGISTERED);
-        long pendingApprovals = attendanceChangeRequestRepository.countByStatus(AttendanceChangeRequestStatus.PENDING) + pendingPurchaseRequests;
-        long lowStockItems = inventoryStockRepository.findAll().stream()
-                .filter((stock) -> stock.getQuantity() < stock.getItem().getSafetyStock())
-                .count();
-        long recentActivities =
-                inventoryMovementRepository.countByProcessedAtBetween(todayStart, tomorrowStart) +
-                purchaseOrderRepository.countByOrderedAtBetween(todayStart, tomorrowStart) +
-                salesOrderRepository.countByOrderedAtBetween(todayStart, tomorrowStart);
+        boolean canReadInventory = permissions.contains(Permission.INVENTORY_READ);
+        boolean canReadPurchase = permissions.contains(Permission.PURCHASE_READ);
+        boolean canReadSales = permissions.contains(Permission.SALES_READ);
+        long pendingPurchaseRequests = permissions.contains(Permission.PURCHASE_APPROVE)
+                ? purchaseRequestRepository.countByStatus(PurchaseRequestStatus.REQUESTED)
+                : 0;
+        long pendingAttendanceApprovals = permissions.contains(Permission.ATTENDANCE_APPROVE)
+                ? attendanceChangeRequestRepository.countByStatus(AttendanceChangeRequestStatus.PENDING)
+                : 0;
+        long pendingPurchaseReceipts = canReadPurchase ? purchaseOrderRepository.countByReceivedAtIsNull() : 0;
+        long registeredSalesOrders = canReadSales ? salesOrderRepository.countByStatus(SalesOrderStatus.REGISTERED) : 0;
+        long pendingSalesShipments = canReadSales
+                ? salesOrderRepository.countByStatusAndShippedAtIsNull(SalesOrderStatus.REGISTERED)
+                : 0;
+        long lowStockItems = canReadInventory
+                ? inventoryStockRepository.findAll().stream()
+                        .filter((stock) -> stock.getQuantity() < stock.getItem().getSafetyStock())
+                        .count()
+                : 0;
+        long recentActivities = 0;
+        if (canReadInventory) {
+            recentActivities += inventoryMovementRepository.countByProcessedAtBetween(todayStart, tomorrowStart);
+        }
+        if (canReadPurchase) {
+            recentActivities += purchaseOrderRepository.countByOrderedAtBetween(todayStart, tomorrowStart);
+        }
+        if (canReadSales) {
+            recentActivities += salesOrderRepository.countByOrderedAtBetween(todayStart, tomorrowStart);
+        }
+        long checkedIn = permissions.contains(Permission.ATTENDANCE_READ_ALL)
+                ? attendanceService.todayAll().size()
+                : (permissions.contains(Permission.ATTENDANCE_READ_SELF)
+                        && attendanceService.todayFor(user.username()).checkInAt() != null ? 1 : 0);
 
         return new DashboardSummaryResponse(
-                attendanceService.todayAll().size(),
-                pendingApprovals,
+                checkedIn,
+                pendingAttendanceApprovals + pendingPurchaseRequests,
                 lowStockItems,
                 recentActivities,
                 pendingPurchaseRequests,
                 pendingPurchaseReceipts,
                 registeredSalesOrders,
                 pendingSalesShipments,
-                recentActivityItems()
+                recentActivityItems(permissions)
         );
     }
 
-    private List<DashboardRecentActivityResponse> recentActivityItems() {
-        return Stream.concat(
-                        Stream.concat(
-                                inventoryMovementRepository.findTop5ByOrderByProcessedAtDescIdDesc().stream().map(this::inventoryActivity),
-                                purchaseOrderRepository.findTop5ByOrderByOrderedAtDescIdDesc().stream().map(this::purchaseActivity)
-                        ),
-                        salesOrderRepository.findTop5ByOrderByOrderedAtDescIdDesc().stream().map(this::salesActivity)
-                )
+    private List<DashboardRecentActivityResponse> recentActivityItems(Set<Permission> permissions) {
+        Stream<DashboardRecentActivityResponse> activities = Stream.empty();
+        if (permissions.contains(Permission.INVENTORY_READ)) {
+            activities = Stream.concat(activities, inventoryMovementRepository.findTop5ByOrderByProcessedAtDescIdDesc().stream().map(this::inventoryActivity));
+        }
+        if (permissions.contains(Permission.PURCHASE_READ)) {
+            activities = Stream.concat(activities, purchaseOrderRepository.findTop5ByOrderByOrderedAtDescIdDesc().stream().map(this::purchaseActivity));
+        }
+        if (permissions.contains(Permission.SALES_READ)) {
+            activities = Stream.concat(activities, salesOrderRepository.findTop5ByOrderByOrderedAtDescIdDesc().stream().map(this::salesActivity));
+        }
+        return activities
                 .sorted(Comparator.comparing(DashboardRecentActivityResponse::occurredAt).reversed())
                 .limit(8)
                 .toList();

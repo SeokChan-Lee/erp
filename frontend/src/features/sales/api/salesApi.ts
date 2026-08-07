@@ -18,9 +18,10 @@ export const salesKeys = {
   orderDetail: (orderId: number) => ["sales", "orders", orderId] as const
 };
 
-export function useActiveSalesCustomersQuery() {
+export function useActiveSalesCustomersQuery(enabled = true) {
   return useQuery({
     queryKey: salesKeys.activeCustomers,
+    enabled,
     queryFn: () =>
       http<PageResponse<SalesCustomer>>("/customers?page=1&pageSize=100&status=ACTIVE")
   });

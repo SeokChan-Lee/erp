@@ -50,8 +50,12 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
   const [shipWarehouseId, setShipWarehouseId] = useState(0);
   const [toastMessage, setToastMessage] = useState("");
 
-  const canCreateSales = permissions.includes("SALES_CREATE");
+  const canReadCustomers = permissions.includes("CUSTOMER_READ");
+  const canReadItems = permissions.includes("ITEM_READ");
+  const canReadInventory = permissions.includes("INVENTORY_READ");
+  const canCreateSales = permissions.includes("SALES_CREATE") && canReadCustomers && canReadItems;
   const canUpdateSales = permissions.includes("SALES_UPDATE");
+  const canShipSales = canUpdateSales && canReadInventory;
 
   const orderParams = useMemo<SalesOrderQueryParams>(
     () => ({
@@ -72,9 +76,9 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
     []
   );
 
-  const { data: customersPage, error: customersError } = useActiveSalesCustomersQuery();
-  const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
-  const { data: warehouses = [], error: warehousesError } = useWarehousesQuery();
+  const { data: customersPage, error: customersError } = useActiveSalesCustomersQuery(canCreateSales);
+  const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams, canCreateSales);
+  const { data: warehouses = [], error: warehousesError } = useWarehousesQuery(canShipSales);
   const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = useSalesOrdersQuery(orderParams);
   const { data: selectedOrder, error: selectedOrderError, isLoading: selectedOrderLoading } = useSalesOrderQuery(selectedOrderId);
   const createOrder = useCreateSalesOrderMutation();
@@ -218,6 +222,7 @@ export function SalesView({ permissions = [] }: { permissions?: string[] }) {
         statusOptions={statusOptions}
         loading={ordersLoading}
         canUpdate={canUpdateSales}
+        canShip={canShipSales}
         shipPending={shipOrder.isPending}
         cancelShipPending={cancelShipOrder.isPending}
         cancelPending={cancelOrder.isPending}

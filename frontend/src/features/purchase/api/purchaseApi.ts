@@ -82,9 +82,10 @@ export function useUpdateCustomerMutation() {
   });
 }
 
-export function useSuppliersQuery(params: SupplierQueryParams) {
+export function useSuppliersQuery(params: SupplierQueryParams, enabled = true) {
   return useQuery({
     queryKey: purchaseKeys.suppliers(params),
+    enabled,
     queryFn: () => {
       const query = new URLSearchParams({
         page: String(params.page),
@@ -101,9 +102,10 @@ export function useSuppliersQuery(params: SupplierQueryParams) {
   });
 }
 
-export function usePurchaseRequestsQuery(params: PurchaseRequestQueryParams) {
+export function usePurchaseRequestsQuery(params: PurchaseRequestQueryParams, enabled = true) {
   return useQuery({
     queryKey: purchaseKeys.requests(params),
+    enabled,
     queryFn: () => {
       const query = new URLSearchParams({
         page: String(params.page),
@@ -120,9 +122,10 @@ export function usePurchaseRequestsQuery(params: PurchaseRequestQueryParams) {
   });
 }
 
-export function usePurchaseOrdersQuery(params: PurchaseOrderQueryParams) {
+export function usePurchaseOrdersQuery(params: PurchaseOrderQueryParams, enabled = true) {
   return useQuery({
     queryKey: purchaseKeys.orders(params),
+    enabled,
     queryFn: () => {
       const query = new URLSearchParams({
         page: String(params.page),

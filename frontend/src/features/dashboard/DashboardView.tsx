@@ -6,7 +6,7 @@ import { MetricCard } from "../../shared/ui/MetricCard";
 import { Panel } from "../../shared/ui/Panel";
 import type { DashboardRecentActivity } from "./api/dto";
 
-export function DashboardView() {
+export function DashboardView({ permissions = [] }: { permissions?: string[] }) {
   const navigate = useNavigate();
   const { data: summary, error } = useDashboardSummaryQuery();
 
@@ -20,12 +20,36 @@ export function DashboardView() {
   const pendingSalesShipments = summary?.pendingSalesShipments ?? 0;
   const recentActivityItems = summary?.recentActivityItems ?? [];
   const visibleRecentActivityItems = recentActivityItems.slice(0, 4);
+  const canReadAttendance = permissions.includes("ATTENDANCE_READ_SELF") || permissions.includes("ATTENDANCE_READ_ALL");
+  const canReadAllAttendance = permissions.includes("ATTENDANCE_READ_ALL");
+  const canApproveAttendance = permissions.includes("ATTENDANCE_APPROVE");
+  const canReadInventory = permissions.includes("INVENTORY_READ");
+  const canReadPurchase = permissions.includes("PURCHASE_READ");
+  const canApprovePurchase = permissions.includes("PURCHASE_APPROVE");
+  const canReadSales = permissions.includes("SALES_READ");
+  const canReadActivities = canReadInventory || canReadPurchase || canReadSales;
 
   const workSignals = [
-    { label: "승인 대기", value: String(pendingApprovals), tone: "text-axis-blue" },
-    { label: "재고 경고", value: String(lowStockItems), tone: "text-amber-600" },
-    { label: "최근 활동", value: String(recentActivities), tone: "text-rose-600" }
-  ];
+    (canApproveAttendance || canApprovePurchase) ? { label: "승인 대기", value: String(pendingApprovals), tone: "text-axis-blue" } : null,
+    canReadInventory ? { label: "재고 경고", value: String(lowStockItems), tone: "text-amber-600" } : null,
+    canReadActivities ? { label: "최근 활동", value: String(recentActivities), tone: "text-rose-600" } : null
+  ].filter((item): item is { label: string; value: string; tone: string } => item !== null);
+  const metrics = [
+    canReadAttendance ? { label: canReadAllAttendance ? "오늘 출근" : "내 출근", value: `${checkedIn}명`, change: "실시간" } : null,
+    (canApproveAttendance || canApprovePurchase) ? { label: "승인 대기", value: `${pendingApprovals}건` } : null,
+    canReadInventory ? { label: "재고 경고", value: `${lowStockItems}건` } : null,
+    canReadActivities ? { label: "오늘 처리", value: `${recentActivities}건` } : null,
+    canApprovePurchase ? { label: "구매 승인 대기", value: `${pendingPurchaseRequests}건` } : null,
+    canReadPurchase ? { label: "구매 입고 대기", value: `${pendingPurchaseReceipts}건` } : null,
+    canReadSales ? { label: "판매 수주", value: `${registeredSalesOrders}건` } : null,
+    canReadSales ? { label: "판매 출고 대기", value: `${pendingSalesShipments}건` } : null
+  ].filter((item): item is { label: string; value: string; change?: string } => item !== null);
+  const pendingItems = [
+    (canApproveAttendance || canApprovePurchase) ? { label: "근태/구매 승인 검토", value: `${pendingApprovals}건` } : null,
+    canReadPurchase ? { label: "구매 입고 처리", value: `${pendingPurchaseReceipts}건` } : null,
+    canReadSales ? { label: "판매 출고 처리", value: `${pendingSalesShipments}건` } : null,
+    canReadInventory ? { label: "재고 부족 품목 확인", value: `${lowStockItems}건` } : null
+  ].filter((item): item is { label: string; value: string } => item !== null);
 
   return (
     <div className="space-y-6">
@@ -55,26 +79,16 @@ export function DashboardView() {
         </p>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="오늘 출근" value={`${checkedIn}명`} change="실시간" />
-        <MetricCard label="승인 대기" value={`${pendingApprovals}건`} />
-        <MetricCard label="재고 경고" value={`${lowStockItems}건`} />
-        <MetricCard label="오늘 처리" value={`${recentActivities}건`} />
-        <MetricCard label="구매 승인 대기" value={`${pendingPurchaseRequests}건`} />
-        <MetricCard label="구매 입고 대기" value={`${pendingPurchaseReceipts}건`} />
-        <MetricCard label="판매 수주" value={`${registeredSalesOrders}건`} />
-        <MetricCard label="판매 출고 대기" value={`${pendingSalesShipments}건`} />
-      </div>
+      {metrics.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
+        </div>
+      ) : null}
 
       <div className="grid items-stretch gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel title="운영 처리 대기" description="오늘 바로 판단해야 하는 업무를 실제 데이터 기준으로 집계합니다.">
           <div className="divide-y divide-axis-border">
-            {[
-              { label: "근태/구매 승인 검토", value: `${pendingApprovals}건` },
-              { label: "구매 입고 처리", value: `${pendingPurchaseReceipts}건` },
-              { label: "판매 출고 처리", value: `${pendingSalesShipments}건` },
-              { label: "재고 부족 품목 확인", value: `${lowStockItems}건` }
-            ].map(
+            {pendingItems.map(
               (item) => (
                 <div key={item.label} className="flex min-h-[72px] items-center justify-between gap-4 py-3">
                   <div>
@@ -87,6 +101,9 @@ export function DashboardView() {
                 </div>
               )
             )}
+            {pendingItems.length === 0 ? (
+              <p className="py-5 text-sm font-semibold text-axis-muted">확인할 운영 업무가 없습니다.</p>
+            ) : null}
           </div>
         </Panel>
 

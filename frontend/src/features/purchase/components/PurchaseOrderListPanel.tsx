@@ -19,7 +19,8 @@ type PurchaseOrderListPanelProps = {
   fromDateInput: string;
   toDateInput: string;
   loading: boolean;
-  canManageOrder: boolean;
+  canReceiveOrder: boolean;
+  canCancelReceive: boolean;
   receivePending: boolean;
   cancelReceivePending: boolean;
   warehouseCount: number;
@@ -43,7 +44,8 @@ export function PurchaseOrderListPanel({
   fromDateInput,
   toDateInput,
   loading,
-  canManageOrder,
+  canReceiveOrder,
+  canCancelReceive,
   receivePending,
   cancelReceivePending,
   warehouseCount,
@@ -139,7 +141,7 @@ export function PurchaseOrderListPanel({
                           <Eye size={14} strokeWidth={2.2} />
                           상세
                         </Button>
-                        {!order.receivedAt && canManageOrder ? (
+                        {!order.receivedAt && canReceiveOrder ? (
                           <Button
                             className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs"
                             disabled={receivePending || cancelReceivePending || warehouseCount === 0}
@@ -151,7 +153,7 @@ export function PurchaseOrderListPanel({
                             입고 처리
                           </Button>
                         ) : null}
-                        {order.receivedAt && canManageOrder ? (
+                        {order.receivedAt && canCancelReceive ? (
                           <Button
                             className="h-8 gap-1.5 whitespace-nowrap px-3 text-xs text-rose-700"
                             disabled={cancelReceivePending}

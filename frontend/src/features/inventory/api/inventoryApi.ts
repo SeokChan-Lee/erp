@@ -33,9 +33,10 @@ export function useInventoryOverviewQuery() {
   });
 }
 
-export function useWarehousesQuery() {
+export function useWarehousesQuery(enabled = true) {
   return useQuery({
     queryKey: inventoryKeys.warehouses,
+    enabled,
     queryFn: () => http<Warehouse[]>("/inventory/warehouses")
   });
 }
@@ -58,9 +59,10 @@ export function useCreateWarehouseMutation() {
   });
 }
 
-export function useItemsQuery(params: ItemQueryParams) {
+export function useItemsQuery(params: ItemQueryParams, enabled = true) {
   return useQuery({
     queryKey: inventoryKeys.items(params),
+    enabled,
     queryFn: () => {
       const query = new URLSearchParams({
         page: String(params.page),

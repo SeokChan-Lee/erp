@@ -115,11 +115,15 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   const [toastMessage, setToastMessage] = useState("");
 
   const canReadCustomer = permissions.includes("CUSTOMER_READ");
+  const canReadSupplier = permissions.includes("SUPPLIER_READ");
+  const canReadPurchase = permissions.includes("PURCHASE_READ");
+  const canReadItems = permissions.includes("ITEM_READ");
+  const canReadInventory = permissions.includes("INVENTORY_READ");
   const canCreateCustomer = permissions.includes("CUSTOMER_CREATE");
   const canUpdateCustomer = permissions.includes("CUSTOMER_UPDATE");
   const canCreateSupplier = permissions.includes("SUPPLIER_CREATE");
   const canUpdateSupplier = permissions.includes("SUPPLIER_UPDATE");
-  const canCreatePurchase = permissions.includes("PURCHASE_CREATE");
+  const canCreatePurchase = permissions.includes("PURCHASE_CREATE") && canReadSupplier && canReadItems;
   const canApprovePurchase = permissions.includes("PURCHASE_APPROVE");
   const canCancelPurchase = permissions.includes("PURCHASE_UPDATE");
 
@@ -180,13 +184,13 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
   );
 
   const { data: customersPage, error: customersError, isLoading: customersLoading } = useCustomersQuery(customerParams, canReadCustomer);
-  const { data: suppliersPage, error: suppliersError, isLoading: suppliersLoading } = useSuppliersQuery(supplierParams);
-  const { data: activeSuppliersPage, error: activeSuppliersError } = useSuppliersQuery(allSupplierParams);
-  const { data: requestsPage, error: requestsError, isLoading: requestsLoading } = usePurchaseRequestsQuery(requestParams);
-  const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = usePurchaseOrdersQuery(orderParams);
+  const { data: suppliersPage, error: suppliersError, isLoading: suppliersLoading } = useSuppliersQuery(supplierParams, canReadSupplier);
+  const { data: activeSuppliersPage, error: activeSuppliersError } = useSuppliersQuery(allSupplierParams, canCreatePurchase);
+  const { data: requestsPage, error: requestsError, isLoading: requestsLoading } = usePurchaseRequestsQuery(requestParams, canReadPurchase);
+  const { data: ordersPage, error: ordersError, isLoading: ordersLoading } = usePurchaseOrdersQuery(orderParams, canReadPurchase);
   const { data: selectedOrder, error: selectedOrderError, isLoading: selectedOrderLoading } = usePurchaseOrderQuery(selectedOrderId);
-  const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams);
-  const { data: warehouses = [], error: warehousesError } = useWarehousesQuery();
+  const { data: itemsPage, error: itemsError } = useItemsQuery(itemParams, canCreatePurchase);
+  const { data: warehouses = [], error: warehousesError } = useWarehousesQuery(canReadPurchase && canCancelPurchase && canReadInventory);
   const createCustomer = useCreateCustomerMutation();
   const updateCustomer = useUpdateCustomerMutation();
   const createSupplier = useCreateSupplierMutation();
@@ -562,7 +566,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         />
       ) : null}
 
-      <SupplierListPanel
+      {canReadSupplier ? <SupplierListPanel
         suppliers={suppliers}
         totalSuppliers={totalSuppliers}
         page={supplierPage}
@@ -586,9 +590,9 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
         onResetFilters={resetSupplierFilters}
         onPageChange={setSupplierPage}
         onEdit={handleEditSupplier}
-      />
+      /> : null}
 
-      <div className="grid min-w-0 gap-6">
+      {canReadPurchase ? <div className="grid min-w-0 gap-6">
         {canCreatePurchase ? (
           <PurchaseRequestCreatePanel
             form={purchaseForm}
@@ -643,7 +647,8 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           fromDateInput={orderFromDateInput}
           toDateInput={orderToDateInput}
           loading={ordersLoading}
-          canManageOrder={canCancelPurchase}
+          canReceiveOrder={canCancelPurchase && canReadInventory}
+          canCancelReceive={canCancelPurchase}
           receivePending={receiveOrder.isPending}
           cancelReceivePending={cancelReceiveOrder.isPending}
           warehouseCount={warehouses.length}
@@ -657,7 +662,7 @@ export function PurchaseView({ permissions = [] }: { permissions?: string[] }) {
           onOpenReceive={openReceiveModal}
           onCancelReceive={handleCancelReceiveOrder}
         />
-      </div>
+      </div> : null}
 
       <PurchaseModals
         request={{

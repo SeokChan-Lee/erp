@@ -130,7 +130,7 @@ export function App() {
         <div className="mx-auto max-w-7xl px-8 pb-[420px] pt-8">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardView />} />
+            <Route path="/dashboard" element={<DashboardView permissions={user.permissions} />} />
             <Route path="/organization" element={canReadEmployees ? <OrganizationView permissions={user.permissions} /> : <Navigate to="/dashboard" replace />} />
             <Route
               path="/users"
