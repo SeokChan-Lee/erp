@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError, http } from "../../../shared/api/http";
+import { clearAuthenticatedCache } from "../../../shared/api/queryClient";
 import type { AuthUser, LoginPayload } from "./dto";
 
 export const authKeys = {
@@ -28,8 +29,9 @@ export function useLoginMutation() {
       http<AuthUser>("/auth/login", {
         method: "POST",
         json: payload
-      }),
+    }),
     onSuccess: (user) => {
+      queryClient.clear();
       queryClient.setQueryData(authKeys.me, user);
     }
   });
@@ -41,9 +43,7 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: () => http<void>("/auth/logout", { method: "POST" }),
     onSuccess: () => {
-      queryClient.setQueryData(authKeys.me, null);
-      queryClient.removeQueries({ queryKey: ["dashboard"] });
-      queryClient.removeQueries({ queryKey: ["attendance"] });
+      clearAuthenticatedCache();
     }
   });
 }

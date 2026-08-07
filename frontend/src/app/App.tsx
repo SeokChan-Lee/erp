@@ -16,6 +16,7 @@ import { PurchaseView } from "../features/purchase/PurchaseView";
 import { SalesView } from "../features/sales/SalesView";
 import { UserManagementView } from "../features/user-management/UserManagementView";
 import { useAppStore } from "../shared/store/appStore";
+import { ApiError, getErrorMessage } from "../shared/api/http";
 import { AxisLogo } from "../shared/ui/AxisLogo";
 import { Button } from "../shared/ui/Button";
 
@@ -36,7 +37,7 @@ export function App() {
   const sidebarCollapsed = useAppStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useAppStore((state) => state.toggleSidebar);
   const location = useLocation();
-  const { data: user, isLoading } = useMeQuery();
+  const { data: user, error: authError, isFetching, isLoading, refetch } = useMeQuery();
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -46,6 +47,20 @@ export function App() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-axis-bg text-sm font-semibold text-axis-muted">
         Axis ERP를 불러오는 중입니다.
+      </div>
+    );
+  }
+
+  if (authError && !(authError instanceof ApiError && authError.status === 401)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-axis-bg px-6">
+        <div className="w-full max-w-md rounded-lg border border-axis-border bg-white p-6 text-center">
+          <h1 className="text-xl font-semibold text-axis-ink">서비스에 연결할 수 없습니다.</h1>
+          <p className="mt-2 text-sm font-medium text-axis-muted">{getErrorMessage(authError)}</p>
+          <Button className="mt-5" disabled={isFetching} onClick={() => void refetch()}>
+            {isFetching ? "다시 연결 중" : "다시 시도"}
+          </Button>
+        </div>
       </div>
     );
   }

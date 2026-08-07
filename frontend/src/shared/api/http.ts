@@ -1,5 +1,7 @@
 import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 
+import { clearAuthenticatedCache } from "./queryClient";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -29,7 +31,11 @@ export async function http<T>(path: string, options: HttpOptions = {}): Promise<
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      throw new ApiError(readErrorMessage(error), error.response?.status ?? 0);
+      const status = error.response?.status ?? 0;
+      if (status === 401 && !path.includes("/auth/login")) {
+        clearAuthenticatedCache();
+      }
+      throw new ApiError(readErrorMessage(error), status);
     }
     throw error;
   }
